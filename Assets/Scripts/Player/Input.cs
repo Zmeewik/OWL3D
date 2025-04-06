@@ -56,12 +56,9 @@ public class Input : MonoBehaviour
     //Input in gaming process
     public void OnMove(InputAction.CallbackContext context)
     {
-        if(context.performed || context.canceled)
+        foreach(var goal in movable_goal)
         {
-            foreach(var goal in movable_goal)
-            {
-                goal.OnMove(context.ReadValue<Vector2>());
-            }
+            goal.OnMove(context.ReadValue<Vector2>());
         }
     }
 
