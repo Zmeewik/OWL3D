@@ -70,6 +70,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         }
     }
 
+
     //Movement states
     void Moving()
     {
@@ -136,6 +137,9 @@ public class PlayerMovement : MonoBehaviour, IMovable
         rb.MoveRotation(targetRotation);
     }
 
+
+
+    //Input handle
     //Standard moving
     public void Jump()
     {
