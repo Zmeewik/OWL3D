@@ -9,6 +9,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     [Header("References")]
     [SerializeField]
     GameObject cameraObj;
+    [SerializeField] Transform cameraPosition;
 
 
     [Header("Rotation")]
@@ -19,28 +20,42 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
     //Rotation handle
     Vector2 rotationVector;
-    
+    float xRotation;
 
-
-
-    public void FixedUpdate()
+    //Update camera position and rotation at late update
+    public void LateUpdate()
     {
         if(rotationVector != Vector2.zero)
             FirstPerson();
+        AttachCamera();
     }
 
+    //Attach camera to an object
+    public void AttachCamera()
+    {
+        transform.position = cameraPosition.position;
+    }
 
+    //Rotate camera with mouse
     public void FirstPerson()
     {
-        Vector3 deltaRotation = new Vector3(rotationVector.y * speedRotation * sensitivity, 0f, 0f);
-        transform.Rotate(deltaRotation);
+        //Find current look rotation
+        Vector3 rot = cameraObj.transform.rotation.eulerAngles;
+        var desiredX = rot.y + rotationVector.x * speedRotation * sensitivity;
+        
+        //Rotate and limit y axis
+        xRotation -= rotationVector.y * speedRotation * sensitivity;
+        xRotation = Mathf.Clamp(xRotation, -89f, 89f);
+
+        //Perform the rotations
+        cameraObj.transform.rotation = Quaternion.Euler(xRotation, desiredX, 0);
     }
 
 
     //Change camera rotation
     public void DeltaRotation(Vector2 delta)
     {
-        rotationVector = new Vector2 (delta.x, -delta.y);
+        rotationVector = new Vector2 (delta.x, delta.y);
     }
 
 }

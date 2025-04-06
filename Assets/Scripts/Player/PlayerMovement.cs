@@ -10,6 +10,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
 
     [Header("References")]
     [SerializeField] Rigidbody rb;
+    [SerializeField] Transform front;
+    [SerializeReference] Transform cameraFront;
     
     [Header("Rotation")]
     [SerializeField] float speedRotation;
@@ -19,7 +21,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
     [Header("Movement")]
     [SerializeField] float acceleration;
     [SerializeField] float maxSpeed;
-    [SerializeField] float decceleration;
+    [SerializeField] public float dragOnGround;
+    public float airControlMultiplier;
 
     [Header("Jump")]
     [SerializeField] float jumpForce;
@@ -31,8 +34,22 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
     //Vectors of body
     Vector3 frontDirection = Vector3.forward;
     Vector3 rightDirection = Vector3.right;
+
+
+    //Move handle
     Vector2 moveVector = Vector2.zero;
+
+
+
+    //Rotation handle
+    float xRotation;
     Vector2 rotationVector = Vector2.zero;
+
+
+
+    //Bool
+    enum IsGrounded {Grounded, InAir};
+    IsGrounded isGrounded = IsGrounded.Grounded;
 
     
     //State handle
@@ -45,7 +62,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
         {
             case BodyState.Moving:
                 Moving();
-                RotateBody();
+                ApplyDrag();
             break;
             case BodyState.Dashing:
             break;
@@ -60,6 +77,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
         }
     }
 
+    private void LateUpdate()
+    {
+        RotateBody();
+    }
+
     //Movement states
     void Moving()
     {
@@ -68,25 +90,13 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
         //Adding force to object until reaching max speed
         if(moveVector != Vector2.zero)
         {
-            rb.AddForce(rightDirection * moveVector.x * acceleration, ForceMode.Force);
-            rb.AddForce(frontDirection * moveVector.y * acceleration, ForceMode.Force);
-            
-            print(rb.velocity);
-            if(Math.Abs(rb.velocity.x) > maxSpeed)
+            //Speed limit
+            Vector3 horizontalVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+            if (horizontalVel.magnitude < maxSpeed)
             {
-                rb.velocity = new Vector3(rb.velocity.x < 0 ? -1 : 1 * maxSpeed, rb.velocity.y, rb.velocity.z);
+                rb.AddForce(transform.right * moveVector.x * acceleration, ForceMode.Acceleration);
+                rb.AddForce(transform.forward * moveVector.y * acceleration, ForceMode.Acceleration);
             }
-            if(Math.Abs(rb.velocity.z) > maxSpeed)
-            {
-                rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y, rb.velocity.z < 0 ? -1 : 1 * maxSpeed);
-            }
-        }
-        //Reduce force to object until stop
-        else
-        {
-            Vector3 horizontalVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-            Vector3 decelerationForce = -horizontalVelocity * decceleration;
-            rb.AddForce(decelerationForce, ForceMode.Force);
         }
     }
 
@@ -95,11 +105,30 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
     //Rotating methond
     void RotateBody()
     {
-        Quaternion deltaRotation = Quaternion.Euler(0f, rotationVector.x * speedRotation * sensitivity, 0f);
-        frontDirection = transform.forward;
-        rightDirection = transform.right;
-        rb.MoveRotation(rb.rotation * deltaRotation);
+        //Rotating player
+        //Find current look rotation
+        //Vector3 rot = transform.rotation.eulerAngles;
+        //var desiredX = rot.y + rotationVector.x * speedRotation * sensitivity;
+
+        //Perform the rotations
+        //transform.rotation = Quaternion.Euler(0, desiredX, 0);
+
+
+        Vector3 forward = cameraFront.forward;
+        forward.y = 0f;
+        forward.Normalize();
+
+        Quaternion targetRotation = Quaternion.LookRotation(forward);
+        rb.MoveRotation(targetRotation);
     }
+
+
+    //Applying drag if player is on the ground
+    void ApplyDrag()
+    {
+        rb.drag = isGrounded == IsGrounded.Grounded ? dragOnGround : 0f;
+    }
+
 
 
     //Standard moving
@@ -117,6 +146,5 @@ public class PlayerMovement : MonoBehaviour, IMovable, IRotatable
     public void DeltaRotation(Vector2 delta)
     {
         rotationVector = delta;
-        
     }
 }
