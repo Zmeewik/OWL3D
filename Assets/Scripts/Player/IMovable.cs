@@ -3,5 +3,6 @@ using UnityEngine;
 public interface IMovable
 {
     void OnMove(Vector2 vector);
-    void Jump();
+    void OnJump();
+    void OnDash();
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEditor.Timeline.Actions;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -67,7 +66,7 @@ public class Input : MonoBehaviour
         if(context.performed)
             foreach(var goal in movable_goal)
             {
-                goal.Jump();
+                goal.OnJump();
             }
     }
 
@@ -80,6 +79,16 @@ public class Input : MonoBehaviour
                 goal.DeltaRotation(context.ReadValue<Vector2>());
             }
         }
+    }
+
+
+    public void OnDash(InputAction.CallbackContext context)
+    {
+        if(context.performed)
+            foreach(var goal in movable_goal)
+            {
+                goal.OnDash();
+            }
     }
 
 }
