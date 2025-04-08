@@ -1,7 +1,9 @@
 
+using UnityEngine;
+
 public interface IInteractable
 {
 
-    void Activate();
+    void Activate(Collider goal);
 
 }

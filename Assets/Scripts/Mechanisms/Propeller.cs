@@ -6,10 +6,10 @@ public class Propeller : MonoBehaviour, IInteractable
 {
 
 
-    public void Activate()
+    public void Activate(Collider goal)
     {
-        
+        var goalRb = other.GetComponent<Rigidbody>();
     }
 
-    
+
 }
