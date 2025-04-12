@@ -41,9 +41,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] float airMaxSpeed;
 
 
-    
-
-
     //Grounded check
     enum IsGrounded {Grounded, InAir};
     IsGrounded isGrounded = IsGrounded.Grounded;
@@ -65,6 +62,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //Events at ground change state
         collisionScr.OnGrounded += OnLand;
         collisionScr.OnNotGrounded += OnFly;
+
+
     }
     public void OnDisable()
     {
@@ -156,7 +155,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
         // Counter force in the air
         else if(horizontalVel.magnitude > airMaxSpeed && airMaxSpeed != 0)
         {
-            print(horizontalVel.magnitude);
             //Getting direction of movement
             Vector3 moveDir = horizontalVel.normalized;
 
@@ -164,6 +162,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             Vector3 counterForce = -moveDir * acceleration;
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
+        print(horizontalVel.magnitude);
 
     }
 
@@ -198,7 +197,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     public void OnJump()
     {
         if(isGrounded == IsGrounded.Grounded)
-            rb.AddForce(Vector2.up * jumpForce, ForceMode.Impulse);
+            rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
     }
     
     public void OnMove(Vector2 vector)
@@ -231,7 +230,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         var dashVelocity = dashTime * (dashDistance / dashTime);
 
         //Dash player and change its state
-        rb.AddForce(lookDirection * dashVelocity, ForceMode.Impulse);
+        rb.AddForce(lookDirection * dashVelocity * rb.mass, ForceMode.Impulse);
 
         //End dash afrter time
         currentState = BodyState.Dashing;
@@ -253,6 +252,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
         if(currentState == BodyState.InAir)
             currentState = BodyState.Moving;
         isGrounded = IsGrounded.Grounded;
+        var massCoefficient = 1 / rb.mass * 80;
+        rb.velocity = new Vector3(rb.velocity.x, -10 * massCoefficient, rb.velocity.z);
         print("Grounded");
     }
 

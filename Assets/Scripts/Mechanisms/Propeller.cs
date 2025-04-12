@@ -14,7 +14,8 @@ public class Propeller : MonoBehaviour, IInteractable
     {
         var goalRb = goal.GetComponent<Rigidbody>();
         goalRb.velocity = new Vector3(goalRb.velocity.x, 0f, goalRb.velocity.z);
-        goalRb.AddForce(Vector3.up * tossForce, ForceMode.Impulse);
+        var goalCoefficient = 1 / goalRb.mass * 80;
+        goalRb.AddForce(Vector3.up * tossForce * goalRb.mass * goalCoefficient, ForceMode.Impulse);
     }
 
 
