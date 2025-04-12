@@ -14,6 +14,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] Transform front;
     [SerializeField] Transform cameraFront;
     [SerializeField] CollisionCheck collisionScr;
+    [SerializeField] SurfaceHandler surfaceHandler;
     
     [Header("Rotation")]
     [SerializeField] float speedRotation;
@@ -53,6 +54,10 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
 
+    //Surface handle
+    public Vector3 groundNormal;
+    public Vector3 wallNormal;
+
 
 
     //Start settings
@@ -62,7 +67,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //Events at ground change state
         collisionScr.OnGrounded += OnLand;
         collisionScr.OnNotGrounded += OnFly;
-
+        collisionScr.OnGroundNormalChanged += OnGroundCollide;
 
     }
     public void OnDisable()
@@ -70,6 +75,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //Unsubscribe events
         collisionScr.OnGrounded -= OnLand;
         collisionScr.OnNotGrounded -= OnFly;
+        collisionScr.OnGroundNormalChanged -= OnGroundCollide;
     }
 
 
@@ -111,7 +117,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //Adding force to object until reaching max speed
         if(moveVector != Vector2.zero)
         {
-            //Speed limit
+
             rb.AddForce(transform.right * moveVector.x * acceleration * airMoltiplyer, ForceMode.Acceleration);
             rb.AddForce(transform.forward * moveVector.y * acceleration * airMoltiplyer, ForceMode.Acceleration);
         }
@@ -162,7 +168,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
             Vector3 counterForce = -moveDir * acceleration;
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
-        print(horizontalVel.magnitude);
 
     }
 
@@ -243,9 +248,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
 
-
-
-
     //Ground Check events
     void OnLand()
     {
@@ -262,6 +264,64 @@ public class PlayerMovement : MonoBehaviour, IMovable
         if(currentState == BodyState.Moving)
             currentState = BodyState.InAir;
         isGrounded = IsGrounded.InAir;
+        groundNormal = Vector3.zero;
         print("Not Grounded");
+    }
+
+    void OnGroundCollide(ContactPoint[] points)
+    {
+        var ground = SurfaceHandler.SurfaceType.None;
+
+        var wall = SurfaceHandler.SurfaceType.None;
+        var wallNormal = Vector3.zero;
+        int wallCount = 0;
+
+        // Check for every collision is there walls or floors
+        foreach(var p in points)
+        {
+            var type = surfaceHandler.GetSurfaceType(p.normal, false);
+            switch(type)
+            {
+                case SurfaceHandler.SurfaceType.Ground:
+                    ground = SurfaceHandler.SurfaceType.Ground;
+                    groundNormal = p.normal;
+                    break;
+                case SurfaceHandler.SurfaceType.Wall:
+                    wall = SurfaceHandler.SurfaceType.Wall;
+                    wallNormal = p.normal;
+                    wallCount += 1;
+                    break;
+                case SurfaceHandler.SurfaceType.Ceiling:
+                    break;
+                case SurfaceHandler.SurfaceType.Slope:
+                    ground = SurfaceHandler.SurfaceType.Slope;
+                    groundNormal = p.normal;
+                    break;
+            }
+        }
+
+        print(wallCount);
+
+        // Palyer is on the ground
+        if(ground != SurfaceHandler.SurfaceType.None)
+        {
+            if(ground == SurfaceHandler.SurfaceType.Ground)
+            {
+                currentState = BodyState.Moving;
+                print("OnGround");
+            }
+            else if(ground == SurfaceHandler.SurfaceType.Slope)
+            {
+                currentState = BodyState.Sliding;
+                print("OnSlope");
+            }
+        }
+        // Player is close to wall
+        else if (wallCount != 0 && groundNormal == Vector3.zero)
+        {
+            currentState = BodyState.WallRunning;
+            print("OnWall");
+        }
+        // Player is in the air
     }
 }

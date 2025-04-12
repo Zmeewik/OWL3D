@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class CollisionCheck : MonoBehaviour
 {
@@ -9,8 +10,9 @@ public class CollisionCheck : MonoBehaviour
     [SerializeField] private Transform groundCheck; // Пустой объект под игроком
     [SerializeField] private float groundRadius = 0.3f;
     bool isGrounded;
-    public event System.Action OnGrounded;
-    public event System.Action OnNotGrounded;
+    public event Action OnGrounded;
+    public event Action OnNotGrounded;
+    public Action<ContactPoint[]> OnGroundNormalChanged;
 
     //[Header("Wall check")]
 
@@ -38,5 +40,13 @@ public class CollisionCheck : MonoBehaviour
     }
 
 
+    //Send action about current colisions with ground
+    void OnCollisionStay(Collision collision)
+    {
+        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
+        {
+            OnGroundNormalChanged?.Invoke(collision.contacts);
+        }
+    }
 
 }
