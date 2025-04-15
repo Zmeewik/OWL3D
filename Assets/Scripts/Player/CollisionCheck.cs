@@ -10,6 +10,7 @@ public class CollisionCheck : MonoBehaviour
     [SerializeField] private Transform groundCheck; // Пустой объект под игроком
     [SerializeField] private float groundRadius = 0.3f;
     bool isGrounded;
+    int groundContacts = 0;
     public event Action OnGrounded;
     public event Action OnNotGrounded;
     public Action<ContactPoint[]> OnGroundNormalChanged;
@@ -40,12 +41,36 @@ public class CollisionCheck : MonoBehaviour
     }
 
 
+    void OnCollisionEnter(Collision collision)
+    {
+        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
+        {
+            groundContacts++;
+        }
+    }
+
     //Send action about current colisions with ground
     void OnCollisionStay(Collision collision)
     {
         if(((1 << collision.gameObject.layer) & groundLayer) != 0)
         {
             OnGroundNormalChanged?.Invoke(collision.contacts);
+        }
+    }
+
+    //Send action when exit wall
+    void OnCollisionExit(Collision collision)
+    {
+        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
+        {
+            groundContacts--;
+            print(groundContacts);
+            if (groundContacts <= 0)
+            {
+                groundContacts = 0;
+                print(collision.contacts.Length);
+                OnGroundNormalChanged?.Invoke(collision.contacts);
+            }
         }
     }
 

@@ -42,6 +42,10 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] float airMaxSpeed;
 
 
+    [Header("Slide")]
+    [SerializeField] float maxSlideSpeed;
+    [SerializeField] float slideSpeed;
+
     //Grounded check
     enum IsGrounded {Grounded, InAir};
     IsGrounded isGrounded = IsGrounded.Grounded;
@@ -55,7 +59,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
     //Surface handle
-    public Vector3 groundNormal;
+    public Vector3 groundNormal = Vector3.up;
     public Vector3 wallNormal;
 
 
@@ -100,6 +104,11 @@ public class PlayerMovement : MonoBehaviour, IMovable
             case BodyState.Crouching:
             break;
             case BodyState.Sliding:
+                Moving();
+                RotateBody();
+                Drag();
+                CounterMovement();
+                Slide();
             break;
             case BodyState.InAir:
                 Moving(airControlMultiplier);
@@ -115,11 +124,18 @@ public class PlayerMovement : MonoBehaviour, IMovable
     {
         //Handle movement of player
         //Adding force to object until reaching max speed
+
         if(moveVector != Vector2.zero)
         {
+            //Trajectory projection at the ground surface
+            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
+            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
 
-            rb.AddForce(transform.right * moveVector.x * acceleration * airMoltiplyer, ForceMode.Acceleration);
-            rb.AddForce(transform.forward * moveVector.y * acceleration * airMoltiplyer, ForceMode.Acceleration);
+            Debug.DrawRay(transform.position, surfaceForward * 2f, Color.red); 
+            Debug.DrawRay(transform.position, groundNormal * 2f, Color.blue);
+
+            rb.AddForce(surfaceRight * moveVector.x * acceleration * airMoltiplyer, ForceMode.Acceleration);
+            rb.AddForce(surfaceForward * moveVector.y * acceleration * airMoltiplyer, ForceMode.Acceleration);
         }
     }
 
@@ -130,6 +146,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
         if(moveVector == Vector2.zero)
         {
             Vector3 horizontalVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+            horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
+
             if (horizontalVel.magnitude > 0.3f)
             {
                 Vector3 drag = -horizontalVel.normalized * decceleration;
@@ -148,7 +166,11 @@ public class PlayerMovement : MonoBehaviour, IMovable
     {
         //Check for limit overflow
         //Counter force at the ground
-        Vector3 horizontalVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        Vector3 horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        if(currentState == BodyState.Sliding || currentState == BodyState.Moving)
+            horizontalVel = new Vector3(rb.velocity.x, rb.velocity.y, rb.velocity.z);
+        horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
+
         if (horizontalVel.magnitude > maxSpeed && airMaxSpeed == 0)
         {
             //Getting direction of movement
@@ -184,7 +206,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
         rb.MoveRotation(targetRotation);
     }
 
-
     //End dash state
     public void EndDash()
     {
@@ -196,13 +217,39 @@ public class PlayerMovement : MonoBehaviour, IMovable
     }
 
 
+    //Slide auto movement
+    private void Slide()
+    {
+        //Getting vector down
+        Vector3 slopeDir = Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
+        //Get current slope velocity
+        float currentSpeedOnSlope = Vector3.Dot(rb.velocity, slopeDir);
+        // Если мы не превысили максимальную скорость — добавим силу
+        if (currentSpeedOnSlope < maxSlideSpeed)
+        {
+            rb.AddForce(slopeDir * -Physics.gravity.y * slideSpeed, ForceMode.Acceleration);
+            rb.AddForce(groundNormal.normalized * 5, ForceMode.Acceleration);
+        }
+    }
+
+
+
+
+
+
+
+
 
     //Input handle
     //Standard moving
     public void OnJump()
     {
-        if(isGrounded == IsGrounded.Grounded)
+        print(isGrounded);
+        if(isGrounded == IsGrounded.Grounded && currentState != BodyState.Sliding)
+        {
+            currentState = BodyState.InAir;
             rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
+        }
     }
     
     public void OnMove(Vector2 vector)
@@ -248,6 +295,12 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
 
+
+
+
+
+
+    //Event handle
     //Ground Check events
     void OnLand()
     {
@@ -261,20 +314,33 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
     void OnFly()
     {
-        if(currentState == BodyState.Moving)
+        if(currentState != BodyState.InAir)
             currentState = BodyState.InAir;
         isGrounded = IsGrounded.InAir;
         groundNormal = Vector3.zero;
+        rb.useGravity = true;
         print("Not Grounded");
     }
 
+    //Handle collision
     void OnGroundCollide(ContactPoint[] points)
     {
+        if(points.Length == 0)
+        {
+            rb.useGravity = true;
+
+            if(currentState == BodyState.WallRunning)
+                currentState = BodyState.InAir;
+            return;
+        }
+
         var ground = SurfaceHandler.SurfaceType.None;
 
         var wall = SurfaceHandler.SurfaceType.None;
         var wallNormal = Vector3.zero;
         int wallCount = 0;
+        bool isMainGround = false;
+        var mainNormal = Vector3.zero;
 
         // Check for every collision is there walls or floors
         foreach(var p in points)
@@ -285,6 +351,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
                 case SurfaceHandler.SurfaceType.Ground:
                     ground = SurfaceHandler.SurfaceType.Ground;
                     groundNormal = p.normal;
+                    mainNormal = p.normal;
+                    isMainGround = true;
                     break;
                 case SurfaceHandler.SurfaceType.Wall:
                     wall = SurfaceHandler.SurfaceType.Wall;
@@ -299,29 +367,38 @@ public class PlayerMovement : MonoBehaviour, IMovable
                     break;
             }
         }
+        //If move than 1 geound choose main ground
+        if(isMainGround)
+        {
+            groundNormal = mainNormal;
+            ground = SurfaceHandler.SurfaceType.Ground;
+        }
 
-        print(wallCount);
+
+        rb.useGravity = true;
 
         // Palyer is on the ground
         if(ground != SurfaceHandler.SurfaceType.None)
         {
             if(ground == SurfaceHandler.SurfaceType.Ground)
             {
+                rb.useGravity = false;
                 currentState = BodyState.Moving;
-                print("OnGround");
             }
             else if(ground == SurfaceHandler.SurfaceType.Slope)
             {
                 currentState = BodyState.Sliding;
-                print("OnSlope");
+                rb.useGravity = true;
             }
         }
         // Player is close to wall
         else if (wallCount != 0 && groundNormal == Vector3.zero)
         {
             currentState = BodyState.WallRunning;
-            print("OnWall");
+            rb.useGravity = true;
         }
+
+        print(currentState);
         // Player is in the air
     }
 }

@@ -41,5 +41,10 @@ public class SurfaceHandler : MonoBehaviour
         }
     }
 
+    public float GetAngleFromNormal(Vector3 normal)
+    {
+        return Vector3.Angle(normal, Vector3.up);
+    }
+
 
 }
