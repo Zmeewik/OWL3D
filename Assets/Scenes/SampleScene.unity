@@ -849,8 +849,7 @@ MonoBehaviour:
   slideSpeed: 5
   wallSpeedX: 0
   wallSpeedY: 0
-  groundNormal: {x: 0, y: 0, z: 0}
-  wallNormal: {x: 0, y: 0, z: 0}
+  wallSlideMaxSpeed: 5
 --- !u!114 &322448630
 MonoBehaviour:
   m_ObjectHideFlags: 0

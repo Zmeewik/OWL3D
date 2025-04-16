@@ -52,6 +52,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [Header("Wall run")]
     [SerializeField] float wallSpeedX;
     [SerializeField] float wallSpeedY;
+    [SerializeField] float wallSlideMaxSpeed;
     Vector3 savedNormal = Vector3.zero;
 
     //Grounded check
@@ -109,7 +110,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
             case BodyState.Dashing:
             break;
             case BodyState.WallRunning:
-                //WallMovement();
+                WallRun();
+                WallSlide();
             break;
             case BodyState.Crouching:
             break;
@@ -240,27 +242,25 @@ public class PlayerMovement : MonoBehaviour, IMovable
     }
 
     //Movement close to the wall
-    private void WallMovement()
+    //Wall run at different directions
+    private void WallRun()
     {
-        if(moveVector != Vector2.zero)
-        {
-            
-            //Trajectory projection at the ground surface
-            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
-            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
-            
-            //If vector of movemnt is co-directed with wall normal vectorand move player
-            Vector3 moveDir = (surfaceRight * moveVector.x + surfaceForward * moveVector.y).normalized;
-            float dot = Vector3.Dot(moveDir, wallNormal.normalized);
-            if(dot > 0.2f)
-            {
-                rb.AddForce(surfaceRight * moveVector.x * acceleration * airControlMultiplier, ForceMode.Acceleration);
-                rb.AddForce(surfaceForward * moveVector.y * acceleration * airControlMultiplier, ForceMode.Acceleration);
-            }
-        }
+        //Upward movement
+
+        //Left/Right movement
+
     }
 
-
+    //Wall slide when attached to the wall
+    private void WallSlide()
+    {
+        //Slow sliding at the wall
+        print(rb.velocity.y);
+        if(rb.velocity.y < -wallSlideMaxSpeed)
+        {
+            rb.AddForce(Vector3.up * 40, ForceMode.Acceleration);
+        }
+    }
 
 
 
@@ -378,7 +378,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
         var ground = SurfaceHandler.SurfaceType.None;
 
-        var wall = SurfaceHandler.SurfaceType.None;
         var wallNormal = Vector3.zero;
         int wallCount = 0;
         bool isMainGround = false;
@@ -397,7 +396,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
                     isMainGround = true;
                     break;
                 case SurfaceHandler.SurfaceType.Wall:
-                    wall = SurfaceHandler.SurfaceType.Wall;
                     wallNormal = p.normal;
                     wallCount += 1;
                     break;
