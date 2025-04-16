@@ -846,7 +846,9 @@ MonoBehaviour:
   airControlMultiplier: 0.5
   airMaxSpeed: 13
   maxSlideSpeed: 20
-  slideSpeed: 7
+  slideSpeed: 5
+  wallSpeedX: 0
+  wallSpeedY: 0
   groundNormal: {x: 0, y: 0, z: 0}
   wallNormal: {x: 0, y: 0, z: 0}
 --- !u!114 &322448630
@@ -1841,9 +1843,9 @@ Transform:
   m_GameObject: {fileID: 841713042}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -11.9, y: 2.81, z: 31.4}
-  m_LocalScale: {x: 5.9399996, y: 5.9399996, z: 5.9399996}
-  m_ConstrainProportionsScale: 1
+  m_LocalPosition: {x: -11.9, y: 10.74, z: 31.4}
+  m_LocalScale: {x: 5.9399996, y: 23.309746, z: 5.9399996}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

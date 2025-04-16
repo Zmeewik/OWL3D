@@ -40,12 +40,26 @@ public class CollisionCheck : MonoBehaviour
         }
     }
 
+    //Cast raycast
+    public void WallRaycast()
+    {
+        // Cast a ray from the camera into the scene
+        // Vector3 movement = Vector3.ProjectOnPlane(moveVector, groundNormal).normalized;
+
+        // Ray ray = ;
+        // RaycastHit hit;
+        // //Vector3 targetDirection = Vector3.forward;
+        // Vector3 targetDirection = ray.direction;
+        // Vector3 hitPosition = Vector3.zero;
+        // var hit = Physics.Raycast();
+    }
 
     void OnCollisionEnter(Collision collision)
     {
         if(((1 << collision.gameObject.layer) & groundLayer) != 0)
         {
             groundContacts++;
+            OnGroundNormalChanged?.Invoke(collision.contacts);
         }
     }
 
@@ -64,13 +78,8 @@ public class CollisionCheck : MonoBehaviour
         if(((1 << collision.gameObject.layer) & groundLayer) != 0)
         {
             groundContacts--;
-            print(groundContacts);
-            if (groundContacts <= 0)
-            {
-                groundContacts = 0;
-                print(collision.contacts.Length);
-                OnGroundNormalChanged?.Invoke(collision.contacts);
-            }
+            //print(groundContacts);
+            OnGroundNormalChanged?.Invoke(collision.contacts);
         }
     }
 

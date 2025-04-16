@@ -45,6 +45,14 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [Header("Slide")]
     [SerializeField] float maxSlideSpeed;
     [SerializeField] float slideSpeed;
+    int counterNormal = 0;
+    Vector3 savedSlideNormal = Vector3.zero;
+
+
+    [Header("Wall run")]
+    [SerializeField] float wallSpeedX;
+    [SerializeField] float wallSpeedY;
+    Vector3 savedNormal = Vector3.zero;
 
     //Grounded check
     enum IsGrounded {Grounded, InAir};
@@ -59,8 +67,9 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
     //Surface handle
-    public Vector3 groundNormal = Vector3.up;
-    public Vector3 wallNormal;
+    Vector3 groundNormal = Vector3.up;
+    Vector3 wallNormal;
+
 
 
 
@@ -100,6 +109,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             case BodyState.Dashing:
             break;
             case BodyState.WallRunning:
+                //WallMovement();
             break;
             case BodyState.Crouching:
             break;
@@ -130,9 +140,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Trajectory projection at the ground surface
             Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
             Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
-
-            Debug.DrawRay(transform.position, surfaceForward * 2f, Color.red); 
-            Debug.DrawRay(transform.position, groundNormal * 2f, Color.blue);
 
             rb.AddForce(surfaceRight * moveVector.x * acceleration * airMoltiplyer, ForceMode.Acceleration);
             rb.AddForce(surfaceForward * moveVector.y * acceleration * airMoltiplyer, ForceMode.Acceleration);
@@ -232,7 +239,26 @@ public class PlayerMovement : MonoBehaviour, IMovable
         }
     }
 
-
+    //Movement close to the wall
+    private void WallMovement()
+    {
+        if(moveVector != Vector2.zero)
+        {
+            
+            //Trajectory projection at the ground surface
+            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
+            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
+            
+            //If vector of movemnt is co-directed with wall normal vectorand move player
+            Vector3 moveDir = (surfaceRight * moveVector.x + surfaceForward * moveVector.y).normalized;
+            float dot = Vector3.Dot(moveDir, wallNormal.normalized);
+            if(dot > 0.2f)
+            {
+                rb.AddForce(surfaceRight * moveVector.x * acceleration * airControlMultiplier, ForceMode.Acceleration);
+                rb.AddForce(surfaceForward * moveVector.y * acceleration * airControlMultiplier, ForceMode.Acceleration);
+            }
+        }
+    }
 
 
 
@@ -244,10 +270,25 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Standard moving
     public void OnJump()
     {
-        print(isGrounded);
+        //print(isGrounded);
         if(isGrounded == IsGrounded.Grounded && currentState != BodyState.Sliding)
         {
             currentState = BodyState.InAir;
+            rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
+        }
+        //If on the wall go a little forward 
+        else if (currentState == BodyState.WallRunning && savedNormal != wallNormal)
+        {
+            savedNormal = wallNormal;
+            var lookDirection = cameraFront.forward * moveVector.y + cameraFront.right * moveVector.x;
+            if(lookDirection == Vector3.zero)
+                lookDirection = cameraFront.forward;
+
+            //Projecting vector to xz plane
+            Vector3 lookDirectionXZ = new Vector3(lookDirection.x, 0f, lookDirection.z).normalized;
+
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            rb.AddForce(lookDirectionXZ * acceleration, ForceMode.Impulse);
             rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
         }
     }
@@ -309,7 +350,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
         isGrounded = IsGrounded.Grounded;
         var massCoefficient = 1 / rb.mass * 80;
         rb.velocity = new Vector3(rb.velocity.x, -10 * massCoefficient, rb.velocity.z);
-        print("Grounded");
+        savedNormal = Vector3.zero;
+        //print("Grounded");
     }
 
     void OnFly()
@@ -319,7 +361,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         isGrounded = IsGrounded.InAir;
         groundNormal = Vector3.zero;
         rb.useGravity = true;
-        print("Not Grounded");
+        //print("Not Grounded");
     }
 
     //Handle collision
@@ -374,7 +416,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             ground = SurfaceHandler.SurfaceType.Ground;
         }
 
-
+        this.wallNormal = Vector3.zero;
         rb.useGravity = true;
 
         // Palyer is on the ground
@@ -387,8 +429,18 @@ public class PlayerMovement : MonoBehaviour, IMovable
             }
             else if(ground == SurfaceHandler.SurfaceType.Slope)
             {
-                currentState = BodyState.Sliding;
-                rb.useGravity = true;
+                print(groundNormal);
+                if(savedSlideNormal == groundNormal)
+                    counterNormal++;
+                else
+                    counterNormal = 0;
+                if(counterNormal > 3)
+                {
+                    counterNormal = 0;
+                    currentState = BodyState.Sliding;
+                    rb.useGravity = true;
+                }
+                savedSlideNormal = groundNormal;
             }
         }
         // Player is close to wall
@@ -396,9 +448,10 @@ public class PlayerMovement : MonoBehaviour, IMovable
         {
             currentState = BodyState.WallRunning;
             rb.useGravity = true;
+            this.wallNormal = wallNormal;
         }
 
-        print(currentState);
+        //print(currentState);
         // Player is in the air
     }
 }
