@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -50,19 +51,38 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
     [Header("Wall run")]
-    [SerializeField] float wallSpeedX;
-    [SerializeField] float wallSpeedY;
+    [SerializeField] float wallrunForceX;
+    [SerializeField] float wallRunForceY;
+    [SerializeField] float wallRunTime;
+    [SerializeField] float wallClimbForce;
+    [SerializeField] float wallClimbTime;
     [SerializeField] float wallSlideMaxSpeed;
     Vector3 savedNormal = Vector3.zero;
+    Vector3 lastWallNormal = Vector3.zero;
+    int checkWallCounter = 0;
+
+
+    //Wall states
+    enum WallState {Sliding, Running, Climbing}
+    WallState currentWallState = WallState.Sliding;
+    bool runnedAlready;
+
+    //Check for jump from the wall
+    int wallJumpCounter = 0;
+
 
     //Grounded check
     enum IsGrounded {Grounded, InAir};
     IsGrounded isGrounded = IsGrounded.Grounded;
 
 
+    //Crouch handle
+    public enum IsCrouching {Crouching, Standing}
+    IsCrouching isCrouching = IsCrouching.Standing;
+
     
     //State handle
-    enum BodyState {Moving, Dashing, WallRunning, Crouching, Sliding, InAir};
+    enum BodyState {Moving, Dashing, WallRunning, Sliding, InAir};
     BodyState currentState = BodyState.Moving;
 
 
@@ -79,17 +99,12 @@ public class PlayerMovement : MonoBehaviour, IMovable
     {
         //Subscribe events
         //Events at ground change state
-        collisionScr.OnGrounded += OnLand;
-        collisionScr.OnNotGrounded += OnFly;
-        collisionScr.OnGroundNormalChanged += OnGroundCollide;
-
+        collisionScr.OnGroundNormalChanged += OnSurfaceCollide;
     }
     public void OnDisable()
     {
         //Unsubscribe events
-        collisionScr.OnGrounded -= OnLand;
-        collisionScr.OnNotGrounded -= OnFly;
-        collisionScr.OnGroundNormalChanged -= OnGroundCollide;
+        collisionScr.OnGroundNormalChanged -= OnSurfaceCollide;
     }
 
 
@@ -99,6 +114,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Physics handle
     private void FixedUpdate()
     {
+        //Current states of movement
         switch(currentState)
         {
             case BodyState.Moving:
@@ -110,10 +126,9 @@ public class PlayerMovement : MonoBehaviour, IMovable
             case BodyState.Dashing:
             break;
             case BodyState.WallRunning:
-                WallRun();
-                WallSlide();
-            break;
-            case BodyState.Crouching:
+                //WallRun();
+                if(currentWallState == WallState.Sliding)
+                    WallSlide();
             break;
             case BodyState.Sliding:
                 Moving();
@@ -128,6 +143,9 @@ public class PlayerMovement : MonoBehaviour, IMovable
                 CounterMovement(airMaxSpeed);
             break;
         }
+
+        //Check collisions
+        //collisionScr.WallRaycast(rb.velocity);
     }
 
 
@@ -245,17 +263,61 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Wall run at different directions
     private void WallRun()
     {
+        if(runnedAlready)
+            return;
+
+        //Nullifying start speed
+        rb.velocity = new Vector3(0, 0, 0); 
+
+        //Calculating vectors
+        var dot = Vector3.Dot(transform.forward, -wallNormal);
+        Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
+        Vector3 wallLeft = -wallRight;
+        
+        var dotRight = Vector3.Dot(transform.forward, wallRight);
+        
+        
         //Upward movement
-
+        if(dot > 0.8f)
+        {
+            print(rb.velocity);
+            rb.AddForce(Vector3.up * wallClimbForce * rb.mass, ForceMode.Impulse);
+            print(rb.velocity);
+            Invoke("DeactivateWallRun", wallClimbTime);
+            currentWallState = WallState.Climbing;
+            runnedAlready = true;
+        }
         //Left/Right movement
+        else if(dot > 0)
+        {
+            //Going right
+            if(dotRight > 0)
+            {
+                rb.AddForce(Vector3.up * wallRunForceY * rb.mass, ForceMode.Impulse);
+                rb.AddForce(wallRight * wallrunForceX * rb.mass, ForceMode.Impulse);
+            }
+            //Going left
+            else
+            {
+                rb.AddForce(Vector3.up * wallRunForceY * rb.mass, ForceMode.Impulse);
+                rb.AddForce(wallLeft * wallrunForceX * rb.mass, ForceMode.Impulse);
+            }
+            currentWallState = WallState.Running;
+            Invoke("DeactivateWallRun", wallRunTime);
+            runnedAlready = true;
+        }
 
+    }
+
+    void DeactivateWallRun()
+    {
+        currentWallState = WallState.Sliding;
     }
 
     //Wall slide when attached to the wall
     private void WallSlide()
     {
         //Slow sliding at the wall
-        print(rb.velocity.y);
         if(rb.velocity.y < -wallSlideMaxSpeed)
         {
             rb.AddForce(Vector3.up * 40, ForceMode.Acceleration);
@@ -277,7 +339,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
         }
         //If on the wall go a little forward 
-        else if (currentState == BodyState.WallRunning && savedNormal != wallNormal)
+        else if (currentState == BodyState.WallRunning)
         {
             savedNormal = wallNormal;
             var lookDirection = cameraFront.forward * moveVector.y + cameraFront.right * moveVector.x;
@@ -287,9 +349,20 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Projecting vector to xz plane
             Vector3 lookDirectionXZ = new Vector3(lookDirection.x, 0f, lookDirection.z).normalized;
 
+            //Cant jump into the wall
+            if(Vector3.Dot(lookDirection, wallNormal) <= 0.1f)
+                return;
+
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
             rb.AddForce(lookDirectionXZ * acceleration, ForceMode.Impulse);
-            rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
+            
+            print(wallJumpCounter);
+            //Counter of max wall jump - 3, if overwlow dont use up speed
+            if(wallJumpCounter < 3)
+                rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
+            else {}
+
+            wallJumpCounter++;
         }
     }
     
@@ -341,115 +414,216 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
 
-    //Event handle
-    //Ground Check events
-    void OnLand()
-    {
-        if(currentState == BodyState.InAir)
-            currentState = BodyState.Moving;
-        isGrounded = IsGrounded.Grounded;
-        var massCoefficient = 1 / rb.mass * 80;
-        rb.velocity = new Vector3(rb.velocity.x, -10 * massCoefficient, rb.velocity.z);
-        savedNormal = Vector3.zero;
-        //print("Grounded");
-    }
-
+    // //Event handle
+    // //Ground Check events
+    //Change grounded state
     void OnFly()
     {
-        if(currentState != BodyState.InAir)
-            currentState = BodyState.InAir;
-        isGrounded = IsGrounded.InAir;
-        groundNormal = Vector3.zero;
-        rb.useGravity = true;
-        //print("Not Grounded");
+            if(isGrounded == IsGrounded.InAir && currentState != BodyState.WallRunning)
+                return;
+            else
+            {
+                print("In the air");
+                rb.useGravity = true;
+                isGrounded = IsGrounded.InAir;
+                groundNormal = Vector3.zero;
+                currentState = BodyState.InAir;
+            }
     }
 
-    //Handle collision
-    void OnGroundCollide(ContactPoint[] points)
+    void OnLand()
     {
-        if(points.Length == 0)
-        {
-            rb.useGravity = true;
+            if(isGrounded == IsGrounded.Grounded)
+                return;
+            print("At the ground");
+            isGrounded = IsGrounded.Grounded;
+            //Additional land force
+            var massCoefficient = 1 / rb.mass * 80;
+            rb.velocity = new Vector3(rb.velocity.x, -10 * massCoefficient, rb.velocity.z);
+            //Null normals and jumps
+            savedNormal = Vector3.zero;
+            wallNormal = Vector3.zero;
+            wallJumpCounter = 0;
+    }
 
-            if(currentState == BodyState.WallRunning)
-                currentState = BodyState.InAir;
+
+    //Handle collisions with surfaces
+    void OnSurfaceCollide(ContactPoint[] contacts)
+    {
+
+        //If there is ono contact object is flying
+        if (contacts.Length == 0)
+        {
+            print("zero contacts");
+            OnFly();
             return;
         }
 
-        var ground = SurfaceHandler.SurfaceType.None;
-
-        var wallNormal = Vector3.zero;
-        int wallCount = 0;
-        bool isMainGround = false;
-        var mainNormal = Vector3.zero;
-
-        // Check for every collision is there walls or floors
-        foreach(var p in points)
+        //Handling and counting multiple contacts
+        int[] contactSurfaces = {0,0,0,0};
+        List<int> indexesGround = new List<int>();
+        List<int> indexesSlope = new List<int>();
+        List<int> indexesCeiling = new List<int>();
+        List<int> indexesWall = new List<int>();
+        for(int i=0; i < contacts.Length; i++)
         {
-            var type = surfaceHandler.GetSurfaceType(p.normal, false);
-            switch(type)
+            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, isCrouching);
+            switch (surfaceType)
             {
                 case SurfaceHandler.SurfaceType.Ground:
-                    ground = SurfaceHandler.SurfaceType.Ground;
-                    groundNormal = p.normal;
-                    mainNormal = p.normal;
-                    isMainGround = true;
+                    contactSurfaces[0]++;
+                    indexesGround.Add(i);
                     break;
-                case SurfaceHandler.SurfaceType.Wall:
-                    wallNormal = p.normal;
-                    wallCount += 1;
-                    break;
-                case SurfaceHandler.SurfaceType.Ceiling:
-                    break;
+
                 case SurfaceHandler.SurfaceType.Slope:
-                    ground = SurfaceHandler.SurfaceType.Slope;
-                    groundNormal = p.normal;
+                    contactSurfaces[1]++;
+                    indexesSlope.Add(i);
+                    break;
+
+                case SurfaceHandler.SurfaceType.Ceiling:
+                    contactSurfaces[2]++;
+                    indexesCeiling.Add(i);
+                    break;
+
+                case SurfaceHandler.SurfaceType.Wall:
+                    contactSurfaces[3]++;
+                    indexesWall.Add(i);
                     break;
             }
         }
-        //If move than 1 geound choose main ground
-        if(isMainGround)
+
+        //Ground contact main
+        if(contactSurfaces[0] > 0)
         {
-            groundNormal = mainNormal;
-            ground = SurfaceHandler.SurfaceType.Ground;
+            //Find main surface: closest to vector.up
+            var curnormal = FindClosestToVectorUp(indexesGround, contacts);
+
+            //Handle main logic
+            print("ground");
+            OnLand();
+            HandleGround(curnormal);
         }
-
-        this.wallNormal = Vector3.zero;
-        rb.useGravity = true;
-
-        // Palyer is on the ground
-        if(ground != SurfaceHandler.SurfaceType.None)
+        //Slope contact main
+        else if(contactSurfaces[1] > 0)
         {
-            if(ground == SurfaceHandler.SurfaceType.Ground)
+            //Find main surface: closest to 90 degrees
+            var curnormal = FindClosestTo90(indexesSlope, contacts);
+
+            //Handle main logic
+            print("slope");
+            OnLand();
+            HandleSlope(curnormal);
+        }
+        //Wall contact main
+        else if(contactSurfaces[3] > 0)
+        {
+            //Find main surface: closest to 90 degrees
+            var curnormal = FindClosestTo90(indexesWall, contacts);
+
+            //Handle main logic
+            print("wall");
+            HandleWall(curnormal);
+        }
+        //Ceiling contact main
+        else if(contactSurfaces[2] > 0)
+        {
+            //Handle main logic
+            print("ceiling");
+            OnFly();
+        }
+        
+        //Clear all lists
+        indexesGround.Clear();
+        indexesSlope.Clear();
+        indexesCeiling.Clear();
+        indexesWall.Clear();
+    }
+
+    //Find main surface: closest to 90 degrees
+    Vector3 FindClosestTo90(List<int> indexes, ContactPoint[] contacts)
+    {
+            var closestNormal = Vector3.zero;
+            var closestAngle = 0f;
+            foreach(var i in indexes)
             {
-                rb.useGravity = false;
-                currentState = BodyState.Moving;
-            }
-            else if(ground == SurfaceHandler.SurfaceType.Slope)
-            {
-                print(groundNormal);
-                if(savedSlideNormal == groundNormal)
-                    counterNormal++;
-                else
-                    counterNormal = 0;
-                if(counterNormal > 3)
+                var currentNormal = contacts[i].normal;
+                var angle = Vector3.Angle(currentNormal, Vector3.up);
+                if(angle > closestAngle)
                 {
-                    counterNormal = 0;
-                    currentState = BodyState.Sliding;
-                    rb.useGravity = true;
+                    closestNormal = currentNormal;
+                    closestAngle = angle;
                 }
-                savedSlideNormal = groundNormal;
+            }
+            return closestNormal;
+    }
+
+    //Find main surface: closest to vector.up
+    Vector3 FindClosestToVectorUp(List<int> indexes, ContactPoint[] contacts)
+    {
+            var closestNormal = Vector3.zero;
+            var closestDot = 0f;
+            foreach(var i in indexes)
+            {
+                var currentNormal = contacts[i].normal;
+                var dot = Vector3.Dot(currentNormal, Vector3.up);
+                if(dot > closestDot)
+                {
+                    closestNormal = currentNormal;
+                    closestDot = dot;
+                }
+            }
+            return closestNormal;
+    }
+
+    void HandleGround(Vector3 normal)
+    {
+        groundNormal = normal;
+        if (currentState != BodyState.Moving)
+        {
+            rb.useGravity = false;
+            currentState = BodyState.Moving;
+        }
+    }
+
+    void HandleSlope(Vector3 normal)
+    {
+        groundNormal = normal;
+
+        if (savedSlideNormal == groundNormal)
+            counterNormal++;
+        else
+            counterNormal = 0;
+
+        if (counterNormal > 3)
+        {
+            if (currentState != BodyState.Sliding)
+            {
+                counterNormal = 0;
+                currentState = BodyState.Sliding;
+                rb.useGravity = true;
             }
         }
-        // Player is close to wall
-        else if (wallCount != 0 && groundNormal == Vector3.zero)
-        {
-            currentState = BodyState.WallRunning;
-            rb.useGravity = true;
-            this.wallNormal = wallNormal;
-        }
 
-        //print(currentState);
-        // Player is in the air
+        savedSlideNormal = groundNormal;
+    }
+
+    void HandleWall(Vector3 normal)
+    {
+        if (isGrounded == IsGrounded.InAir)
+        {
+            if (lastWallNormal == normal)
+                checkWallCounter++;
+            else
+                checkWallCounter = 0;
+
+            if (checkWallCounter > 3)
+            {
+                currentState = BodyState.WallRunning;
+                rb.useGravity = true;
+                wallNormal = normal;
+            }
+
+            lastWallNormal = normal;
+        }
     }
 }

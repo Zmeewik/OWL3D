@@ -8,78 +8,77 @@ public class CollisionCheck : MonoBehaviour
     [Header("Ground check")]
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Transform groundCheck; // Пустой объект под игроком
-    [SerializeField] private float groundRadius = 0.3f;
+    [SerializeField] private float groundDistance = 0.2f;
+    [SerializeField] private float wallDistance = 0.5f;
     bool isGrounded;
     int groundContacts = 0;
-    public event Action OnGrounded;
-    public event Action OnNotGrounded;
     public Action<ContactPoint[]> OnGroundNormalChanged;
+    public Action<Vector3> OnWallNormalChanged;
 
     //[Header("Wall check")]
 
 
     void FixedUpdate()
     {
-        GroundCheck();
+
     }
 
-    //Check for a ground touch
-    void GroundCheck()
-    {
-        //Check for a ground collider in point radius
-        var wasGrounded = isGrounded;
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundRadius, groundLayer);
+    // //Cast raycast
+    // public void WallRaycast(Vector3 moveVector)
+    // {
+    //     //Cast a ray from the playes in move vector and down
+    //     moveVector = new Vector3(moveVector.x, 0, moveVector.z);
+    //     Vector3 movement = Vector3.ProjectOnPlane(moveVector, Vector3.up).normalized;
+    //     var dir = Vector3.down;
 
-        //If ground (not) found first time call event
-        if(isGrounded != wasGrounded)
-        {
-            if(isGrounded)
-                OnGrounded?.Invoke();
-            else
-                OnNotGrounded?.Invoke();
-        }
-    }
+    //     //Ground detection with down vector
+    //     if (Physics.Raycast(groundCheck.position, dir, out RaycastHit hitGround, groundDistance, groundLayer))
+    //     {
+    //         Debug.DrawRay(groundCheck.position, dir, Color.red, groundDistance);
+    //         Debug.Log($"Hit ground layer: {hitGround.collider.name} in direction {dir}");
+    //         OnGroundNormalChanged?.Invoke(hitGround.normal);
+    //     }
+    //     else
+    //         OnGroundNormalChanged?.Invoke(Vector3.zero);
+        
+    //     //Wall detection with move vector
+    //     if (Physics.Raycast(groundCheck.position, movement, out RaycastHit hitWall, wallDistance, groundLayer))
+    //     {
+    //         Debug.DrawRay(groundCheck.position, movement, Color.green, wallDistance);
+    //         Debug.Log($"Hit wall layer: {hitWall.collider.name} in direction {movement}");
+    //         OnWallNormalChanged?.Invoke(hitWall.normal);
+    //     }
+    //     else
+    //         OnWallNormalChanged?.Invoke(Vector3.zero);
+    // }
 
-    //Cast raycast
-    public void WallRaycast()
-    {
-        // Cast a ray from the camera into the scene
-        // Vector3 movement = Vector3.ProjectOnPlane(moveVector, groundNormal).normalized;
 
-        // Ray ray = ;
-        // RaycastHit hit;
-        // //Vector3 targetDirection = Vector3.forward;
-        // Vector3 targetDirection = ray.direction;
-        // Vector3 hitPosition = Vector3.zero;
-        // var hit = Physics.Raycast();
-    }
+    //Collision detection
 
-    void OnCollisionEnter(Collision collision)
-    {
-        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
-        {
-            groundContacts++;
-            OnGroundNormalChanged?.Invoke(collision.contacts);
-        }
-    }
 
-    //Send action about current colisions with ground
+    //
+    // void OnCollisionEnter(Collision collision)
+    // {
+    //     if((groundLayer.value & (1 << collision.gameObject.layer)) != 0)
+    //     {
+    //         OnGroundNormalChanged(collision.contacts);
+    //     }
+    // }
+
+    //
     void OnCollisionStay(Collision collision)
     {
-        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
+        if((groundLayer.value & (1 << collision.gameObject.layer)) != 0)
         {
-            OnGroundNormalChanged?.Invoke(collision.contacts);
+            OnGroundNormalChanged(collision.contacts);
         }
     }
 
-    //Send action when exit wall
-    void OnCollisionExit(Collision collision)
+        void OnCollisionExit(Collision collision)
     {
-        if(((1 << collision.gameObject.layer) & groundLayer) != 0)
+        if((groundLayer.value & (1 << collision.gameObject.layer)) != 0)
         {
-            groundContacts--;
-            //print(groundContacts);
-            OnGroundNormalChanged?.Invoke(collision.contacts);
+            OnGroundNormalChanged(collision.contacts);
         }
     }
 

@@ -1,4 +1,6 @@
 using UnityEngine;
+using static PlayerMovement;
+
 public class SurfaceHandler : MonoBehaviour
 {
 
@@ -13,11 +15,11 @@ public class SurfaceHandler : MonoBehaviour
     public enum SurfaceType { Ground, Slope,  Wall, Ceiling, None }
 
     //Check for normal angle to up to get type of surface
-    public SurfaceType GetSurfaceType(Vector3 normal, bool isCrouching)
+    public SurfaceType GetSurfaceType(Vector3 normal, IsCrouching isCrouching)
     {
         float angle = Vector3.Angle(normal, Vector3.up);
         
-        if(isCrouching)
+        if(isCrouching == IsCrouching.Crouching)
         {
             if(angle < groundAngleCrouch)
                 return SurfaceType.Ground;
