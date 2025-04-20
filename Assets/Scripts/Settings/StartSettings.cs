@@ -10,7 +10,6 @@ public class StartSettings : MonoBehaviour
 
     [Header("Window settings")]
     [SerializeField] int frameRate;
-    [SerializeField] TextMeshProUGUI debugText;
 
     //Game start settings
     void Awake(){
@@ -33,7 +32,8 @@ public class StartSettings : MonoBehaviour
         if (timer >= refreshRate)
         {
             fps = frameCount / timer;
-            debugText.text = "FPS: " + Mathf.RoundToInt(fps);
+            var text = "FPS: " + Mathf.RoundToInt(fps);
+            DebugOutput.Instance.Output(text, 0);
             timer = 0;
             frameCount = 0;
         }

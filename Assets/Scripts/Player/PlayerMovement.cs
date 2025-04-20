@@ -74,6 +74,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Grounded check
     enum IsGrounded {Grounded, InAir};
     IsGrounded isGrounded = IsGrounded.Grounded;
+    private bool justLanded = false;
 
 
     //Crouch handle
@@ -140,7 +141,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             case BodyState.InAir:
                 Moving(airControlMultiplier);
                 RotateBody();
-                CounterMovement(airMaxSpeed);
+                CounterMovement();
             break;
         }
 
@@ -150,7 +151,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
     //Movement states
-    void Moving(float airMoltiplyer = 1)
+    void Moving(float airMultiplyer = 1)
     {
         //Handle movement of player
         //Adding force to object until reaching max speed
@@ -161,8 +162,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
             Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
             Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
 
-            rb.AddForce(surfaceRight * moveVector.x * acceleration * airMoltiplyer, ForceMode.Acceleration);
-            rb.AddForce(surfaceForward * moveVector.y * acceleration * airMoltiplyer, ForceMode.Acceleration);
+            rb.AddForce(surfaceRight * moveVector.x * acceleration * airMultiplyer, ForceMode.Acceleration);
+            rb.AddForce(surfaceForward * moveVector.y * acceleration * airMultiplyer, ForceMode.Acceleration);
         }
     }
 
@@ -189,16 +190,23 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
     //Counter movement if player cross the limit speed
-    void CounterMovement(float airMaxSpeed = 0)
+    void CounterMovement()
     {
+
         //Check for limit overflow
         //Counter force at the ground
         Vector3 horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
         if(currentState == BodyState.Sliding || currentState == BodyState.Moving)
+        {
             horizontalVel = new Vector3(rb.velocity.x, rb.velocity.y, rb.velocity.z);
+        }
         horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
 
-        if (horizontalVel.magnitude > maxSpeed && airMaxSpeed == 0)
+        DebugOutput.Instance.Output("Скорость: " + horizontalVel.magnitude.ToString("F2"), 1);
+        print(horizontalVel.magnitude);
+        //print(rb.velocity);
+
+        if (horizontalVel.magnitude > maxSpeed && currentState != BodyState.InAir)
         {
             //Getting direction of movement
             Vector3 moveDir = horizontalVel.normalized;
@@ -206,9 +214,10 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Force to counter movement
             Vector3 counterForce = -moveDir * acceleration;
             rb.AddForce(counterForce, ForceMode.Acceleration);
+            print("ground counter");
         }
         // Counter force in the air
-        else if(horizontalVel.magnitude > airMaxSpeed && airMaxSpeed != 0)
+        else if(horizontalVel.magnitude > airMaxSpeed && currentState == BodyState.InAir)
         {
             //Getting direction of movement
             Vector3 moveDir = horizontalVel.normalized;
@@ -216,6 +225,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Force to counter movement
             Vector3 counterForce = -moveDir * acceleration;
             rb.AddForce(counterForce, ForceMode.Acceleration);
+            print("air counter");
         }
 
     }
@@ -335,7 +345,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //print(isGrounded);
         if(isGrounded == IsGrounded.Grounded && currentState != BodyState.Sliding)
         {
-            currentState = BodyState.InAir;
             rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
         }
         //If on the wall go a little forward 
@@ -426,8 +435,9 @@ public class PlayerMovement : MonoBehaviour, IMovable
                 print("In the air");
                 rb.useGravity = true;
                 isGrounded = IsGrounded.InAir;
-                groundNormal = Vector3.zero;
+                groundNormal = Vector3.up;
                 currentState = BodyState.InAir;
+                justLanded = true;
             }
     }
 
@@ -437,13 +447,24 @@ public class PlayerMovement : MonoBehaviour, IMovable
                 return;
             print("At the ground");
             isGrounded = IsGrounded.Grounded;
+
             //Additional land force
-            var massCoefficient = 1 / rb.mass * 80;
-            rb.velocity = new Vector3(rb.velocity.x, -10 * massCoefficient, rb.velocity.z);
+            var dot = Vector3.Dot(groundNormal, Vector3.up);
+            if(dot > 0.8f)
+            {
+                var massCoefficient = 1 / rb.mass * 80;
+                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) - groundNormal * massCoefficient * 10;
+            }
+            else
+            {
+                var massCoefficient = 1 / rb.mass * 80;
+                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) - groundNormal * massCoefficient * 3;
+            }
             //Null normals and jumps
             savedNormal = Vector3.zero;
             wallNormal = Vector3.zero;
             wallJumpCounter = 0;
+            justLanded = false;
     }
 
 
@@ -500,8 +521,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
             //Handle main logic
             print("ground");
-            OnLand();
             HandleGround(curnormal);
+            OnLand();
         }
         //Slope contact main
         else if(contactSurfaces[1] > 0)
@@ -511,8 +532,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
             //Handle main logic
             print("slope");
-            OnLand();
             HandleSlope(curnormal);
+            OnLand();
         }
         //Wall contact main
         else if(contactSurfaces[3] > 0)
