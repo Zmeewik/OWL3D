@@ -53,33 +53,48 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [Header("Wall run")]
     [SerializeField] float wallrunForceX;
     [SerializeField] float wallRunForceY;
-    [SerializeField] float wallRunTime;
+    [SerializeField] float wallrunMaxForceX;
+    [SerializeField] float wallrunMaxForceY;
+    [SerializeField] float wallrunTime;
+    [SerializeField] int wallrunMaxCount;
+    Vector3 wallrunDirection;
+    float wallRunStartTime;
+    [Header("Wall climb")]
     [SerializeField] float wallClimbForce;
+    [SerializeField] float wallClimbMaxSpeed;
     [SerializeField] float wallClimbTime;
+    float wallClimbStartTime;
+    [Header("Wall slide")]
     [SerializeField] float wallSlideMaxSpeed;
     Vector3 savedNormal = Vector3.zero;
     Vector3 lastWallNormal = Vector3.zero;
     int checkWallCounter = 0;
 
-
     //Wall states
     enum WallState {Sliding, Running, Climbing}
     WallState currentWallState = WallState.Sliding;
+    Transform wallReferenceSaved = null;
+    Transform wallReference = null;
     bool runnedAlready;
-
+    bool stoppedByWall;
+    int wallrunCounter = 0;
     //Check for jump from the wall
     int wallJumpCounter = 0;
+
+
+    [Header("Crouching")]
+    [SerializeField] float crouchHeight;
+    [SerializeField] float crouchSpeedMultiplyer;
+    //Crouch handle
+    public enum IsCrouching {Crouching, Standing}
+    IsCrouching isCrouching = IsCrouching.Standing;
+
 
 
     //Grounded check
     enum IsGrounded {Grounded, InAir};
     IsGrounded isGrounded = IsGrounded.Grounded;
     private bool justLanded = false;
-
-
-    //Crouch handle
-    public enum IsCrouching {Crouching, Standing}
-    IsCrouching isCrouching = IsCrouching.Standing;
 
     
     //State handle
@@ -94,6 +109,20 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
 
 
+    //Speed up system
+    [SerializeField] float maxTopSpeed;
+    [SerializeField] float maxLowSpeed;
+    float maxSpeedDifference;
+    float currentMaxSpeed;
+    int momentum = 0;
+    Dictionary<string, int> speedPoints = new Dictionary<string, int>()
+    {
+        {"wallrun", 3},
+        {"jump", 1},
+        {"slide", 1}
+    };
+
+
 
     //Start settings
     public void Start()
@@ -101,6 +130,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //Subscribe events
         //Events at ground change state
         collisionScr.OnGroundNormalChanged += OnSurfaceCollide;
+        
     }
     public void OnDisable()
     {
@@ -115,6 +145,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Physics handle
     private void FixedUpdate()
     {
+        Vector3 horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        DebugOutput.Instance.Output("Скорость: " + horizontalVel.magnitude.ToString("F2"), 1);
         //Current states of movement
         switch(currentState)
         {
@@ -127,9 +159,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             case BodyState.Dashing:
             break;
             case BodyState.WallRunning:
-                //WallRun();
-                if(currentWallState == WallState.Sliding)
-                    WallSlide();
+                WallRun();
             break;
             case BodyState.Sliding:
                 Moving();
@@ -176,7 +206,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             Vector3 horizontalVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
             horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
 
-            if (horizontalVel.magnitude > 0.3f)
+            if (horizontalVel.magnitude > 0.5f)
             {
                 Vector3 drag = -horizontalVel.normalized * decceleration;
                 rb.AddForce(drag, ForceMode.Acceleration);
@@ -202,9 +232,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
         }
         horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
 
-        DebugOutput.Instance.Output("Скорость: " + horizontalVel.magnitude.ToString("F2"), 1);
-        print(horizontalVel.magnitude);
-        //print(rb.velocity);
 
         if (horizontalVel.magnitude > maxSpeed && currentState != BodyState.InAir)
         {
@@ -214,7 +241,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Force to counter movement
             Vector3 counterForce = -moveDir * acceleration;
             rb.AddForce(counterForce, ForceMode.Acceleration);
-            print("ground counter");
         }
         // Counter force in the air
         else if(horizontalVel.magnitude > airMaxSpeed && currentState == BodyState.InAir)
@@ -225,7 +251,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Force to counter movement
             Vector3 counterForce = -moveDir * acceleration;
             rb.AddForce(counterForce, ForceMode.Acceleration);
-            print("air counter");
         }
 
     }
@@ -273,67 +298,195 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Wall run at different directions
     private void WallRun()
     {
-        if(runnedAlready)
-            return;
+        //Activate wall run at first collision
+        if(!runnedAlready)
+            WallRunStart();
 
-        //Nullifying start speed
-        rb.velocity = new Vector3(0, 0, 0); 
-
-        //Calculating vectors
-        var dot = Vector3.Dot(transform.forward, -wallNormal);
-        Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
-        Vector3 wallLeft = -wallRight;
-        
-        var dotRight = Vector3.Dot(transform.forward, wallRight);
-        
-        
-        //Upward movement
-        if(dot > 0.8f)
+        //Main movement handle
+        switch(currentWallState)
         {
-            print(rb.velocity);
-            rb.AddForce(Vector3.up * wallClimbForce * rb.mass, ForceMode.Impulse);
-            print(rb.velocity);
-            Invoke("DeactivateWallRun", wallClimbTime);
-            currentWallState = WallState.Climbing;
-            runnedAlready = true;
-        }
-        //Left/Right movement
-        else if(dot > 0)
-        {
-            //Going right
-            if(dotRight > 0)
-            {
-                rb.AddForce(Vector3.up * wallRunForceY * rb.mass, ForceMode.Impulse);
-                rb.AddForce(wallRight * wallrunForceX * rb.mass, ForceMode.Impulse);
-            }
-            //Going left
-            else
-            {
-                rb.AddForce(Vector3.up * wallRunForceY * rb.mass, ForceMode.Impulse);
-                rb.AddForce(wallLeft * wallrunForceX * rb.mass, ForceMode.Impulse);
-            }
-            currentWallState = WallState.Running;
-            Invoke("DeactivateWallRun", wallRunTime);
-            runnedAlready = true;
+            case WallState.Climbing:
+                ClimbWallRun();
+            break;
+            case WallState.Running:
+                HorizontalWallRun();
+            break;
+            case WallState.Sliding:
+                WallSlide();
+            break;
         }
 
     }
 
+    //Start wall run direction
+    void WallRunStart()
+    {
+        //Calculating vectors
+
+        var rbMoveVector = transform.forward;
+        var dot = Vector3.Dot(rbMoveVector, -wallNormal);
+        Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
+        Vector3 wallLeft = -wallRight;
+        
+        var dotRight = Vector3.Dot(rbMoveVector, wallRight);
+        print(rbMoveVector);
+        print(dot);
+        
+        //Upward movement
+        if(dot > 0.7f)
+        {
+            //Add maximum of continueing wall climb
+            if(wallrunCounter >= wallrunMaxCount)
+                return;
+            wallrunCounter++;
+
+            wallClimbStartTime = Time.time;
+            Invoke("DeactivateWallRun", wallClimbTime);
+            currentWallState = WallState.Climbing;
+            
+            runnedAlready = true;
+        }
+        //Left/Right movement
+        else if(dot > -0.5f)
+        {
+
+            //Going right
+            if(dotRight > 0)
+            {
+                wallrunDirection = wallRight;
+            }
+            //Going left
+            else
+            {
+                wallrunDirection = wallLeft;
+            }
+            Invoke("DeactivateWallRun", wallrunTime);
+            wallRunStartTime = Time.time;
+            currentWallState = WallState.Running;
+            runnedAlready = true;
+        }
+        else
+        {
+            currentWallState = WallState.Sliding;
+        }
+
+        if(!stoppedByWall)
+        {
+            //Nullifying start speed
+            stoppedByWall = true;
+            rb.velocity = new Vector3(0, 0, 0);
+        }
+
+    }
+
+    //Add climb vertical movement
+    void ClimbWallRun()
+    {
+        //Smooth movement handle
+        //Timer from climb start
+        float timeSinceStart = Time.time - wallClimbStartTime;
+        //Progress percent
+        float t = Mathf.Clamp01(timeSinceStart / wallClimbTime);
+        //Multiplyer
+        float forceMultiplier = Mathf.SmoothStep(1f, 0f, t);
+        //Climb force
+        float climbForce = wallClimbForce * forceMultiplier;
+        if(rb.velocity.y < wallClimbMaxSpeed)
+            rb.AddForce(Vector3.up * climbForce * rb.mass, ForceMode.Impulse);
+        else
+        {
+            //If overflow normalize speed
+            var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * wallrunMaxForceY;
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) + normSpeed;
+        }
+    }
+
+    //Add climb horizontal movement
+    void HorizontalWallRun()
+    {
+        //Horizontal side wall run
+        var speedH = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        //Handle smooth movement 
+        float timeSinceStart = Time.time - wallRunStartTime;
+        float t = Mathf.Clamp01(timeSinceStart / wallrunTime);
+        float xMultiplier = Mathf.SmoothStep(1f, 0f, t);
+        float horizontalForce = wallrunForceX * xMultiplier;
+        print(xMultiplier);
+        
+        //Horizontal movement
+        if(speedH.magnitude < wallrunMaxForceX)
+            rb.AddForce(wallrunDirection * horizontalForce * rb.mass, ForceMode.Acceleration);
+        else
+        {
+            //If overflow onrmalize speed
+            var normSpeed = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized * wallrunMaxForceX;
+            rb.velocity = new Vector3(0, rb.velocity.y, 0) + normSpeed;
+        }
+
+        //Horizontal up wall run
+        var speedV = rb.velocity.y;
+        //Handle smooth movement in arch
+        float yMultiplier = Mathf.Cos(t * Mathf.PI);
+        float verticalForce = wallRunForceY * Math.Abs(xMultiplier);
+        print(yMultiplier);
+
+        //Vertical movement
+        if(speedV < wallrunMaxForceY * yMultiplier)
+            rb.AddForce(Vector3.up * verticalForce * rb.mass, ForceMode.Acceleration);
+        else
+        {
+            //If overflow onrmalize speed
+            var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * wallrunMaxForceY;
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) + normSpeed;
+        }
+    }
+
     void DeactivateWallRun()
     {
+        print("Deactivated");
         currentWallState = WallState.Sliding;
     }
 
     //Wall slide when attached to the wall
     private void WallSlide()
     {
+        if(moveVector != null)
+        {
+            //Finding direction of movement
+            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
+            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
+            Vector3 surfaceMoveDir = (surfaceRight * moveVector.x + surfaceForward * moveVector.y).normalized;
+            //Getting current direction
+            Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
+            Vector3 wallLeft = -wallRight;
+            var dotRight = Vector3.Dot(surfaceMoveDir, wallRight);
+            if(dotRight > 0)
+                rb.AddForce(wallRight * acceleration * airControlMultiplier / 2, ForceMode.Acceleration);
+            else if (dotRight < 0)
+                rb.AddForce(-wallRight * acceleration * airControlMultiplier / 2, ForceMode.Acceleration);
+
+
+            //Counter movement
+            var horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            if (horizontalVel.magnitude > maxSpeed)
+            {
+                //Getting direction of movement
+                Vector3 moveDir = horizontalVel.normalized;
+                //Force to counter movement
+                Vector3 counterForce = -moveDir * acceleration * airControlMultiplier;
+                rb.AddForce(counterForce, ForceMode.Acceleration);
+            }
+        }
+
+
+
         //Slow sliding at the wall
         if(rb.velocity.y < -wallSlideMaxSpeed)
         {
+            print(rb.velocity.y);
             rb.AddForce(Vector3.up * 40, ForceMode.Acceleration);
         }
     }
-
 
 
 
@@ -463,8 +616,11 @@ public class PlayerMovement : MonoBehaviour, IMovable
             //Null normals and jumps
             savedNormal = Vector3.zero;
             wallNormal = Vector3.zero;
+            //Wall run
             wallJumpCounter = 0;
+            wallrunCounter = 0;
             justLanded = false;
+            wallReferenceSaved = null;
     }
 
 
@@ -520,7 +676,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
             var curnormal = FindClosestToVectorUp(indexesGround, contacts);
 
             //Handle main logic
-            print("ground");
             HandleGround(curnormal);
             OnLand();
         }
@@ -531,7 +686,6 @@ public class PlayerMovement : MonoBehaviour, IMovable
             var curnormal = FindClosestTo90(indexesSlope, contacts);
 
             //Handle main logic
-            print("slope");
             HandleSlope(curnormal);
             OnLand();
         }
@@ -542,14 +696,12 @@ public class PlayerMovement : MonoBehaviour, IMovable
             var curnormal = FindClosestTo90(indexesWall, contacts);
 
             //Handle main logic
-            print("wall");
-            HandleWall(curnormal);
+            HandleWall(curnormal, contacts[indexesWall[0]]);
         }
         //Ceiling contact main
         else if(contactSurfaces[2] > 0)
         {
             //Handle main logic
-            print("ceiling");
             OnFly();
         }
         
@@ -610,6 +762,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     {
         groundNormal = normal;
 
+        //Check for consistent slope
         if (savedSlideNormal == groundNormal)
             counterNormal++;
         else
@@ -628,10 +781,11 @@ public class PlayerMovement : MonoBehaviour, IMovable
         savedSlideNormal = groundNormal;
     }
 
-    void HandleWall(Vector3 normal)
+    void HandleWall(Vector3 normal, ContactPoint contact)
     {
         if (isGrounded == IsGrounded.InAir)
         {
+            //Check for consistent wall
             if (lastWallNormal == normal)
                 checkWallCounter++;
             else
@@ -642,9 +796,35 @@ public class PlayerMovement : MonoBehaviour, IMovable
                 currentState = BodyState.WallRunning;
                 rb.useGravity = true;
                 wallNormal = normal;
+
+                //Check for the same wall for additional wall run possibility
+                wallReference = contact.otherCollider.transform;
+                if(wallReference != wallReferenceSaved)
+                {
+                    runnedAlready = false;
+                    stoppedByWall = true;
+                }
+                wallReferenceSaved = wallReference;
             }
 
             lastWallNormal = normal;
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
