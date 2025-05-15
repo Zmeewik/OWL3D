@@ -231,6 +231,8 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                 if (state == "none")
                     if (breathMultiplyer < parameters[0])
                         breathMultiplyer = parameters[0];
+                if (state == "wallrun")
+                    wallrunPhase = 0;
             }
         }
 
@@ -270,7 +272,6 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                 break;
             case "wallrun":
                 isWallrunRight = parameters[0] == 0 ? false : true;
-                wallrunPhase = 0;
                 wallrunState = (int)parameters[1];
                 wallrunRightDot = parameters[2];
                 break;
@@ -547,7 +548,6 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         if (isWallrunRight)
         {
             var curAngle = Mathf.Lerp(0, wallrunAngle, wallrunRightDot);
-            print(curAngle);
             cameraRotationTarget = Quaternion.Euler(cameraRotationTarget.x, cameraRotationTarget.y, curAngle);
         }
         else
@@ -559,8 +559,9 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
     //Wallrun horizontal
     void OnWallRunHorizontal()
-    { 
+    {
         //Walk shake
+        print("wallrun");
         wallrunPhase += Time.deltaTime * wallrunSpeed;
         float xShake = Mathf.Sin(wallrunPhase) * wallrunXShake;
         float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallrunYShake;
@@ -571,8 +572,9 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
     //Wall climb
     void OnWallClimb()
-    { 
+    {
         //Walk shake
+        print("climb");
         wallrunPhase += Time.deltaTime * wallclimbSpeed;
         float xShake = Mathf.Sin(wallrunPhase) * wallclimbXShake;
         float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallclimbYShake;

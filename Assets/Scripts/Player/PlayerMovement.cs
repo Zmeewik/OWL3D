@@ -449,11 +449,12 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //Starting calculations and change life camera state
         if (features.enableLifeCamera)
         {
+            //Calculate vectore
             var rbMoveVector = transform.forward;
             Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
             var dotRight = Vector3.Dot(rbMoveVector, wallRight);
-
-            OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 0, dotRight });
+            
+            //Change life camera state
             switch (currentWallState)
             {
                 case WallState.Climbing:
