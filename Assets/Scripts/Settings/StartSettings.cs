@@ -24,6 +24,12 @@ public class StartSettings : MonoBehaviour
     private int frameCount;
     private float fps;
 
+    void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
     void Update()
     {
         frameCount++;

@@ -91,4 +91,23 @@ public class Input : MonoBehaviour
             }
     }
 
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
+                
+        if(context.canceled)
+        {
+            foreach(var goal in movable_goal)
+            {
+                goal.OnCrouch(false);
+            }
+        }
+        else if(context.started)
+        {
+            foreach(var goal in movable_goal)
+            {
+                goal.OnCrouch(true);
+            }
+        }
+    }
+
 }

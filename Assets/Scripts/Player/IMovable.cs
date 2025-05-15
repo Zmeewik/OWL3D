@@ -5,4 +5,5 @@ public interface IMovable
     void OnMove(Vector2 vector);
     void OnJump();
     void OnDash();
+    void OnCrouch(bool isCrouching);
 }
