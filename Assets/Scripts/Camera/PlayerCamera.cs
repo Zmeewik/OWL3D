@@ -11,6 +11,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     [Header("References")]
     [SerializeField]
     GameObject cameraObj;
+    Camera cameraRef;
     [SerializeField] Transform cameraOffsetObject;
     [SerializeField] Transform cameraPosition;
 
@@ -150,6 +151,30 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     Vector2 rotationVector;
     float xRotation;
 
+
+
+
+    //Other camera settings
+    [Header("Other settings")]
+    [SerializeField] float FOVOffset;
+    [SerializeField] float changeFOVTime;
+    float targetFOV;
+    private float currentFOVVelocity = 0f;
+    float savedFov = 0;
+
+
+    private void Start()
+    {
+        cameraRef = cameraObj.transform.GetChild(0).GetChild(0).GetComponent<Camera>();
+        savedFov = cameraRef.fieldOfView;
+        PlayerMovement.OnLifeCameraAction += ChangeLifeCameraState;
+    }
+
+    private void OnDisable()
+    {
+        PlayerMovement.OnLifeCameraAction -= ChangeLifeCameraState;
+    }
+
     //Update camera position and rotation at late update
     public void LateUpdate()
     {
@@ -164,6 +189,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
             {
                 OnRotate(rotationVector.x);
             }
+            ChangeFOV();
         }
     }
 
@@ -186,6 +212,21 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
         //Perform the rotations
         cameraObj.transform.rotation = Quaternion.Euler(xRotation, desiredX, 0);
+    }
+
+    //Change camera FOV Smoothly
+    void ChangeFOV()
+    {
+        //Go down FOV Slow
+        if(Mathf.Abs(cameraRef.fieldOfView - targetFOV) > 0.01f && cameraRef.fieldOfView > targetFOV)
+        {
+            cameraRef.fieldOfView = Mathf.SmoothDamp(cameraRef.fieldOfView, targetFOV, ref currentFOVVelocity, changeFOVTime);
+        }   
+        //Go up FOV fast
+        else if(Mathf.Abs(cameraRef.fieldOfView - targetFOV) > 0.01f && cameraRef.fieldOfView < targetFOV)
+        {
+            cameraRef.fieldOfView = Mathf.SmoothDamp(cameraRef.fieldOfView, targetFOV, ref currentFOVVelocity, changeFOVTime/4);
+        }
     }
 
 
@@ -309,6 +350,12 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                 break;
         }
     }
+
+    public void ChangeFOV(float num)
+    {
+        targetFOV = savedFov + num * FOVOffset;
+    }
+
 
     void HangUpDelayStart()
     {

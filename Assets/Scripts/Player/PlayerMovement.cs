@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEditor;
 
 [RequireComponent(typeof(Rigidbody)), RequireComponent(typeof(Collider))]
 public class PlayerMovement : MonoBehaviour, IMovable
@@ -25,6 +24,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         public bool enableSpeedSystem = true;
         public bool enableLifeCamera = true;
         public PlayerCamera cameraScrReference;
+        public bool enableParticles = true;
     }
 
 
@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] Transform cameraFront;
     [SerializeField] CollisionCheck collisionScr;
     [SerializeField] SurfaceHandler surfaceHandler;
-
+    public static Action<string, float[]> OnLifeCameraAction; 
 
     [Header("Rotation")]
     [SerializeField] float speedRotation;
@@ -70,6 +70,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] float airMaxSpeed;
     [SerializeField] float minFallTime;
     [SerializeField] float minFallCheck;
+    [SerializeField] float flyMaxParticleTime;
     float currentFallTime;
     float currentDownFallTime;
     int counterOfAirFrames = 0;
@@ -131,7 +132,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] float crouchHeadOffset;
     [SerializeField] float crouchMaxMultiplyer;
     [SerializeField] Transform headPosition;
-    [SerializeField] Vector3 headStartPosition;
+    Vector3 headStartPosition;
     [SerializeField] Vector3 headCrouchPosition;
     [SerializeField] CapsuleCollider crouchCollider;
     [SerializeField] private LayerMask groundLayer;
@@ -191,6 +192,17 @@ public class PlayerMovement : MonoBehaviour, IMovable
     Dictionary<string, float> speedPoints;
 
 
+    //Animations
+    Particles particles;
+    DebugOutput debugOutput;
+    bool isAlreadyAnimating;
+    public static Action<string, bool> OnPlayAnimationLArm;
+    public static Action<string, bool> OnPlayAnimationRArm;
+    public static Action<string, bool> OnPlayAnimationRLeg;
+    public static Action<string, float[]> OnArmsMove;
+
+
+
 
     //Start settings
     public void Start()
@@ -204,6 +216,13 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
         //List to dictionary
         speedPoints = speedPointList.ToDictionary(entry => entry.key, entry => entry.value);
+
+        //Set start head position
+        headStartPosition = headPosition.localPosition;
+
+        //Set particles to instance on scene
+        particles = FindObjectOfType<Particles>();
+        debugOutput = FindObjectOfType<DebugOutput>();
     }
     public void OnDisable()
     {
@@ -220,8 +239,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
     private void FixedUpdate()
     {
         Vector3 horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-        DebugOutput.Instance.Output("Скорость: " + horizontalVel.magnitude.ToString("F2"), 1);
-        DebugOutput.Instance.Output("Максимальная скорость: " + (currentMaxSpeed * crouchMultiplyer).ToString("F2"), 2);
+        debugOutput.Output("Скорость: " + horizontalVel.magnitude.ToString("F2"), 1);
+        debugOutput.Output("Максимальная скорость: " + (currentMaxSpeed * crouchMultiplyer).ToString("F2"), 2);
 
         //Speed always goes down
         if (isCrouching == IsCrouching.Crouching && horizontalVel != Vector3.zero)
@@ -289,8 +308,41 @@ public class PlayerMovement : MonoBehaviour, IMovable
                 break;
         }
 
-        //Check collisions
-        //collisionScr.WallRaycast(rb.velocity);
+        //Handle animations
+        //Animate idle
+        OnAnimating("H_Arms_Boxing_Idle", "r_arm", true);
+        OnAnimating("H_Arms_Boxing_Idle", "l_arm", true);
+
+        //Handle visual effects
+        if (features.enableParticles)
+        {
+            if (currentMaxSpeed > maxLowSpeed + maxSpeedDifference / 2)
+            {
+                //print("move fast");
+                var alpha = (currentMaxSpeed - maxLowSpeed - maxSpeedDifference / 2) / maxSpeedDifference * 2;
+                var col = new Color[1] { new Color(1, 1, 1, alpha) };
+                print(col);
+                particles.ChangeColor("MovementLines", col);
+                particles.StartEffect("MovementLines");
+                ChangeFOV(alpha);
+            }
+            else if (currentState == BodyState.InAir && rb.velocity.magnitude > maxLowSpeed)
+            {
+                //print("move air");
+                var alpha = Mathf.Min(currentFallTime / flyMaxParticleTime, 1);
+                var col = new Color[1] { new Color(1, 1, 1, alpha) };
+                //print(col);
+                particles.ChangeColor("MovementLines", col);
+                particles.StartEffect("MovementLines");
+                ChangeFOV(alpha);
+            }
+            else
+            {
+                //print("move slow");
+                particles.StopEffect("MovementLines");
+                ChangeFOV(0);
+            }
+        }
     }
 
 
@@ -307,7 +359,9 @@ public class PlayerMovement : MonoBehaviour, IMovable
             else if (features.enableLifeCamera && moveVector != Vector2.zero)
                 OnLifeCamera("movement", new float[1] { (currentMaxSpeed - maxLowSpeed) / maxSpeedDifference });
             else if (features.enableLifeCamera && moveVector == Vector2.zero && state != "jump" && state != "land" && state != "hangUp" && state != "dash")
+            {
                 OnLifeCamera("none", new float[1] { (currentMaxSpeed - maxLowSpeed) / maxSpeedDifference });
+            }
         }
         else
         {
@@ -453,7 +507,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             var rbMoveVector = transform.forward;
             Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
             var dotRight = Vector3.Dot(rbMoveVector, wallRight);
-            
+
             //Change life camera state
             switch (currentWallState)
             {
@@ -475,8 +529,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
                     break;
             }
         }
-
-        //print(currentWallState);
+        
         //Main movement handle
         switch (currentWallState)
         {
@@ -597,6 +650,10 @@ public class PlayerMovement : MonoBehaviour, IMovable
             var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * wallrunMaxForceY;
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) + normSpeed;
         }
+
+        //Activate put away animation
+        OnAnimating("H_Arms_Boxing_PutAway", "l_arm", false);
+        OnAnimating("H_Arms_Boxing_PutAway", "r_arm", false);
 
         //Check for hang up
         HangUpCheck();
@@ -874,6 +931,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
         if (t < upwardHangUpRelation && !hangUpImpulseUp)
         {
+            print("Go up!");
             // Движение вверх: 70% времени
             Vector3 upDistance = hangUpControlPos - hangUpStartPos;
             float duration = currentFinalHangUpTime * upwardHangUpRelation;
@@ -883,9 +941,18 @@ public class PlayerMovement : MonoBehaviour, IMovable
             rb.AddForce(velocity, ForceMode.VelocityChange);
 
             hangUpImpulseUp = true;
+            
+            //Hang up animation
+            if (!isAlreadyAnimating)
+            {
+                isAlreadyAnimating = true;
+                OnAnimating("H_Arms_Get_Up", "l_arm", false);
+                OnAnimating("H_Arms_Get_Up", "r_arm", false);
+            }
         }
         else if (t >= upwardHangUpRelation && !hangUpImpulseForward)
         {
+            print("Go forward!");
             // Движение вперёд: оставшиеся 30% времени
             Vector3 forwardDistance = nextHangUpPosition - hangUpControlPos;
             float duration = currentFinalHangUpTime * (1 - upwardHangUpRelation);
@@ -899,6 +966,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
 
         if (t >= 1f)
         {
+            isAlreadyAnimating = false;
             currentWallState = WallState.Sliding;
             lastState = currentState;
             OnFly();
@@ -1299,6 +1367,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
             }
             currentState = BodyState.Moving;
             savedSlideNormal = Vector3.zero;
+
         }
     }
 
@@ -1386,16 +1455,41 @@ public class PlayerMovement : MonoBehaviour, IMovable
     {
         if (!features.enableLifeCamera)
             return;
-        if (features.cameraScrReference == null)
-            return;
         if (parameters == null)
             parameters = new float[0];
-        features.cameraScrReference.ChangeLifeCameraState(type, parameters);
+        OnLifeCameraAction?.Invoke(type, parameters);
+    }
+
+    //Send command to animation
+    void OnAnimating(string clipName, string bodyPart, bool loop)
+    {
+        switch (bodyPart)
+        {
+            case "l_arm":
+                OnPlayAnimationLArm?.Invoke(clipName, loop);
+                break;
+            case "r_arm":
+                OnPlayAnimationRArm?.Invoke(clipName, loop);
+                break;
+            case "leg":
+                OnPlayAnimationRLeg?.Invoke(clipName, loop);
+                break;
+        }
+    }
+
+
+    void ChangeFOV(float num)
+    {
+        if (features.enableLifeCamera)
+            features.cameraScrReference.ChangeFOV(num);
     }
 
     string GetCurrentLifeCameraState()
     {
-        return features.cameraScrReference.GetCurrentState();
+        if (features.enableLifeCamera)
+            return features.cameraScrReference.GetCurrentState();
+        else
+            return "-1";
     }
 }
 
