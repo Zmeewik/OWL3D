@@ -86,7 +86,8 @@ public class HeroAnimationController : MonoBehaviour
                                 H_Arms_Hide,
 
                                 //Parkour
-                                H_Arms_Get_Up
+                                H_Arms_Get_Up,
+                                H_Arms_ClimbUp
     }
     static string[] animationNames = {
                                 //Charge boxing hit
@@ -116,6 +117,7 @@ public class HeroAnimationController : MonoBehaviour
 
                                 //Parkour
                                 "H_Arms_GetUp",
+                                "H_Arms_ClimbUp"
                                 };
     public enum BodyPart { left_hand, right_hand, right_leg }
     private Vector2 rotationVector;
@@ -145,21 +147,23 @@ public class HeroAnimationController : MonoBehaviour
         currentAnimStates[bodyPart] = state;
     }
 
+
+    //Play animation by player part
     private void PlayAnimation(string animationClip, BodyPart bodyPart)
     {
         if (bodyPart == BodyPart.left_hand)
         {
-            leftHandAnimator.Play(animationClip);
+            leftHandAnimator.Play(animationClip, 0, 0f);
             print($"left hand animation {animationClip} started!");
         }
         else if (bodyPart == BodyPart.right_hand)
         {
-            rightHandAnimator.Play(animationClip);
+            rightHandAnimator.Play(animationClip, 0, 0f);
             print($"right hand animation {animationClip} started!");
         }
         else if (bodyPart == BodyPart.right_leg)
         {
-            LegAnimator.Play(animationClip);
+            LegAnimator.Play(animationClip, 0, 0f);
             print($"right leg animation {animationClip} started!");
         }
     }
@@ -189,7 +193,11 @@ public class HeroAnimationController : MonoBehaviour
         //If animation not looped deactivate current loop
         else
         {
-            StopCoroutine(OnAnimationLoop[(int)bodyPart]);
+            if (OnAnimationLoop[(int)bodyPart] != null)
+            {
+                StopCoroutine(OnAnimationLoop[(int)bodyPart]);
+                OnAnimationLoop[(int)bodyPart] = null;
+            }
             OnAnimationLoop[(int)bodyPart] = null;
             PlayAnimation(animationClip, bodyPart);
         }

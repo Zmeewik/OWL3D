@@ -1006,12 +1006,12 @@ MonoBehaviour:
   wallrunMaxForceY: 6
   wallrunTime: 1
   wallrunMaxCount: 2
-  wallClimbForce: 20
-  wallClimbMaxSpeed: 5
-  wallClimbTime: 0.3
+  wallClimbForce: 10
+  wallClimbTime: 0.5
   wallSlideMaxSpeed: 5
   minHangUpTime: 0.1
   maxHangUpTime: 0.4
+  hangUpHeight: 1
   crouchHeadOffset: 0.6
   crouchMaxMultiplyer: 0.6
   headPosition: {fileID: 941037584}
@@ -1695,7 +1695,7 @@ Transform:
   m_GameObject: {fileID: 484444989}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -3.05, z: 0}
+  m_LocalPosition: {x: 0, y: -3.05, z: -0.01}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -5914,8 +5914,8 @@ MonoBehaviour:
   leftHandAnimator: {fileID: 1553948095}
   rightHandAnimator: {fileID: 1431805603}
   LegAnimator: {fileID: 1492929088}
-  startLeftHandState: 12
-  startRightHandState: 12
+  startLeftHandState: 13
+  startRightHandState: 13
   startLegState: 17
   handsOffsetObject: {fileID: 484444990}
 --- !u!1 &2078209524

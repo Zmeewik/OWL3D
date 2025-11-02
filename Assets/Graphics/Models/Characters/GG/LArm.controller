@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1102 &-8061915731995669782
+--- !u!1102 &-9076003617443696107
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
@@ -27,14 +27,14 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-6997207522430064763
+--- !u!1102 &-8904951128361824263
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_HitChargeStart1
+  m_Name: H_Arms_Boxing_HitChargeContinue1
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -47,14 +47,95 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 8805566763476480353, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -8633603195712089838, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-6912584802318347206
+--- !u!1102 &-8572730424887989189
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_ClimbUp
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: -1128004546913048898, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &-7186582363430237479
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_HitChargeEnd1_001
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: -8427691714863604683, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &-6634694904812070485
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_Idle
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: -7499972469763133870, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &-6568751520376491384
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
@@ -108,14 +189,14 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-6000873820879793157
+--- !u!1102 &-5245660672484848593
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Hide
+  m_Name: H_Arms_Boxing_PutAway
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -128,21 +209,21 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -787401334899353546, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -2866069132944787870, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-4438532983710723313
+--- !u!1102 &-3878412338313169460
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_Idle
+  m_Name: H_Arms_Boxing_BlockActionStrong
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -155,21 +236,21 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -7499972469763133870, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: 7649067627470741728, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-4100195018885785822
+--- !u!1102 &-3808270587433385436
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_HitChargeEnd1_001
+  m_Name: H_Arms_Boxing_HitChargeContinue2
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -182,21 +263,21 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -8427691714863604683, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -2996125837059454807, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-3569004274720878913
+--- !u!1102 &-3780841086790400093
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockEnd
+  m_Name: H_Arms_Boxing_HitChargeContinue2_001
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -209,21 +290,21 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -6435728691388044755, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -4558385936339674904, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-3534989774543752571
+--- !u!1102 &-3718135781017404560
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockAction1_001
+  m_Name: H_Arms_Boxing_BlockIdle
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -236,14 +317,41 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -7671741811128556725, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: 1349508090236573575, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-3120435301581003500
+--- !u!1102 &-2269659233131925236
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_HitChargeStart2
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 7152421192649141240, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &-1342501842891590167
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
@@ -270,14 +378,14 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &-184261018084654056
+--- !u!1102 &-1165454939589430788
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_HitChargeContinue1
+  m_Name: H_Arms_Boxing_BlockAction1
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -290,7 +398,34 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -8633603195712089838, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -3053452660900391863, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &-1105097658043504592
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_WeakHit3
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: -9140889492489465264, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
@@ -331,14 +466,14 @@ AnimatorController:
     m_IKPass: 0
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
---- !u!1102 &326542172313945861
+--- !u!1102 &262992221089654483
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockStart
+  m_Name: H_Arms_Hide
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -351,240 +486,14 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 3527738044020443887, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -787401334899353546, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &2273687649898204183
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_GetUp
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: -1918313666418400501, guid: 522c496951b88a64c9e37c85c2f128ba,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1102 &2974356188097229538
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_HitChargeContinue2
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: -2996125837059454807, guid: 522c496951b88a64c9e37c85c2f128ba,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1102 &3260434706209188246
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_HitChargeStart2
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: 7152421192649141240, guid: 522c496951b88a64c9e37c85c2f128ba,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1107 &3927520976490060944
-AnimatorStateMachine:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: LowerBody
-  m_ChildStates:
-  - serializedVersion: 1
-    m_State: {fileID: 4022985743501028733}
-    m_Position: {x: 84.88434, y: 270.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -3534989774543752571}
-    m_Position: {x: 94.88434, y: 280.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 6467976493334263357}
-    m_Position: {x: 104.88434, y: 290.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 7687116077611235471}
-    m_Position: {x: 114.88434, y: 300.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -3569004274720878913}
-    m_Position: {x: 124.88434, y: 310.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 8888821920971238136}
-    m_Position: {x: 134.88434, y: 320.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 326542172313945861}
-    m_Position: {x: 144.88434, y: 330.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -184261018084654056}
-    m_Position: {x: 154.88434, y: 340.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 2974356188097229538}
-    m_Position: {x: 164.88434, y: 350.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 7922471668181028287}
-    m_Position: {x: 174.88434, y: 360.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 7831721965345720208}
-    m_Position: {x: 184.88434, y: 370.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -4100195018885785822}
-    m_Position: {x: 194.88434, y: 380.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -6912584802318347206}
-    m_Position: {x: 204.88434, y: 390.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -6997207522430064763}
-    m_Position: {x: 214.88434, y: 400.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 3260434706209188246}
-    m_Position: {x: 224.88434, y: 410.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -4438532983710723313}
-    m_Position: {x: 234.88434, y: 420.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -8061915731995669782}
-    m_Position: {x: 244.88434, y: 430.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -3120435301581003500}
-    m_Position: {x: 254.88434, y: 440.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 4905988901912752152}
-    m_Position: {x: 264.88434, y: 450.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 5060276397536107332}
-    m_Position: {x: 274.88434, y: 460.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 4949571529982131454}
-    m_Position: {x: 284.88434, y: 470.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 8553005254513801754}
-    m_Position: {x: 294.88434, y: 480.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 2273687649898204183}
-    m_Position: {x: 304.88434, y: 490.61432, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -6000873820879793157}
-    m_Position: {x: 314.88434, y: 500.61432, z: 0}
-  m_ChildStateMachines: []
-  m_AnyStateTransitions: []
-  m_EntryTransitions: []
-  m_StateMachineTransitions: {}
-  m_StateMachineBehaviours: []
-  m_AnyStatePosition: {x: 50, y: 20, z: 0}
-  m_EntryPosition: {x: 50, y: 120, z: 0}
-  m_ExitPosition: {x: 800, y: 120, z: 0}
-  m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
-  m_DefaultState: {fileID: 4022985743501028733}
---- !u!1102 &4022985743501028733
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockAction1
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: -3053452660900391863, guid: 522c496951b88a64c9e37c85c2f128ba,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1102 &4905988901912752152
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_PutAway
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: -2866069132944787870, guid: 522c496951b88a64c9e37c85c2f128ba,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1102 &4949571529982131454
+--- !u!1102 &640395585025181194
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
@@ -611,14 +520,14 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &5060276397536107332
+--- !u!1102 &1104981423235320465
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_WeakHit1
+  m_Name: H_Arms_GetUp
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -631,14 +540,14 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 1882491437878090053, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -1918313666418400501, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &6467976493334263357
+--- !u!1102 &1913549086296842189
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
@@ -665,14 +574,14 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &7687116077611235471
+--- !u!1102 &2413365457695742068
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockActionStrong
+  m_Name: H_Arms_Boxing_PickUp
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -685,14 +594,141 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7649067627470741728, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: -7100122490934203781, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &7831721965345720208
+--- !u!1102 &2486185451572192618
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_HitChargeStart1
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 8805566763476480353, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1107 &3927520976490060944
+AnimatorStateMachine:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: LowerBody
+  m_ChildStates:
+  - serializedVersion: 1
+    m_State: {fileID: -1165454939589430788}
+    m_Position: {x: 140.63608, y: 182.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 6651516397233556864}
+    m_Position: {x: 150.63608, y: 192.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 1913549086296842189}
+    m_Position: {x: 160.63608, y: 202.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -3878412338313169460}
+    m_Position: {x: 170.63608, y: 212.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 8011350248708632234}
+    m_Position: {x: 180.63608, y: 222.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -3718135781017404560}
+    m_Position: {x: 190.63608, y: 232.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 7080517633311909306}
+    m_Position: {x: 200.63608, y: 242.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -8904951128361824263}
+    m_Position: {x: 210.63608, y: 252.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -3808270587433385436}
+    m_Position: {x: 220.63608, y: 262.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -3780841086790400093}
+    m_Position: {x: 230.63608, y: 272.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 4024574939493686873}
+    m_Position: {x: 240.63608, y: 282.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -7186582363430237479}
+    m_Position: {x: 250.63608, y: 292.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -6568751520376491384}
+    m_Position: {x: 260.63608, y: 302.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 2486185451572192618}
+    m_Position: {x: 270.63608, y: 312.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -2269659233131925236}
+    m_Position: {x: 280.63608, y: 322.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -6634694904812070485}
+    m_Position: {x: 290.63608, y: 332.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -9076003617443696107}
+    m_Position: {x: 300.63608, y: 342.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -1342501842891590167}
+    m_Position: {x: 310.63608, y: 352.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 2413365457695742068}
+    m_Position: {x: 320.63608, y: 362.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -5245660672484848593}
+    m_Position: {x: 330.63608, y: 372.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 8814906552273134765}
+    m_Position: {x: 340.63608, y: 382.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 5195951739322317497}
+    m_Position: {x: 350.63608, y: 392.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 640395585025181194}
+    m_Position: {x: 360.63608, y: 402.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -1105097658043504592}
+    m_Position: {x: 370.63608, y: 412.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 1104981423235320465}
+    m_Position: {x: 380, y: 420, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 262992221089654483}
+    m_Position: {x: 390.63608, y: 432.6012, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -8572730424887989189}
+    m_Position: {x: 390, y: 480, z: 0}
+  m_ChildStateMachines: []
+  m_AnyStateTransitions: []
+  m_EntryTransitions: []
+  m_StateMachineTransitions: {}
+  m_StateMachineBehaviours: []
+  m_AnyStatePosition: {x: 50, y: 20, z: 0}
+  m_EntryPosition: {x: 50, y: 120, z: 0}
+  m_ExitPosition: {x: 800, y: 120, z: 0}
+  m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
+  m_DefaultState: {fileID: -1165454939589430788}
+--- !u!1102 &4024574939493686873
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
@@ -719,14 +755,14 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &7922471668181028287
+--- !u!1102 &5195951739322317497
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_HitChargeContinue2_001
+  m_Name: H_Arms_Boxing_WeakHit1
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -739,7 +775,88 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -4558385936339674904, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: 1882491437878090053, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &6651516397233556864
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_BlockAction1_001
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: -7671741811128556725, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &7080517633311909306
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_BlockStart
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 3527738044020443887, guid: 522c496951b88a64c9e37c85c2f128ba,
+    type: 3}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &8011350248708632234
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: H_Arms_Boxing_BlockEnd
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: -6435728691388044755, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
@@ -768,14 +885,14 @@ AnimatorStateMachine:
   m_ExitPosition: {x: 800, y: 120, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
   m_DefaultState: {fileID: -6060277110683355600}
---- !u!1102 &8553005254513801754
+--- !u!1102 &8814906552273134765
 AnimatorState:
   serializedVersion: 6
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_WeakHit3
+  m_Name: H_Arms_Boxing_PutAway_002
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions: []
@@ -788,34 +905,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: -9140889492489465264, guid: 522c496951b88a64c9e37c85c2f128ba,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1102 &8888821920971238136
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockIdle
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: 1349508090236573575, guid: 522c496951b88a64c9e37c85c2f128ba,
+  m_Motion: {fileID: 6197317324763725213, guid: 522c496951b88a64c9e37c85c2f128ba,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 

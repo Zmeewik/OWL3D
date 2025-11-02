@@ -266,7 +266,6 @@ public class PlayerCamera : MonoBehaviour, IRotatable
             {
                 //Immediate functions
                 currentLifeCameraState = (LifeCameraState)id;
-                print(state);
                 cameraOffsetTarget = Vector3.zero;
                 cameraRotationTarget = Quaternion.identity;
                 if (state == "none")
@@ -608,7 +607,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     void OnWallRunHorizontal()
     {
         //Walk shake
-        print("wallrun");
+        //print("wallrun");
         wallrunPhase += Time.deltaTime * wallrunSpeed;
         float xShake = Mathf.Sin(wallrunPhase) * wallrunXShake;
         float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallrunYShake;
@@ -621,7 +620,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     void OnWallClimb()
     {
         //Walk shake
-        print("climb");
+        //print("climb");
         wallrunPhase += Time.deltaTime * wallclimbSpeed;
         float xShake = Mathf.Sin(wallrunPhase) * wallclimbXShake;
         float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallclimbYShake;
