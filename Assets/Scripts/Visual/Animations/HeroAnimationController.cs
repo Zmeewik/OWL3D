@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using System;
 
-public class HeroAnimationController : MonoBehaviour
+public class HeroAnimationController : IAnimation
 {
     [Header("References")]
     [SerializeField] Animator leftHandAnimator;
@@ -27,6 +27,35 @@ public class HeroAnimationController : MonoBehaviour
     Dictionary<BodyPart, AnimationState> currentAnimStates = new Dictionary<BodyPart, AnimationState>();
 
 
+    private struct QueuedAnim
+    {
+        public string name;
+        public bool loop;
+
+        public QueuedAnim(string anim, bool lp)
+        {
+            name = anim;
+            loop = lp;
+        }
+    }
+    
+    private class PartQueueData
+    {
+        public bool isPlaying = false;
+        public Coroutine coroutine = null;
+    }
+
+    private Queue<QueuedAnim>[] animationQueues = 
+    {
+        new Queue<QueuedAnim>(), // left hand
+        new Queue<QueuedAnim>(), // right hand
+        new Queue<QueuedAnim>()  // right leg
+    };
+    
+    private bool[] isPartPlaying = new bool[3];
+    
+    private PartQueueData[] queueData = new PartQueueData[3];
+    
     //Singleton instance
     public static HeroAnimationController Instance { get; private set; }
     private void Awake()
@@ -37,6 +66,9 @@ public class HeroAnimationController : MonoBehaviour
             return;
         }
         Instance = this;
+        
+        for (int i = 0; i < 3; i++)
+            queueData[i] = new PartQueueData();
     }
 
     void Start()
@@ -62,11 +94,18 @@ public class HeroAnimationController : MonoBehaviour
     //Player move states
     public enum AnimationState { 
                                 H_Arms_Boxing_HitChargeContinue1,
+                                H_Arms_Boxing_HitChargeContinue1_1,
                                 H_Arms_Boxing_HitChargeContinue2,
+                                H_Arms_Boxing_HitChargeContinue2_1,
                                 H_Arms_Boxing_HitChargeStart1,
+                                H_Arms_Boxing_HitChargeStart1_1,
                                 H_Arms_Boxing_HitChargeStart2,
+                                H_Arms_Boxing_HitChargeStart2_1,
                                 H_Arms_Boxing_HitChargeEnd1,
+                                H_Arms_Boxing_HitChargeEnd1_1,
                                 H_Arms_Boxing_HitChargeEnd2,
+                                H_Arms_Boxing_HitChargeEnd2_1,
+                                H_Arms_Boxing_HitWrong1,
                                 
                                 //Block boxing
                                 H_Arms_Boxing_BlockAction1,
@@ -83,6 +122,7 @@ public class HeroAnimationController : MonoBehaviour
                                 H_Arms_Boxing_WeakHit2,
                                 H_Arms_Boxing_WeakHit3,
                                 H_Arms_Boxing_LegHit1,
+                                H_Arms_Boxing_LegHit2,
                                 H_Arms_Hide,
 
                                 //Parkour
@@ -92,11 +132,18 @@ public class HeroAnimationController : MonoBehaviour
     static string[] animationNames = {
                                 //Charge boxing hit
                                 "H_Arms_Boxing_HitChargeContinue1",
+                                "H_Arms_Boxing_HitChargeContinue1_1",
                                 "H_Arms_Boxing_HitChargeContinue2",
+                                "H_Arms_Boxing_HitChargeContinue2_1",
                                 "H_Arms_Boxing_HitChargeStart1",
+                                "H_Arms_Boxing_HitChargeStart1_1",
                                 "H_Arms_Boxing_HitChargeStart2",
+                                "H_Arms_Boxing_HitChargeStart2_1",
                                 "H_Arms_Boxing_HitChargeEnd1",
+                                "H_Arms_Boxing_HitChargeEnd1_1",
                                 "H_Arms_Boxing_HitChargeEnd2",
+                                "H_Arms_Boxing_HitChargeEnd2_1",
+                                "H_Arms_Boxing_HitWrong1",
                                 
                                 //Block boxing
                                 "H_Arms_Boxing_BlockAction1",
@@ -113,6 +160,7 @@ public class HeroAnimationController : MonoBehaviour
                                 "H_Arms_Boxing_WeakHit2",
                                 "H_Arms_Boxing_WeakHit3",
                                 "H_Arms_Boxing_LegHit1",
+                                "H_Arms_Boxing_LegHit2",
                                 "H_Arms_Hide",
 
                                 //Parkour
@@ -230,6 +278,131 @@ public class HeroAnimationController : MonoBehaviour
             case BodyPart.right_leg:
                 LegAnimator.gameObject.SetActive(state);
                 break;
+        }
+    }
+
+
+    // public override void Play(EntityAnimator entity, string animName, string bodyPart = null, bool loop = false)
+    // {}
+    // public override void Enqueue(EntityAnimator entity, string animName, string bodyPart = null, bool loop = false)
+    // {}
+    // public override void StopAllAnimations(EntityAnimator entity, string animName, string bodyPart = null)
+    // {}
+
+    //Interface realization for weapon controller
+    public override void Play(EntityAnimator entity, string animName, string bodyPart = null, bool loop = false)
+    {
+        BodyPart part = BodyPart.left_hand;
+        if (bodyPart == "right_hand") part = BodyPart.right_hand;
+        if (bodyPart == "right_leg") part = BodyPart.right_leg;
+        //ChangeAnimation(animName, part, loop);
+        
+        int index = (int)part;
+        
+        animationQueues[index].Clear();
+        animationQueues[index].Enqueue(new QueuedAnim(animName, loop));
+        PlayNextInQueue(part);
+    }
+    public override void Enqueue(EntityAnimator entity, string animName, string bodyPart = null, bool loop = false)
+    {
+        BodyPart part = BodyPart.left_hand;
+        if (bodyPart == "right_hand") part = BodyPart.right_hand;
+        if (bodyPart == "right_leg") part = BodyPart.right_leg;
+
+        int i = (int)part;
+        animationQueues[i].Enqueue(new QueuedAnim(animName, loop));
+    }
+    
+    private void PlayNextInQueue(BodyPart part)
+    {
+        int i = (int)part;
+
+        if (animationQueues[i].Count == 0)
+        {
+            queueData[i].isPlaying = false;
+            return;
+        }
+
+        var anim = animationQueues[i].Dequeue();
+
+        // если loop — отдаем управление твоей системе loop-а
+        if (anim.loop)
+        {
+            ChangeAnimation(anim.name, part, true);
+            queueData[i].isPlaying = false; // queue закончил работу — loop работает сам по себе
+            return;
+        }
+
+        // non-loop
+        ChangeAnimation(anim.name, part, false);
+
+        float clipTime = GetClipLength(anim.name, part);
+        queueData[i].isPlaying = true;
+
+        queueData[i].coroutine = StartCoroutine(WaitThenNext(part, clipTime));
+    }
+    
+    private IEnumerator WaitThenNext(BodyPart part, float wait)
+    {
+        yield return new WaitForSeconds(wait);
+        PlayNextInQueue(part);
+    }
+    
+    private float GetClipLength(string clipName, BodyPart part)
+    {
+        Animator anim = leftHandAnimator;
+
+        if (part == BodyPart.right_hand)
+            anim = rightHandAnimator;
+        else if (part == BodyPart.right_leg)
+            anim = LegAnimator;
+
+        foreach (var clip in anim.runtimeAnimatorController.animationClips)
+            if (clip.name == clipName)
+                return clip.length;
+
+        return 0.1f; // на случай отсутствия
+    }
+
+    
+
+
+    //Stop all animations in the animatorn and queues
+    public override void StopAllAnimations(EntityAnimator entity, string fallbackState = null, string bodyPart = null)
+    {
+        BodyPart[] parts;
+
+        if (bodyPart == null)
+            parts = new[] { BodyPart.left_hand, BodyPart.right_hand, BodyPart.right_leg };
+        else
+            parts = new[] { (BodyPart)Enum.Parse(typeof(BodyPart), bodyPart) };
+
+        foreach (var p in parts)
+        {
+            int i = (int)p;
+
+            // стоп coroutine очереди
+            if (queueData[i].coroutine != null)
+            {
+                StopCoroutine(queueData[i].coroutine);
+                queueData[i].coroutine = null;
+            }
+
+            queueData[i].isPlaying = false;
+
+            // очистка очереди
+            animationQueues[i].Clear();
+
+            // стоп loop, если был
+            if (OnAnimationLoop[i] != null)
+            {
+                StopCoroutine(OnAnimationLoop[i]);
+                OnAnimationLoop[i] = null;
+            }
+
+            // fallback
+            if (fallbackState != null)
+                ChangeAnimation(fallbackState, p);
         }
     }
 }

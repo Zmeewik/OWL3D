@@ -109,6 +109,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     float currentHangUpAngle = 0f;
     float currentHangUpSpeed = 0f;
     int hangupDirection = 1;
+    float hangupPercent = 0f;
     [Header("Fall")]
     [SerializeField] float minFallSpeed;
     [SerializeField] float fallSpeed;
@@ -261,6 +262,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
             {
                 //Delayed functions
                 Invoke("HangUpDelayStart", Mathf.Max(0, parameters[0] - hangUpTime));
+                hangupPercent = parameters[1];
             }
             else
             {
@@ -371,9 +373,9 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         Vector3 currentEulerHang = cameraRotationTarget.eulerAngles;
         float xH = currentEulerHang.x;
         float yH = currentEulerHang.y;
-        float zH = currentEulerHang.z + hangupAngle * hangupDirection;
+        float zH = currentEulerHang.z + hangupAngle * hangupDirection * hangupPercent;
         cameraRotationTarget = Quaternion.Euler(xH, yH, zH);
-        currentHangUpAngle = hangupAngle * hangupDirection;
+        currentHangUpAngle = hangupAngle * hangupDirection * hangupPercent;
         currentHangUpSpeed = 0f;
         
     }
@@ -468,7 +470,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         if (state == (int)currentLifeCameraState)
         {
-            print("none");
+            //print("none");
             currentLifeCameraState = LifeCameraState.None;
             cameraOffsetTarget = Vector3.zero;
             cameraRotationTarget = Quaternion.identity;

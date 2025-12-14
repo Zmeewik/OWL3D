@@ -2,11 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody)), RequireComponent(typeof(Collider))]
-public class PlayerMovement : MonoBehaviour, IMovable
+public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 {
 
     [System.Serializable]
@@ -37,7 +36,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] Transform cameraFront;
     [SerializeField] CollisionCheck collisionScr;
     [SerializeField] SurfaceHandler surfaceHandler;
-    public static Action<string, float[]> OnLifeCameraAction; 
+    public static Action<string, float[]> OnLifeCameraAction;
 
     [Header("Rotation")]
     [SerializeField] float speedRotation;
@@ -118,6 +117,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     [SerializeField] float minHangUpTime;
     [SerializeField] float maxHangUpTime;
     [SerializeField] float hangUpHeight;
+    [SerializeField] float forwardOffset = 0.6f;
     float currentFinalHangUpTime = 0;
     Vector3 hangUpStartPos;
     Vector3 hangUpControlPos;
@@ -126,6 +126,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
     float upwardHangUpRelation = 0;
     bool hangUpImpulseUp = false;
     bool hangUpImpulseForward = false;
+    bool hangUpImpulseApplied = false;
+    bool animatingArmsPutAway = false;
 
 
 
@@ -201,6 +203,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
     public static Action<string, bool> OnPlayAnimationRArm;
     public static Action<string, bool> OnPlayAnimationRLeg;
     public static Action<string, float[]> OnArmsMove;
+    public Action<string> OnWeaponCommand {get; set;}
 
 
 
@@ -586,10 +589,20 @@ public class PlayerMovement : MonoBehaviour, IMovable
             wallClimbStartTime = Time.time;
             currentWallState = WallState.Climbing;
             runnedAlready = true;
+
+            OnWeaponCommand?.Invoke("block_end");
+            OnWeaponCommand?.Invoke("left_attack_cancel");
+            OnWeaponCommand?.Invoke("right_attack_cancel");
+
+            // Start animations
             if (features.enableLifeCamera)
                 OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
-            OnAnimating("H_Arms_ClimbUp", "r_arm", false);
-            OnAnimating("H_Arms_ClimbUp", "l_arm", false);
+            if (Physics.Raycast(cameraFront.position, -wallNormal, out RaycastHit wallHit, 1f, groundLayer))
+            {
+                OnAnimating("H_Arms_ClimbUp", "r_arm", false);
+                OnAnimating("H_Arms_ClimbUp", "l_arm", false);
+                animatingArmsPutAway = false;
+            }
         }
         //Left/Right movement
         else if (dot < 0.7f && dot > -0.5f && moveDirectionDot < 0.7f && moveDirectionDot > 0f && features.enableWallRun)
@@ -648,12 +661,18 @@ public class PlayerMovement : MonoBehaviour, IMovable
             var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * wallClimbForce * forceMultiplier;
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) + normSpeed;
         }
-        print($"timeSinceStart={timeSinceStart}, t={t}, multiplier={forceMultiplier}");
-
-        print(rb.velocity);
 
         //Check for hang up
         HangUpCheck();
+
+        //Prevent animating arms if player turns away
+        var turnPercent = Vector3.Dot(cameraFront.forward, -wallNormal);
+        if (turnPercent < 0.5f && !animatingArmsPutAway)
+        {
+            OnAnimating("H_Arms_Boxing_PutAway", "r_arm", false);
+            OnAnimating("H_Arms_Boxing_PutAway", "l_arm", false);
+            animatingArmsPutAway = true;
+        }
 
         //End climb after time
         if (timeSinceStart >= wallClimbTime)
@@ -894,55 +913,55 @@ public class PlayerMovement : MonoBehaviour, IMovable
     //Check for hang up state
     void HangUpCheck()
     {
-        if (!Physics.Raycast(cameraFront.position + new Vector3(0, hangUpHeight, 0), -wallNormal, out var hit, 1f, groundLayer))
+        if (!Physics.Raycast(transform.position + new Vector3(0, hangUpHeight, 0), -wallNormal, out var hit, 1f, groundLayer))
         {
-            //Start hang up
-            currentHangUpTime = 0f;
-            currentWallState = WallState.HangUp;
-            rb.useGravity = false;
-
-            //Finding closect contact point
-            var differenceY = cameraFront.position.y - closestWallContact.y;
-
-            //Forward direction at normal to ground
-            Vector3 forwardDir = Vector3.ProjectOnPlane(-wallNormal, Vector3.up).normalized;
-
-            //Setting up next position
-            hangUpStartPos = transform.position;
-            hangUpControlPos = hangUpStartPos + Vector3.up * (2.6f + hangUpHeight - differenceY);
-            nextHangUpPosition = hangUpControlPos + forwardDir * 1f;
-            //Find real lenge position
-            var hits = Physics.RaycastAll(nextHangUpPosition + Vector3.up * 0.2f, Vector3.down, hangUpHeight * 2, groundLayer);
-            float realHeight = 0f;
-            foreach (var hitL in hits)
+            //Find point on the clif where I need to be at end
+            Vector3 rayOrigin = transform.position + -wallNormal * 0.7f + Vector3.up * hangUpHeight;
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit downHit, hangUpHeight * 2, groundLayer))
             {
-                // Нарисовать линию от origin до точки попадания
-                Debug.DrawLine(nextHangUpPosition, hitL.point, Color.green, 10f);
-                // Нарисовать маленький маркер в точке попадания
-                Debug.DrawRay(hitL.point, Vector3.up * 0.1f, Color.black, 10f);
-                if (hitL.collider.transform == wallReference)
-                {
-                    realHeight = hitL.point.y - hangUpStartPos.y;
-                    hangUpControlPos.y = hitL.point.y + 2.6f - differenceY;
-                    nextHangUpPosition.y = hitL.point.y;
-                    break; // нашли нужную стену — выходим
-                }
+                nextHangUpPosition = downHit.point + wallNormal * forwardOffset + 3f * Vector3.up;
+            }
+            else
+            {
+                currentWallState = WallState.Sliding;
+                return;
             }
 
-            //Getting final relation between distances
-            var sumDistance = 2.6f + realHeight - differenceY + 1;
-            var distToMax = sumDistance / (2.6f + realHeight);
-            currentFinalHangUpTime = Mathf.Lerp(minHangUpTime, maxHangUpTime, distToMax);
-            upwardHangUpRelation = (2.6f + realHeight - differenceY) / sumDistance;
-            print(distToMax);
-            print(upwardHangUpRelation);
+            print("Start hang up!");
+            print(nextHangUpPosition);
 
-            hangUpImpulseUp = false;
-            hangUpImpulseForward = false;
+            //Start hang up
+            hangUpStartPos = transform.position;
+            currentHangUpTime = 0f;
+            hangUpImpulseApplied = false;
+            currentFinalHangUpTime = UnityEngine.Random.Range(minHangUpTime, maxHangUpTime);
+            currentWallState = WallState.HangUp;
 
             //Start animation
             if (features.enableHangUp)
-                OnLifeCamera("hangup", new float[1] { currentFinalHangUpTime });
+            {
+                if (Physics.Raycast(transform.position, -wallNormal, out RaycastHit wallHit, 1f, groundLayer))
+                {
+                    OnLifeCamera("hangup", new float[2] { currentFinalHangUpTime, 1f });
+                }
+                else
+                {
+                    OnLifeCamera("hangup", new float[2] { currentFinalHangUpTime, 0.3f });
+                }
+            }
+
+            //Hang up animation
+            if (!isAlreadyAnimating)
+            {
+                isAlreadyAnimating = true;
+
+                //Check for the wall in front of player to start get up animation
+                if (Physics.Raycast(transform.position, -wallNormal, out RaycastHit wallHit, 1f, groundLayer))
+                {
+                    OnAnimating("H_Arms_Get_Up", "l_arm", false);
+                    OnAnimating("H_Arms_Get_Up", "r_arm", false);
+                }
+            }
         }
     }
 
@@ -953,36 +972,50 @@ public class PlayerMovement : MonoBehaviour, IMovable
         float t = currentHangUpTime / currentFinalHangUpTime;
         t = Mathf.Clamp01(t);
 
-        if (t < upwardHangUpRelation && !hangUpImpulseUp)
+        if (t < 0.8f && !hangUpImpulseUp)
         {
             print("Go up!");
-            // Движение вверх: 70% времени
-            Vector3 upDistance = hangUpControlPos - hangUpStartPos;
-            float duration = currentFinalHangUpTime * upwardHangUpRelation;
-            Vector3 velocity = (upDistance + upDistance.normalized * 0.5f) / duration;
+            //Getting next position vector
+            Vector3 start = hangUpStartPos;
+            Vector3 end = new Vector3(hangUpStartPos.x, nextHangUpPosition.y, hangUpStartPos.z);
+            Vector3 displacement = end - start;
+
+            float g = Mathf.Abs(Physics.gravity.y);
+            float time = currentFinalHangUpTime * 0.8f;
+
+            //Counting paraboloid movement velocity
+            Vector3 velocity = new Vector3(
+                displacement.x / time,
+                (displacement.y / time) + (0.5f * g * time),
+                displacement.z / time
+            );
 
             rb.velocity = Vector3.zero;
             rb.AddForce(velocity, ForceMode.VelocityChange);
 
             hangUpImpulseUp = true;
-            
-            //Hang up animation
-            if (!isAlreadyAnimating)
-            {
-                isAlreadyAnimating = true;
-                OnAnimating("H_Arms_Get_Up", "l_arm", false);
-                OnAnimating("H_Arms_Get_Up", "r_arm", false);
-            }
         }
-        else if (t >= upwardHangUpRelation && !hangUpImpulseForward)
+        else if (t >= 0.8f && !hangUpImpulseForward)
         {
             print("Go forward!");
-            // Движение вперёд: оставшиеся 30% времени
-            Vector3 forwardDistance = nextHangUpPosition - hangUpControlPos;
-            float duration = currentFinalHangUpTime * (1 - upwardHangUpRelation);
-            Vector3 velocity = forwardDistance / duration;
+            // Движение вперёд
+            //Getting next position vector
+            Vector3 start = transform.position;
+            Vector3 end = nextHangUpPosition;
+            Vector3 displacement = end - start;
 
-            rb.velocity = new Vector3(0,rb.velocity.y,0);
+            float g = Mathf.Abs(Physics.gravity.y);
+            float time = currentFinalHangUpTime * 0.2f;
+
+            //Counting paraboloid movement velocity
+            Vector3 velocity = -new Vector3(
+                displacement.x / time,
+                (displacement.y / time) + (0.5f * g * time),
+                displacement.z / time
+            );
+
+            print(velocity);
+
             rb.AddForce(velocity, ForceMode.VelocityChange);
 
             hangUpImpulseForward = true;
@@ -991,6 +1024,8 @@ public class PlayerMovement : MonoBehaviour, IMovable
         if (t >= 1f)
         {
             isAlreadyAnimating = false;
+            hangUpImpulseUp = false;
+            hangUpImpulseForward = false;
             currentWallState = WallState.Sliding;
             lastState = currentState;
             OnFly();
@@ -1104,7 +1139,7 @@ public class PlayerMovement : MonoBehaviour, IMovable
         //If climb higher clif slow down speed
         if (currentWallState == WallState.Climbing && currentState == BodyState.WallRunning)
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-        
+
 
         currentFallTime = 0;
         rb.useGravity = true;

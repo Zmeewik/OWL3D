@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3631cadc32d9da24fb8fd36f6d7525e5, type: 3}
+  m_Name: BoxingUpgradeCharged
+  m_EditorClassIdentifier: 
+  variantName: 
+  kind: 0
+  cooldown: 0.3
+  maxChargeMultyplier: 3
+  chargeable: 1
+  maxChargeTime: 1
+  minChargeTime: 0.2
+  damage: {fileID: 11400000, guid: 7815fbe1a157a0d428e4d5a57554c225, type: 2}
+  range: 3
+  radius: 0.4
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 20
+  rayDistance: 50
+  knockbackForce: 800
