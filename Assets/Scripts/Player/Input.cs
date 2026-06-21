@@ -80,7 +80,7 @@ public class Input : MonoBehaviour
 
     public void OnCrouch(InputAction.CallbackContext context)
     {
-                
+
         if(context.canceled)
         {
             foreach(var goal in movable_goal)
@@ -194,7 +194,7 @@ public class Input : MonoBehaviour
         if (context.started)
             foreach (var target in attackable_goal)
                 target.OnBlockPressed();
-        
+
         if (context.canceled)
             foreach (var target in attackable_goal)
                 target.OnBlockReleased();
