@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9914a00c7edc46adbad277b6ae938905, type: 3}
+  m_Name: Movement
+  m_EditorClassIdentifier: 
+  speedRotation: 0
+  sensitivity: 0
+  acceleration: 0
+  decceleration: 0
+  maxSpeed: 0
+  jumpForce: 0
+  dashDistance: 0
+  dashUpForce: 0
+  dashTime: 0
+  dashAcceleration: 0
+  airControlMultiplier: 0
+  airMaxSpeed: 0
+  minFallTime: 0
+  minFallCheck: 0
+  flyMaxParticleTime: 0
+  maxSlideSpeed: 0
+  slideSpeed: 0
+  wallrunForceX: 0
+  wallRunForceY: 0
+  wallrunMaxForceX: 0
+  wallrunMaxForceY: 0
+  wallrunTime: 0
+  wallrunMaxCount: 0
+  wallClimbForce: 0
+  wallClimbTime: 0
+  wallSlideMaxSpeed: 0
+  minHangUpTime: 0
+  maxHangUpTime: 0
+  hangUpHeight: 0
+  forwardOffset: 0.6
+  crouchHeadOffset: 0
+  crouchMaxMultiplyer: 0
+  crouchTime: 0
+  maxTopSpeed: 0
+  maxLowSpeed: 0
+  maxMomentum: 0

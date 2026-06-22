@@ -36,68 +36,44 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     [SerializeField] Transform cameraFront;
     [SerializeField] CollisionCheck collisionScr;
     [SerializeField] SurfaceHandler surfaceHandler;
+    [SerializeField] private PlayerMovementConfig playerMovementConfig;
     public static Action<string, float[]> OnLifeCameraAction;
 
-    [Header("Rotation")]
-    [SerializeField] float speedRotation;
-    [SerializeField] float sensitivity;
-    public float Sensitivity => sensitivity;
+    
 
-    [Header("Movement")]
-    [SerializeField] float acceleration;
-    [SerializeField] float decceleration;
-    [SerializeField] float maxSpeed;
+    // move
     //Move handle
     Vector2 moveVector = Vector2.zero;
 
-    [Header("Jump")]
-    [SerializeField] float jumpForce;
+    
 
 
-    [Header("Dash")]
-    [SerializeField] float dashDistance;
-    [SerializeField] float dashUpForce;
-    [SerializeField] float dashTime;
-    [SerializeField] float dashAcceleration;
+    // dash
     float dashVelocity = 0;
     float currentDashTime = 0;
     Vector3 dashDirection = Vector3.zero;
 
 
-    [Header("Air")]
-    [SerializeField, Range(0, 1)] float airControlMultiplier;
-    [SerializeField] float airMaxSpeed;
-    [SerializeField] float minFallTime;
-    [SerializeField] float minFallCheck;
-    [SerializeField] float flyMaxParticleTime;
+    // air
     float currentFallTime;
     float currentDownFallTime;
     int counterOfAirFrames = 0;
 
 
-    [Header("Slide")]
-    [SerializeField] float maxSlideSpeed;
-    [SerializeField] float slideSpeed;
+    // slide
     int counterNormal = 0;
     Vector3 savedSlideNormal = Vector3.zero;
 
 
-    [Header("Wall run")]
-    [SerializeField] float wallrunForceX;
-    [SerializeField] float wallRunForceY;
-    [SerializeField] float wallrunMaxForceX;
-    [SerializeField] float wallrunMaxForceY;
-    [SerializeField] float wallrunTime;
-    [SerializeField] int wallrunMaxCount;
+    // wallrun
     Vector3 wallrunDirection;
     float wallRunStartTime;
-    [Header("Wall climb")]
-    [SerializeField] float wallClimbForce;
-    [SerializeField] float wallClimbTime;
+    
+    //wall climb
     float wallClimbStartTime;
     Vector3 closestWallContact = Vector3.zero;
-    [Header("Wall slide")]
-    [SerializeField] float wallSlideMaxSpeed;
+    
+    //wall slide
     Vector3 savedNormal = Vector3.zero;
     Vector3 lastWallNormal = Vector3.zero;
     int checkWallCounter = 0;
@@ -113,11 +89,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     //Check for jump from the wall
     int wallJumpCounter = 0;
 
-    [Header("Hang Up")]
-    [SerializeField] float minHangUpTime;
-    [SerializeField] float maxHangUpTime;
-    [SerializeField] float hangUpHeight;
-    [SerializeField] float forwardOffset = 0.6f;
+    
+    // hangup
     float currentFinalHangUpTime = 0;
     Vector3 hangUpStartPos;
     Vector3 hangUpControlPos;
@@ -131,15 +104,12 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
 
-    [Header("Crouching")]
-    [SerializeField] float crouchHeadOffset;
-    [SerializeField] float crouchMaxMultiplyer;
+    // crouch
     [SerializeField] Transform headPosition;
     Vector3 headStartPosition;
     [SerializeField] Vector3 headCrouchPosition;
     [SerializeField] CapsuleCollider crouchCollider;
     [SerializeField] private LayerMask groundLayer;
-    [SerializeField] float crouchTime;
     bool isStandingUp = false;
     float currentCrouchTime = 0;
     //Handle smooth crouching
@@ -170,10 +140,6 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
     //Speed up system
-    [Header("Speed up system")]
-    [SerializeField] float maxTopSpeed;
-    [SerializeField] float maxLowSpeed;
-    [SerializeField] float maxMomentum;
     float maxSpeedDifference;
     float currentMaxSpeed;
     float momentum = 0;
@@ -215,8 +181,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //Events at ground change state
         collisionScr.OnGroundNormalChanged += OnSurfaceCollide;
         collisionScr.OnObjectNormalChanged += HandleCollisionWithObjects;
-        maxSpeedDifference = maxTopSpeed - maxLowSpeed;
-        currentMaxSpeed = maxLowSpeed;
+        maxSpeedDifference = playerMovementConfig.maxTopSpeed - playerMovementConfig.maxLowSpeed;
+        currentMaxSpeed = playerMovementConfig.maxLowSpeed;
 
         //List to dictionary
         speedPoints = speedPointList.ToDictionary(entry => entry.key, entry => entry.value);
@@ -305,7 +271,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                 currentFallTime += Time.deltaTime;
                 if (features.enableMovement)
                 {
-                    Moving(airControlMultiplier);
+                    Moving(playerMovementConfig.airControlMultiplier);
                     RotateBody();
                     CounterMovement();
                 }
@@ -315,20 +281,20 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //Handle visual effects
         if (features.enableParticles)
         {
-            if (currentMaxSpeed > maxLowSpeed + maxSpeedDifference / 2)
+            if (currentMaxSpeed > playerMovementConfig.maxLowSpeed + maxSpeedDifference / 2)
             {
                 //print("move fast");
-                var alpha = (currentMaxSpeed - maxLowSpeed - maxSpeedDifference / 2) / maxSpeedDifference * 2;
+                var alpha = (currentMaxSpeed - playerMovementConfig.maxLowSpeed - maxSpeedDifference / 2) / maxSpeedDifference * 2;
                 var col = new Color[1] { new Color(1, 1, 1, alpha) };
                 //print(col);
                 particles.ChangeColor("MovementLines", col);
                 particles.StartEffect("MovementLines");
                 ChangeFOV(alpha);
             }
-            else if (currentState == BodyState.InAir && rb.velocity.magnitude > maxLowSpeed)
+            else if (currentState == BodyState.InAir && rb.velocity.magnitude > playerMovementConfig.maxLowSpeed)
             {
                 //print("move air");
-                var alpha = Mathf.Min(currentFallTime / flyMaxParticleTime, 1);
+                var alpha = Mathf.Min(currentFallTime / playerMovementConfig.flyMaxParticleTime, 1);
                 var col = new Color[1] { new Color(1, 1, 1, alpha) };
                 //print(col);
                 particles.ChangeColor("MovementLines", col);
@@ -356,15 +322,15 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             if (features.enableLifeCamera && isCrouching == IsCrouching.Crouching && moveVector != Vector2.zero)
                 OnLifeCamera("movement", new float[1] { 0 });
             else if (features.enableLifeCamera && moveVector != Vector2.zero)
-                OnLifeCamera("movement", new float[1] { (currentMaxSpeed - maxLowSpeed) / maxSpeedDifference });
+                OnLifeCamera("movement", new float[1] { (currentMaxSpeed - playerMovementConfig.maxLowSpeed) / maxSpeedDifference });
             else if (features.enableLifeCamera && moveVector == Vector2.zero && state != "jump" && state != "land" && state != "hangUp" && state != "dash")
             {
-                OnLifeCamera("none", new float[1] { (currentMaxSpeed - maxLowSpeed) / maxSpeedDifference });
+                OnLifeCamera("none", new float[1] { (currentMaxSpeed - playerMovementConfig.maxLowSpeed) / maxSpeedDifference });
             }
         }
         else
         {
-            if (currentFallTime >= minFallTime && features.enableLifeCamera)
+            if (currentFallTime >= playerMovementConfig.minFallTime && features.enableLifeCamera)
                 OnLifeCamera("fall", new float[1] { currentDownFallTime });
         }
 
@@ -374,8 +340,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
             Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
 
-            rb.AddForce(surfaceRight * moveVector.x * acceleration * airMultiplyer * crouchMultiplyer, ForceMode.Acceleration);
-            rb.AddForce(surfaceForward * moveVector.y * acceleration * airMultiplyer * crouchMultiplyer, ForceMode.Acceleration);
+            rb.AddForce(surfaceRight * moveVector.x * playerMovementConfig.acceleration * airMultiplyer * crouchMultiplyer, ForceMode.Acceleration);
+            rb.AddForce(surfaceForward * moveVector.y * playerMovementConfig.acceleration * airMultiplyer * crouchMultiplyer, ForceMode.Acceleration);
         }
     }
 
@@ -390,7 +356,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
             if (horizontalVel.magnitude > 0.5f)
             {
-                Vector3 drag = -horizontalVel.normalized * decceleration;
+                Vector3 drag = -horizontalVel.normalized * playerMovementConfig.decceleration;
                 rb.AddForce(drag, ForceMode.Acceleration);
             }
             else
@@ -422,7 +388,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             Vector3 moveDir = horizontalVel.normalized;
 
             //Force to counter movement
-            Vector3 counterForce = -moveDir * acceleration * 1.1f;
+            Vector3 counterForce = -moveDir * playerMovementConfig.acceleration * 1.1f;
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
         // Counter force in the air
@@ -432,7 +398,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             Vector3 moveDir = horizontalVel.normalized;
 
             //Force to counter movement
-            Vector3 counterForce = -moveDir * acceleration * 1.1f;
+            Vector3 counterForce = -moveDir * playerMovementConfig.acceleration * 1.1f;
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
 
@@ -462,7 +428,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             BuildSpeed("dash");
             print(Vector3.Distance(transform.position, timeOfDash));
             var normVel = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized;
-            rb.velocity = normVel * maxSpeed * airControlMultiplier;
+            rb.velocity = normVel * playerMovementConfig.maxSpeed * playerMovementConfig.airControlMultiplier;
             currentState = BodyState.InAir;
             OnFly();
         }
@@ -479,9 +445,9 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //Get current slope velocity
         float currentSpeedOnSlope = Vector3.Dot(rb.velocity, slopeDir);
         //Add force until max
-        if (currentSpeedOnSlope < maxSlideSpeed)
+        if (currentSpeedOnSlope < playerMovementConfig.maxSlideSpeed)
         {
-            rb.AddForce(slopeDir * -Physics.gravity.y * slideSpeed, ForceMode.Acceleration);
+            rb.AddForce(slopeDir * -Physics.gravity.y * playerMovementConfig.slideSpeed, ForceMode.Acceleration);
         }
         //Sticking player to ground while sloping
         rb.AddForce(-groundNormal.normalized * 30, ForceMode.Acceleration);
@@ -582,7 +548,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         {
             print("start climb!");
             //Add maximum of continueing wall climb
-            if (wallrunCounter >= wallrunMaxCount)
+            if (wallrunCounter >= playerMovementConfig.wallrunMaxCount)
                 return;
             wallrunCounter++;
 
@@ -617,7 +583,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             {
                 wallrunDirection = wallLeft;
             }
-            Invoke("DeactivateWallRun", wallrunTime);
+            Invoke("DeactivateWallRun", playerMovementConfig.wallrunTime);
             wallRunStartTime = Time.time;
             currentWallState = WallState.Running;
             BuildSpeed("wallrun");
@@ -648,17 +614,17 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //Timer from climb start
         float timeSinceStart = Time.time - wallClimbStartTime;
         //Progress percent
-        float t = Mathf.Clamp01(timeSinceStart / wallClimbTime);
+        float t = Mathf.Clamp01(timeSinceStart / playerMovementConfig.wallClimbTime);
         //Multiplyer
         float forceMultiplier = Mathf.SmoothStep(1f, 0f, t);
         //Climb force
-        float climbForce = wallClimbForce * forceMultiplier;
-        if (rb.velocity.y < wallClimbForce * forceMultiplier)
+        float climbForce = playerMovementConfig.wallClimbForce * forceMultiplier;
+        if (rb.velocity.y < playerMovementConfig.wallClimbForce * forceMultiplier)
             rb.AddForce(Vector3.up * climbForce * rb.mass, ForceMode.Impulse);
         else
         {
             //If overflow normalize speed
-            var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * wallClimbForce * forceMultiplier;
+            var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * playerMovementConfig.wallClimbForce * forceMultiplier;
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) + normSpeed;
         }
 
@@ -675,7 +641,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         }
 
         //End climb after time
-        if (timeSinceStart >= wallClimbTime)
+        if (timeSinceStart >= playerMovementConfig.wallClimbTime)
         {
             currentWallState = WallState.Sliding;
             return;
@@ -689,17 +655,17 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         var speedH = new Vector3(rb.velocity.x, 0, rb.velocity.z);
         //Handle smooth movement 
         float timeSinceStart = Time.time - wallRunStartTime;
-        float t = Mathf.Clamp01(timeSinceStart / wallrunTime);
+        float t = Mathf.Clamp01(timeSinceStart / playerMovementConfig.wallrunTime);
         float xMultiplier = Mathf.SmoothStep(1f, 0f, t);
-        float horizontalForce = wallrunForceX * xMultiplier;
+        float horizontalForce = playerMovementConfig.wallrunForceX * xMultiplier;
 
         //Horizontal movement
-        if (speedH.magnitude < wallrunMaxForceX)
+        if (speedH.magnitude < playerMovementConfig.wallrunMaxForceX)
             rb.AddForce(wallrunDirection * horizontalForce * rb.mass, ForceMode.Acceleration);
         else
         {
             //If overflow onrmalize speed
-            var normSpeed = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized * wallrunMaxForceX;
+            var normSpeed = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized * playerMovementConfig.wallrunMaxForceX;
             rb.velocity = new Vector3(0, rb.velocity.y, 0) + normSpeed;
         }
 
@@ -707,17 +673,17 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         var speedV = rb.velocity.y;
         //Handle smooth movement in arch
         float yMultiplier = Mathf.Cos(t * Mathf.PI);
-        float verticalForce = wallRunForceY * Math.Abs(xMultiplier);
+        float verticalForce = playerMovementConfig.wallRunForceY * Math.Abs(xMultiplier);
 
         //Vertical movement
-        if (timeSinceStart < wallrunTime / 2)
+        if (timeSinceStart < playerMovementConfig.wallrunTime / 2)
         {
-            if (speedV < wallrunMaxForceY * yMultiplier)
+            if (speedV < playerMovementConfig.wallrunMaxForceY * yMultiplier)
                 rb.AddForce(Vector3.up * verticalForce * rb.mass, ForceMode.Acceleration);
             else
             {
                 //If overflow onrmalize speed
-                var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * wallrunMaxForceY;
+                var normSpeed = new Vector3(0, rb.velocity.y, 0).normalized * playerMovementConfig.wallrunMaxForceY;
                 rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z) + normSpeed;
             }
         }
@@ -750,9 +716,9 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
             var dotRight = Vector3.Dot(surfaceMoveDir, wallRight);
             if (dotRight > 0)
-                rb.AddForce(wallRight * acceleration * wallMoveSpeed * airControlMultiplier / 2, ForceMode.Acceleration);
+                rb.AddForce(wallRight * (playerMovementConfig.acceleration * wallMoveSpeed * playerMovementConfig.airControlMultiplier) / 2, ForceMode.Acceleration);
             else if (dotRight < 0)
-                rb.AddForce(wallLeft * acceleration * wallMoveSpeed * airControlMultiplier / 2, ForceMode.Acceleration);
+                rb.AddForce(wallLeft * (playerMovementConfig.acceleration * wallMoveSpeed * playerMovementConfig.airControlMultiplier) / 2, ForceMode.Acceleration);
 
 
             //Counter movement
@@ -762,7 +728,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                 //Getting direction of movement
                 Vector3 moveDir = horizontalVel.normalized;
                 //Force to counter movement
-                Vector3 counterForce = -moveDir * acceleration * airControlMultiplier;
+                Vector3 counterForce = -moveDir * (playerMovementConfig.acceleration * playerMovementConfig.airControlMultiplier);
                 rb.AddForce(counterForce, ForceMode.Acceleration);
             }
         }
@@ -770,7 +736,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
         //Slow sliding at the wall
-        if (rb.velocity.y < -wallSlideMaxSpeed)
+        if (rb.velocity.y < -playerMovementConfig.wallSlideMaxSpeed)
         {
             rb.AddForce(Vector3.up * 40, ForceMode.Acceleration);
         }
@@ -788,7 +754,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //print(isGrounded);
         if (isGrounded == IsGrounded.Grounded && currentState != BodyState.Sliding)
         {
-            rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
+            rb.AddForce(Vector2.up * playerMovementConfig.jumpForce * rb.mass, ForceMode.Impulse);
             BuildSpeed("jump");
             OnCrouch(false);
             if (features.enableLifeCamera)
@@ -810,11 +776,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                 return;
 
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-            rb.AddForce(lookDirectionXZ * acceleration, ForceMode.Impulse);
+            rb.AddForce(lookDirectionXZ * playerMovementConfig.acceleration, ForceMode.Impulse);
 
             //Counter of max wall jump - 3, if overwlow dont use up speed
             if (wallJumpCounter < 3)
-                rb.AddForce(Vector2.up * jumpForce * rb.mass, ForceMode.Impulse);
+                rb.AddForce(Vector2.up * playerMovementConfig.jumpForce * rb.mass, ForceMode.Impulse);
             else { }
 
             wallJumpCounter++;
@@ -845,13 +811,13 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
         //If going down go little up instead
         //Up dashing
-        rb.AddForce(dashUpForce * Vector3.up, ForceMode.Impulse);
+        rb.AddForce(playerMovementConfig.dashUpForce * Vector3.up, ForceMode.Impulse);
         Vector3 lookDirectionXZ = new Vector3(lookDirection.x, 0f, lookDirection.z).normalized;
         lookDirection = lookDirectionXZ;
         dashDirection = lookDirection;
 
         //Get needed velocity
-        dashVelocity = dashDistance / dashTime;
+        dashVelocity = playerMovementConfig.dashDistance / playerMovementConfig.dashTime;
         Vector3 dash = dashDirection.normalized * dashVelocity;
         rb.velocity = new Vector3(dash.x, rb.velocity.y, dash.z);
 
@@ -861,7 +827,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
         //End dash afrter time
         currentState = BodyState.Dashing;
-        Invoke("EndDash", dashTime);
+        Invoke("EndDash", playerMovementConfig.dashTime);
         OnCrouch(false);
         if (features.enableLifeCamera)
             OnLifeCamera("dash");
@@ -883,10 +849,10 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         {
             //Start croudhing
             isCrouching = IsCrouching.Crouching;
-            crouchMultiplyer = crouchMaxMultiplyer;
+            crouchMultiplyer = playerMovementConfig.crouchMaxMultiplyer;
             currentCrouchState = isChangingCrouchState.Crouching;
             if (currentCrouchTime != 0)
-                currentCrouchTime = crouchTime - currentCrouchTime;
+                currentCrouchTime = playerMovementConfig.crouchTime - currentCrouchTime;
         }
         else if (!isCrouch && isCrouching != IsCrouching.Standing)
         {
@@ -905,7 +871,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
             currentCrouchState = isChangingCrouchState.Standing;
             if (currentCrouchTime != 0)
-                currentCrouchTime = crouchTime - currentCrouchTime;
+                currentCrouchTime = playerMovementConfig.crouchTime - currentCrouchTime;
         }
     }
 
@@ -913,13 +879,13 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     //Check for hang up state
     void HangUpCheck()
     {
-        if (!Physics.Raycast(transform.position + new Vector3(0, hangUpHeight, 0), -wallNormal, out var hit, 1f, groundLayer))
+        if (!Physics.Raycast(transform.position + new Vector3(0, playerMovementConfig.hangUpHeight, 0), -wallNormal, out var hit, 1f, groundLayer))
         {
             //Find point on the clif where I need to be at end
-            Vector3 rayOrigin = transform.position + -wallNormal * 0.7f + Vector3.up * hangUpHeight;
-            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit downHit, hangUpHeight * 2, groundLayer))
+            Vector3 rayOrigin = transform.position + -wallNormal * 0.7f + Vector3.up * playerMovementConfig.hangUpHeight;
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit downHit, playerMovementConfig.hangUpHeight * 2, groundLayer))
             {
-                nextHangUpPosition = downHit.point + wallNormal * forwardOffset + 3f * Vector3.up;
+                nextHangUpPosition = downHit.point + wallNormal * playerMovementConfig.forwardOffset + 3f * Vector3.up;
             }
             else
             {
@@ -934,7 +900,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             hangUpStartPos = transform.position;
             currentHangUpTime = 0f;
             hangUpImpulseApplied = false;
-            currentFinalHangUpTime = UnityEngine.Random.Range(minHangUpTime, maxHangUpTime);
+            currentFinalHangUpTime = UnityEngine.Random.Range(playerMovementConfig.minHangUpTime, playerMovementConfig.maxHangUpTime);
             currentWallState = WallState.HangUp;
 
             //Start animation
@@ -1041,9 +1007,9 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         if (!features.enableSpeedSystem) return;
 
         momentum += speedPoints[type];
-        if (momentum > maxMomentum) momentum = maxMomentum;
+        if (momentum > playerMovementConfig.maxMomentum) momentum = playerMovementConfig.maxMomentum;
         if (momentum < 0) momentum = 0;
-        currentMaxSpeed = Math.Max(maxLowSpeed, maxLowSpeed + momentum / maxMomentum * maxSpeedDifference);
+        currentMaxSpeed = Math.Max(playerMovementConfig.maxLowSpeed, playerMovementConfig.maxLowSpeed + momentum / playerMovementConfig.maxMomentum * maxSpeedDifference);
     }
 
 
@@ -1052,17 +1018,17 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     void SmoothCrouch(bool isCrouching)
     {
         currentCrouchTime += Time.deltaTime;
-        float t = Mathf.Clamp01(currentCrouchTime / crouchTime);
+        float t = Mathf.Clamp01(currentCrouchTime / playerMovementConfig.crouchTime);
 
-        if (currentCrouchTime < crouchTime)
+        if (currentCrouchTime < playerMovementConfig.crouchTime)
         {
             //handle crouch changes
             if (isCrouching)
             {
                 // Interpolate to crouch
                 //Scale collider down
-                crouchCollider.height = Mathf.Lerp(2f, 2 * crouchHeadOffset, t);
-                crouchCollider.center = Vector3.Lerp(Vector3.up * 0f, 2 * crouchHeadOffset / 2 * Vector3.up - Vector3.up, t);
+                crouchCollider.height = Mathf.Lerp(2f, 2 * playerMovementConfig.crouchHeadOffset, t);
+                crouchCollider.center = Vector3.Lerp(Vector3.up * 0f, 2 * playerMovementConfig.crouchHeadOffset / 2 * Vector3.up - Vector3.up, t);
                 //Offset head
                 headPosition.localPosition = Vector3.Lerp(headStartPosition, headCrouchPosition, t);
             }
@@ -1078,8 +1044,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                     isStandingUp = true;
                     return;
                 }
-                crouchCollider.height = Mathf.Lerp(2 * crouchHeadOffset, 2f, t);
-                crouchCollider.center = Vector3.Lerp(2 * crouchHeadOffset / 2 * Vector3.up - Vector3.up, Vector3.up * 0f, t);
+                crouchCollider.height = Mathf.Lerp(2 * playerMovementConfig.crouchHeadOffset, 2f, t);
+                crouchCollider.center = Vector3.Lerp(2 * playerMovementConfig.crouchHeadOffset / 2 * Vector3.up - Vector3.up, Vector3.up * 0f, t);
                 //Offset head
                 headPosition.localPosition = Vector3.Lerp(headCrouchPosition, headStartPosition, t);
             }
@@ -1092,8 +1058,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             if (isCrouching)
             {
                 //Crouch
-                crouchCollider.height = 2 * crouchHeadOffset;
-                crouchCollider.center = 2 * crouchHeadOffset / 2 * Vector3.up - Vector3.up;
+                crouchCollider.height = 2 * playerMovementConfig.crouchHeadOffset;
+                crouchCollider.center = 2 * playerMovementConfig.crouchHeadOffset / 2 * Vector3.up - Vector3.up;
                 headPosition.localPosition = headCrouchPosition;
             }
             else
@@ -1174,10 +1140,10 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         wallReferenceSaved = null;
 
         //Start animation
-        if (currentFallTime >= minFallTime)
-            OnLifeCamera("land", new float[1] { currentFallTime - minFallTime });
+        if (currentFallTime >= playerMovementConfig.minFallTime)
+            OnLifeCamera("land", new float[1] { currentFallTime - playerMovementConfig.minFallTime });
         else
-            OnLifeCamera("none", new float[1] { (currentMaxSpeed - maxLowSpeed) / maxSpeedDifference });
+            OnLifeCamera("none", new float[1] { (currentMaxSpeed - playerMovementConfig.maxLowSpeed) / maxSpeedDifference });
     }
 
 
