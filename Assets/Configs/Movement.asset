@@ -19,7 +19,6 @@ MonoBehaviour:
   dashDistance: 10
   dashUpForce: 30
   dashTime: 0.3
-  dashAcceleration: 100
   airControlMultiplier: 0.5
   minFallTime: 0.5
   flyMaxParticleTime: 0.5
@@ -34,10 +33,10 @@ MonoBehaviour:
   wallClimbForce: 10
   wallClimbTime: 0.5
   wallSlideMaxSpeed: 3
-  minHangUpTime: 0.1
-  maxHangUpTime: 0.3
-  hangUpHeight: 1
-  forwardOffset: 0.6
+  minHangUpTime: 0.3
+  maxHangUpTime: 0.4
+  hangUpHeight: 0.4
+  forwardOffset: 1
   crouchHeadOffset: 0.6
   crouchMaxMultiplyer: 0.6
   crouchTime: 0.2
