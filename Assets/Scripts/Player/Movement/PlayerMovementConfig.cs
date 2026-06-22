@@ -4,9 +4,6 @@ using UnityEngine;
     menuName = "OWL/Player/Config")]
 public class PlayerMovementConfig : ScriptableObject
 {
-    [Header("Rotation")]
-    [SerializeField] public float speedRotation;
-    [SerializeField] public float sensitivity;
     
     [Header("Movement")]
     [SerializeField] public float acceleration;
@@ -20,13 +17,10 @@ public class PlayerMovementConfig : ScriptableObject
     [SerializeField] public float dashDistance;
     [SerializeField] public float dashUpForce;
     [SerializeField] public float dashTime;
-    [SerializeField] public float dashAcceleration;
     
     [Header("Air")]
     [SerializeField, Range(0, 1)] public float airControlMultiplier;
-    [SerializeField] public float airMaxSpeed;
     [SerializeField] public float minFallTime;
-    [SerializeField] public float minFallCheck;
     [SerializeField] public float flyMaxParticleTime;
     
     [Header("Slide")]

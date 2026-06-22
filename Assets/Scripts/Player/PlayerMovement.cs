@@ -388,7 +388,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             Vector3 moveDir = horizontalVel.normalized;
 
             //Force to counter movement
-            Vector3 counterForce = -moveDir * playerMovementConfig.acceleration * 1.1f;
+            Vector3 counterForce = -moveDir * (playerMovementConfig.acceleration * 1.1f);
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
         // Counter force in the air
@@ -398,7 +398,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             Vector3 moveDir = horizontalVel.normalized;
 
             //Force to counter movement
-            Vector3 counterForce = -moveDir * playerMovementConfig.acceleration * 1.1f;
+            Vector3 counterForce = -moveDir * (playerMovementConfig.acceleration * 1.1f);
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
 

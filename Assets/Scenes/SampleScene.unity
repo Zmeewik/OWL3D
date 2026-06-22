@@ -2187,48 +2187,14 @@ MonoBehaviour:
   cameraFront: {fileID: 2078209525}
   collisionScr: {fileID: 322448630}
   surfaceHandler: {fileID: 322448631}
-  speedRotation: 0.05
-  sensitivity: 1
-  acceleration: 100
-  decceleration: 30
-  maxSpeed: 10
-  jumpForce: 17
-  dashDistance: 7.5
-  dashUpForce: 2
-  dashTime: 0.25
-  dashAcceleration: 40
-  airControlMultiplier: 0.5
-  airMaxSpeed: 13
-  minFallTime: 0.5
-  minFallCheck: 0
-  flyMaxParticleTime: 3
-  maxSlideSpeed: 20
-  slideSpeed: 5
-  wallrunForceX: 6
-  wallRunForceY: 7
-  wallrunMaxForceX: 12
-  wallrunMaxForceY: 6
-  wallrunTime: 1
-  wallrunMaxCount: 2
-  wallClimbForce: 10
-  wallClimbTime: 0.5
-  wallSlideMaxSpeed: 5
-  minHangUpTime: 0.38
-  maxHangUpTime: 0.4
-  hangUpHeight: 2
-  forwardOffset: 1
-  crouchHeadOffset: 0.6
-  crouchMaxMultiplyer: 0.6
+  playerMovementConfig: {fileID: 11400000, guid: 89946635daebf43419d3fb08c3f23c79,
+    type: 2}
   headPosition: {fileID: 941037584}
   headCrouchPosition: {x: 0, y: 0, z: 0.423}
   crouchCollider: {fileID: 322448623}
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
-  crouchTime: 0.2
-  maxTopSpeed: 14
-  maxLowSpeed: 10
-  maxMomentum: 10
   speedPointList:
   - key: wallrun
     value: 3
