@@ -28,7 +28,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
     [Header("Feature Flags")]
-    [SerializeField] FeatureFlags features = new FeatureFlags();
+    public FeatureFlags features = new FeatureFlags();
 
     [Header("References")]
     [SerializeField] Rigidbody rb;
@@ -36,7 +36,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     [SerializeField] Transform cameraFront;
     [SerializeField] CollisionCheck collisionScr;
     [SerializeField] SurfaceHandler surfaceHandler;
-    [SerializeField] private PlayerMovementConfig playerMovementConfig;
+    public PlayerMovementConfig playerMovementConfig;
     public static Action<string, float[]> OnLifeCameraAction;
 
     
@@ -104,23 +104,10 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
 
-    // crouch
-    [SerializeField] Transform headPosition;
-    Vector3 headStartPosition;
-    [SerializeField] Vector3 headCrouchPosition;
-    [SerializeField] CapsuleCollider crouchCollider;
-    [SerializeField] private LayerMask groundLayer;
-    bool isStandingUp = false;
-    float currentCrouchTime = 0;
-    //Handle smooth crouching
-    enum isChangingCrouchState { Crouching, Standing, None };
-    isChangingCrouchState currentCrouchState = isChangingCrouchState.None;
-    float crouchMultiplyer = 1;
-    //Crouch handle
-    public enum IsCrouching { Crouching, Standing }
-    IsCrouching isCrouching = IsCrouching.Standing;
-
-
+    // common fields
+    [Header("Common Fields")]
+    public LayerMask groundLayer;
+    
 
     //Grounded check
     enum IsGrounded { Grounded, InAir };
@@ -171,12 +158,16 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public static Action<string, float[]> OnArmsMove;
     public Action<string> OnWeaponCommand {get; set;}
 
-
+    
+    //Movement scripts
+    [Header("SYSTEMS")]
+    [SerializeField] private PlayerCrouch playerCrouch;
 
 
     //Start settings
     public void Start()
     {
+        
         //Subscribe events
         //Events at ground change state
         collisionScr.OnGroundNormalChanged += OnSurfaceCollide;
@@ -187,8 +178,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //List to dictionary
         speedPoints = speedPointList.ToDictionary(entry => entry.key, entry => entry.value);
 
-        //Set start head position
-        headStartPosition = headPosition.localPosition;
+        playerCrouch.StartFunc();
 
         //Set particles to instance on scene
         particles = FindObjectOfType<Particles>();
@@ -210,10 +200,10 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     {
         Vector3 horizontalVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
         debugOutput.Output("Скорость: " + horizontalVel.magnitude.ToString("F2"), 1);
-        debugOutput.Output("Максимальная скорость: " + (currentMaxSpeed * crouchMultiplyer).ToString("F2"), 2);
+        debugOutput.Output("Максимальная скорость: " + (currentMaxSpeed * playerCrouch.CrouchMultiplyer()).ToString("F2"), 2);
 
         //Speed always goes down
-        if (isCrouching == IsCrouching.Crouching && horizontalVel != Vector3.zero)
+        if (playerCrouch.IsPlayerCrouching() && horizontalVel != Vector3.zero)
             BuildSpeed("crouch");
         else if (horizontalVel != Vector3.zero || currentState == BodyState.WallRunning)
             BuildSpeed("none");
@@ -221,11 +211,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             BuildSpeed("not moving");
 
         //Handle crouch check
-        if (isStandingUp)
+        if (playerCrouch.IsStandingUp())
         {
             OnCrouch(false);
         }
-        HandleCrouch();
+        playerCrouch.HandleCrouch();
 
 
         //Current states of movement
@@ -319,7 +309,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         if (airMultiplyer == 1)
         {
             var state = GetCurrentLifeCameraState();
-            if (features.enableLifeCamera && isCrouching == IsCrouching.Crouching && moveVector != Vector2.zero)
+            if (features.enableLifeCamera && playerCrouch.IsPlayerCrouching() && moveVector != Vector2.zero)
                 OnLifeCamera("movement", new float[1] { 0 });
             else if (features.enableLifeCamera && moveVector != Vector2.zero)
                 OnLifeCamera("movement", new float[1] { (currentMaxSpeed - playerMovementConfig.maxLowSpeed) / maxSpeedDifference });
@@ -340,8 +330,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
             Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
 
-            rb.AddForce(surfaceRight * moveVector.x * playerMovementConfig.acceleration * airMultiplyer * crouchMultiplyer, ForceMode.Acceleration);
-            rb.AddForce(surfaceForward * moveVector.y * playerMovementConfig.acceleration * airMultiplyer * crouchMultiplyer, ForceMode.Acceleration);
+            rb.AddForce(surfaceRight * moveVector.x * playerMovementConfig.acceleration * airMultiplyer * playerCrouch.CrouchMultiplyer(), ForceMode.Acceleration);
+            rb.AddForce(surfaceForward * moveVector.y * playerMovementConfig.acceleration * airMultiplyer * playerCrouch.CrouchMultiplyer(), ForceMode.Acceleration);
         }
     }
 
@@ -382,7 +372,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
 
 
-        if (horizontalVel.magnitude > currentMaxSpeed * crouchMultiplyer && currentState != BodyState.InAir)
+        if (horizontalVel.magnitude > currentMaxSpeed * playerCrouch.CrouchMultiplyer() && currentState != BodyState.InAir)
         {
             //Getting direction of movement
             Vector3 moveDir = horizontalVel.normalized;
@@ -392,7 +382,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             rb.AddForce(counterForce, ForceMode.Acceleration);
         }
         // Counter force in the air
-        else if (horizontalVel.magnitude > currentMaxSpeed * crouchMultiplyer && currentState == BodyState.InAir)
+        else if (horizontalVel.magnitude > currentMaxSpeed * playerCrouch.CrouchMultiplyer() && currentState == BodyState.InAir)
         {
             //Getting direction of movement
             Vector3 moveDir = horizontalVel.normalized;
@@ -833,46 +823,9 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             OnLifeCamera("dash");
     }
 
-
-    //Crouch action
-    public void OnCrouch(bool isCrouch)
+    public void OnCrouch(bool isCrouching)
     {
-        if (!features.enableCrouch)
-            return;
-
-        if (isCrouch)
-            //Switching standing up under low ceiling and end checkout
-            isStandingUp = false;
-
-        //Scale player
-        if (isCrouch && isCrouching != IsCrouching.Crouching)
-        {
-            //Start croudhing
-            isCrouching = IsCrouching.Crouching;
-            crouchMultiplyer = playerMovementConfig.crouchMaxMultiplyer;
-            currentCrouchState = isChangingCrouchState.Crouching;
-            if (currentCrouchTime != 0)
-                currentCrouchTime = playerMovementConfig.crouchTime - currentCrouchTime;
-        }
-        else if (!isCrouch && isCrouching != IsCrouching.Standing)
-        {
-            //Start standing
-            if (Physics.Raycast(headPosition.position, Vector3.up, 2.3f, groundLayer))
-            {
-                //Switching standing up under low ceiling and starting checkout
-                print("Cannot stand!");
-                isStandingUp = true;
-                return;
-            }
-            //Switching standing up under low ceiling and end checkout
-            isStandingUp = false;
-            isCrouching = IsCrouching.Standing;
-            crouchMultiplyer = 1f;
-
-            currentCrouchState = isChangingCrouchState.Standing;
-            if (currentCrouchTime != 0)
-                currentCrouchTime = playerMovementConfig.crouchTime - currentCrouchTime;
-        }
+        playerCrouch.OnCrouch(isCrouching);
     }
 
 
@@ -1013,85 +966,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     }
 
 
-    //Crouch system
-    //Handle smooth standing and crouching
-    void SmoothCrouch(bool isCrouching)
-    {
-        currentCrouchTime += Time.deltaTime;
-        float t = Mathf.Clamp01(currentCrouchTime / playerMovementConfig.crouchTime);
-
-        if (currentCrouchTime < playerMovementConfig.crouchTime)
-        {
-            //handle crouch changes
-            if (isCrouching)
-            {
-                // Interpolate to crouch
-                //Scale collider down
-                crouchCollider.height = Mathf.Lerp(2f, 2 * playerMovementConfig.crouchHeadOffset, t);
-                crouchCollider.center = Vector3.Lerp(Vector3.up * 0f, 2 * playerMovementConfig.crouchHeadOffset / 2 * Vector3.up - Vector3.up, t);
-                //Offset head
-                headPosition.localPosition = Vector3.Lerp(headStartPosition, headCrouchPosition, t);
-            }
-            else
-            {
-                // Interpolate to stand
-                //Scale collider up
-                if (Physics.Raycast(headPosition.position, Vector3.up, 2.3f, groundLayer))
-                {
-                    //Switching standing up under low ceiling and starting checkout
-                    OnCrouch(true);
-                    print("Cannot stand!");
-                    isStandingUp = true;
-                    return;
-                }
-                crouchCollider.height = Mathf.Lerp(2 * playerMovementConfig.crouchHeadOffset, 2f, t);
-                crouchCollider.center = Vector3.Lerp(2 * playerMovementConfig.crouchHeadOffset / 2 * Vector3.up - Vector3.up, Vector3.up * 0f, t);
-                //Offset head
-                headPosition.localPosition = Vector3.Lerp(headCrouchPosition, headStartPosition, t);
-            }
-        }
-        else
-        {
-            //Handle final crouch/stand
-            currentCrouchState = isChangingCrouchState.None;
-            currentCrouchTime = 0;
-            if (isCrouching)
-            {
-                //Crouch
-                crouchCollider.height = 2 * playerMovementConfig.crouchHeadOffset;
-                crouchCollider.center = 2 * playerMovementConfig.crouchHeadOffset / 2 * Vector3.up - Vector3.up;
-                headPosition.localPosition = headCrouchPosition;
-            }
-            else
-            {
-                //Stand
-                crouchCollider.height = 2f;
-                crouchCollider.center = Vector3.up * 0f;
-                headPosition.localPosition = headStartPosition;
-            }
-        }
-    }
-
-    //Crouch state mashine
-    void HandleCrouch()
-    {
-        switch (currentCrouchState)
-        {
-            case isChangingCrouchState.Crouching:
-                SmoothCrouch(true);
-                break;
-            case isChangingCrouchState.Standing:
-                SmoothCrouch(false);
-                break;
-            case isChangingCrouchState.None:
-                break;
-        }
-    }
-
-
-
-
-
+    
 
 
     // //Event handle
@@ -1176,7 +1051,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         List<int> indexesWall = new List<int>();
         for (int i = 0; i < contacts.Length; i++)
         {
-            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, isCrouching);
+            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, playerCrouch.IsPlayerCrouching());
             switch (surfaceType)
             {
                 case SurfaceHandler.SurfaceType.Ground:
@@ -1331,7 +1206,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         List<int> indexesWall = new List<int>();
         for (int i = 0; i < contacts.Length; i++)
         {
-            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, isCrouching);
+            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, playerCrouch.IsPlayerCrouching());
             switch (surfaceType)
             {
                 case SurfaceHandler.SurfaceType.Ground:
