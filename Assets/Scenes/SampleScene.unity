@@ -2028,6 +2028,10 @@ GameObject:
   - component: {fileID: 322448627}
   - component: {fileID: 322448629}
   - component: {fileID: 322448633}
+  - component: {fileID: 322448634}
+  - component: {fileID: 322448635}
+  - component: {fileID: 322448636}
+  - component: {fileID: 322448637}
   - component: {fileID: 322448630}
   - component: {fileID: 322448631}
   m_Layer: 8
@@ -2190,9 +2194,26 @@ MonoBehaviour:
   surfaceHandler: {fileID: 322448631}
   playerMovementConfig: {fileID: 11400000, guid: 89946635daebf43419d3fb08c3f23c79,
     type: 2}
+  moveVector: {x: 0, y: 0}
+  counterNormal: 0
+  savedSlideNormal: {x: 0, y: 0, z: 0}
+  checkWallCounter: 0
+  currentWallState: 0
+  wallReferenceSaved: {fileID: 0}
+  wallReference: {fileID: 0}
+  runnedAlready: 0
+  stoppedByWall: 0
+  wallrunCounter: 0
+  wallJumpCounter: 0
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  isGrounded: 0
+  justLanded: 0
+  lastState: 0
+  maxSpeedDifference: 0
+  currentMaxSpeed: 0
+  momentum: 0
   speedPointList:
   - key: wallrun
     value: 3
@@ -2209,6 +2230,10 @@ MonoBehaviour:
   - key: crouch
     value: -0.05
   playerCrouch: {fileID: 322448633}
+  playerDash: {fileID: 322448634}
+  playerSurface: {fileID: 322448635}
+  playerJump: {fileID: 322448636}
+  playerFly: {fileID: 322448637}
 --- !u!114 &322448630
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2262,6 +2287,62 @@ MonoBehaviour:
   headPosition: {fileID: 941037584}
   headCrouchPosition: {x: 0, y: 0, z: 0.423}
   crouchCollider: {fileID: 322448623}
+--- !u!114 &322448634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24bf7c03a77a4262985255c451fdacc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+--- !u!114 &322448635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e1efcdb2d444f8c9443458d8dcaac55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+  groundNormal: {x: 0, y: 1, z: 0}
+  wallNormal: {x: 0, y: 0, z: 0}
+--- !u!114 &322448636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b4c443e84f94a38bbd7e2009b53b961, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+--- !u!114 &322448637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce7e1a2b5b9d4075a9c6e81414cb5db5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+  currentFallTime: 0
+  currentDownFallTime: 0
 --- !u!1 &325084850
 GameObject:
   m_ObjectHideFlags: 0
@@ -3163,15 +3244,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 484444989}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: -0.4, z: -2.19}
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: -0.39999998, z: -2.19}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 394346258}
   - {fileID: 1431805602}
   - {fileID: 1492929087}
-  m_Father: {fileID: 2078209525}
+  m_Father: {fileID: 617528314}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &533941455
 GameObject:
@@ -3415,6 +3496,7 @@ Transform:
   - {fileID: 330585546}
   - {fileID: 437348371}
   - {fileID: 1735258473}
+  - {fileID: 484444990}
   m_Father: {fileID: 2078209525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &757030628
@@ -8376,7 +8458,6 @@ Transform:
   m_Children:
   - {fileID: 617528314}
   - {fileID: 780754842}
-  - {fileID: 484444990}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2078209526

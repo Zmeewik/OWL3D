@@ -31,11 +31,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public FeatureFlags features = new FeatureFlags();
 
     [Header("References")]
-    [SerializeField] Rigidbody rb;
-    [SerializeField] Transform front;
-    [SerializeField] Transform cameraFront;
-    [SerializeField] CollisionCheck collisionScr;
-    [SerializeField] SurfaceHandler surfaceHandler;
+    public Rigidbody rb;
+    public Transform front;
+    public Transform cameraFront;
+    public CollisionCheck collisionScr;
+    public SurfaceHandler surfaceHandler;
     public PlayerMovementConfig playerMovementConfig;
     public static Action<string, float[]> OnLifeCameraAction;
 
@@ -43,26 +43,12 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
     // move
     //Move handle
-    Vector2 moveVector = Vector2.zero;
-
-    
-
-
-    // dash
-    float dashVelocity = 0;
-    float currentDashTime = 0;
-    Vector3 dashDirection = Vector3.zero;
-
-
-    // air
-    float currentFallTime;
-    float currentDownFallTime;
-    int counterOfAirFrames = 0;
+    public Vector2 moveVector = Vector2.zero;
 
 
     // slide
-    int counterNormal = 0;
-    Vector3 savedSlideNormal = Vector3.zero;
+    public int counterNormal = 0;
+    public Vector3 savedSlideNormal = Vector3.zero;
 
 
     // wallrun
@@ -71,23 +57,20 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     
     //wall climb
     float wallClimbStartTime;
-    Vector3 closestWallContact = Vector3.zero;
     
     //wall slide
-    Vector3 savedNormal = Vector3.zero;
-    Vector3 lastWallNormal = Vector3.zero;
-    int checkWallCounter = 0;
+    public int checkWallCounter = 0;
 
     //Wall states
-    enum WallState { Sliding, Running, Climbing, HangUp }
-    WallState currentWallState = WallState.Sliding;
-    Transform wallReferenceSaved = null;
-    Transform wallReference = null;
-    bool runnedAlready;
-    bool stoppedByWall;
-    int wallrunCounter = 0;
+    public enum WallState { Sliding, Running, Climbing, HangUp }
+    [HideInInspector] public WallState currentWallState = WallState.Sliding;
+    [HideInInspector] public Transform wallReferenceSaved = null;
+    [HideInInspector] public Transform wallReference = null;
+    [HideInInspector] public bool runnedAlready;
+    [HideInInspector] public bool stoppedByWall;
+    [HideInInspector] public int wallrunCounter = 0;
     //Check for jump from the wall
-    int wallJumpCounter = 0;
+    [HideInInspector] public int wallJumpCounter = 0;
 
     
     // hangup
@@ -110,26 +93,35 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     
 
     //Grounded check
-    enum IsGrounded { Grounded, InAir };
-    IsGrounded isGrounded = IsGrounded.Grounded;
-    private bool justLanded = false;
+    public enum IsGrounded { Grounded, InAir };
+    [HideInInspector] public IsGrounded isGrounded = IsGrounded.Grounded;
+    [HideInInspector] public bool justLanded = false;
 
 
     //State handle
-    enum BodyState { Moving, Dashing, WallRunning, Sliding, InAir };
+    public enum BodyState { Moving, Dashing, WallRunning, Sliding, InAir };
+
+    public BodyState CurrentState {
+        get
+        {
+            return currentState;
+        }
+        set
+        {
+            currentState = value;
+        }
+    }
     BodyState currentState = BodyState.Moving;
-    BodyState lastState = BodyState.Moving;
+    public BodyState lastState = BodyState.Moving;
 
 
-    //Surface handle
-    Vector3 groundNormal = Vector3.up;
-    Vector3 wallNormal;
+    
 
 
     //Speed up system
-    float maxSpeedDifference;
-    float currentMaxSpeed;
-    float momentum = 0;
+    [HideInInspector] public float maxSpeedDifference;
+    [HideInInspector] public float currentMaxSpeed;
+    [HideInInspector] public float momentum = 0;
     [System.Serializable]
     public class DictionaryDummy
     {
@@ -161,17 +153,19 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     
     //Movement scripts
     [Header("SYSTEMS")]
-    [SerializeField] private PlayerCrouch playerCrouch;
-
+    [SerializeField] public PlayerCrouch playerCrouch;
+    [SerializeField] public PlayerDash playerDash;
+    [SerializeField] public PlayerSurface playerSurface;
+    [SerializeField] public PlayerJump playerJump;
+    [SerializeField] public PlayerFly playerFly;
 
     //Start settings
     public void Start()
     {
-        
         //Subscribe events
         //Events at ground change state
-        collisionScr.OnGroundNormalChanged += OnSurfaceCollide;
-        collisionScr.OnObjectNormalChanged += HandleCollisionWithObjects;
+        collisionScr.OnGroundNormalChanged += playerSurface.OnSurfaceCollide;
+        collisionScr.OnObjectNormalChanged += playerSurface.HandleCollisionWithObjects;
         maxSpeedDifference = playerMovementConfig.maxTopSpeed - playerMovementConfig.maxLowSpeed;
         currentMaxSpeed = playerMovementConfig.maxLowSpeed;
 
@@ -187,8 +181,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public void OnDisable()
     {
         //Unsubscribe events
-        collisionScr.OnGroundNormalChanged -= OnSurfaceCollide;
-        collisionScr.OnObjectNormalChanged -= HandleCollisionWithObjects;
+        collisionScr.OnGroundNormalChanged -= playerSurface.OnSurfaceCollide;
+        collisionScr.OnObjectNormalChanged -= playerSurface.HandleCollisionWithObjects;
     }
 
 
@@ -254,11 +248,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                 break;
             case BodyState.InAir:
                 //Counting fall time
-                if (rb.velocity.y < 0)
-                    currentDownFallTime += Time.deltaTime;
-                else
-                    currentDownFallTime = 0;
-                currentFallTime += Time.deltaTime;
+                playerFly.HandleFallTime();
                 if (features.enableMovement)
                 {
                     Moving(playerMovementConfig.airControlMultiplier);
@@ -284,7 +274,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             else if (currentState == BodyState.InAir && rb.velocity.magnitude > playerMovementConfig.maxLowSpeed)
             {
                 //print("move air");
-                var alpha = Mathf.Min(currentFallTime / playerMovementConfig.flyMaxParticleTime, 1);
+                var alpha = Mathf.Min(playerFly.currentFallTime / playerMovementConfig.flyMaxParticleTime, 1);
                 var col = new Color[1] { new Color(1, 1, 1, alpha) };
                 //print(col);
                 particles.ChangeColor("MovementLines", col);
@@ -320,15 +310,15 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         }
         else
         {
-            if (currentFallTime >= playerMovementConfig.minFallTime && features.enableLifeCamera)
-                OnLifeCamera("fall", new float[1] { currentDownFallTime });
+            if (playerFly.currentFallTime >= playerMovementConfig.minFallTime && features.enableLifeCamera)
+                OnLifeCamera("fall", new float[1] { playerFly.currentDownFallTime });
         }
 
         if (features.enableMovement && moveVector != Vector2.zero)
         {
             //Trajectory projection at the ground surface
-            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
-            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
+            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, playerSurface.groundNormal).normalized;
+            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, playerSurface.groundNormal).normalized;
 
             rb.AddForce(surfaceRight * moveVector.x * playerMovementConfig.acceleration * airMultiplyer * playerCrouch.CrouchMultiplyer(), ForceMode.Acceleration);
             rb.AddForce(surfaceForward * moveVector.y * playerMovementConfig.acceleration * airMultiplyer * playerCrouch.CrouchMultiplyer(), ForceMode.Acceleration);
@@ -342,7 +332,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         if (features.enableMovement && moveVector == Vector2.zero)
         {
             Vector3 horizontalVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-            horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
+            horizontalVel = Vector3.ProjectOnPlane(horizontalVel, playerSurface.groundNormal);
 
             if (horizontalVel.magnitude > 0.5f)
             {
@@ -369,7 +359,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         {
             horizontalVel = new Vector3(rb.velocity.x, rb.velocity.y, rb.velocity.z);
         }
-        horizontalVel = Vector3.ProjectOnPlane(horizontalVel, groundNormal);
+        horizontalVel = Vector3.ProjectOnPlane(horizontalVel, playerSurface.groundNormal);
 
 
         if (horizontalVel.magnitude > currentMaxSpeed * playerCrouch.CrouchMultiplyer() && currentState != BodyState.InAir)
@@ -409,21 +399,6 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         rb.MoveRotation(targetRotation);
     }
 
-    //End dash state
-    Vector3 timeOfDash = Vector3.zero;
-    public void EndDash()
-    {
-        if (currentState == BodyState.Dashing)
-        {
-            BuildSpeed("dash");
-            print(Vector3.Distance(transform.position, timeOfDash));
-            var normVel = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized;
-            rb.velocity = normVel * playerMovementConfig.maxSpeed * playerMovementConfig.airControlMultiplier;
-            currentState = BodyState.InAir;
-            OnFly();
-        }
-    }
-
 
     //Slide auto movement
     private void Slide()
@@ -431,7 +406,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         if (!features.enableSlide) return;
 
         //Getting vector down
-        Vector3 slopeDir = Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
+        Vector3 slopeDir = Vector3.ProjectOnPlane(Vector3.down, playerSurface.groundNormal).normalized;
         //Get current slope velocity
         float currentSpeedOnSlope = Vector3.Dot(rb.velocity, slopeDir);
         //Add force until max
@@ -440,11 +415,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             rb.AddForce(slopeDir * -Physics.gravity.y * playerMovementConfig.slideSpeed, ForceMode.Acceleration);
         }
         //Sticking player to ground while sloping
-        rb.AddForce(-groundNormal.normalized * 30, ForceMode.Acceleration);
+        rb.AddForce(-playerSurface.groundNormal.normalized * 30, ForceMode.Acceleration);
 
         //Start animation
         if (features.enableLifeCamera)
-            OnLifeCamera("slide", new float[1] { currentDownFallTime });
+            OnLifeCamera("slide", new float[1] { playerFly.currentDownFallTime });
     }
 
     //Movement close to the wall
@@ -460,7 +435,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         {
             //Calculate vectore
             var rbMoveVector = transform.forward;
-            Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
+            Vector3 wallRight = Vector3.Cross(Vector3.up, playerSurface.wallNormal).normalized;
             var dotRight = Vector3.Dot(rbMoveVector, wallRight);
 
             //Change life camera state
@@ -520,15 +495,15 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     void WallRunStart()
     {
         //Calculating vectors
-        Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
-        Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
+        Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, playerSurface.groundNormal).normalized;
+        Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, playerSurface.groundNormal).normalized;
         var currentMoveInputDirection = surfaceForward * moveVector.y + surfaceRight * moveVector.x;
-        var moveDirectionDot = Vector3.Dot(currentMoveInputDirection, -wallNormal);
+        var moveDirectionDot = Vector3.Dot(currentMoveInputDirection, -playerSurface.wallNormal);
         print(moveDirectionDot);
 
         var rbMoveVector = transform.forward;
-        var dot = Vector3.Dot(rbMoveVector, -wallNormal);
-        Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
+        var dot = Vector3.Dot(rbMoveVector, -playerSurface.wallNormal);
+        Vector3 wallRight = Vector3.Cross(Vector3.up, playerSurface.wallNormal).normalized;
         Vector3 wallLeft = -wallRight;
 
         var dotRight = Vector3.Dot(rbMoveVector, wallRight);
@@ -553,7 +528,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             // Start animations
             if (features.enableLifeCamera)
                 OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
-            if (Physics.Raycast(cameraFront.position, -wallNormal, out RaycastHit wallHit, 1f, groundLayer))
+            if (Physics.Raycast(cameraFront.position, -playerSurface.wallNormal, out RaycastHit wallHit, 1f, groundLayer))
             {
                 OnAnimating("H_Arms_ClimbUp", "r_arm", false);
                 OnAnimating("H_Arms_ClimbUp", "l_arm", false);
@@ -622,7 +597,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         HangUpCheck();
 
         //Prevent animating arms if player turns away
-        var turnPercent = Vector3.Dot(cameraFront.forward, -wallNormal);
+        var turnPercent = Vector3.Dot(cameraFront.forward, -playerSurface.wallNormal);
         if (turnPercent < 0.5f && !animatingArmsPutAway)
         {
             OnAnimating("H_Arms_Boxing_PutAway", "r_arm", false);
@@ -693,15 +668,15 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         if (moveVector != Vector2.zero)
         {
             //Finding direction of movement
-            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, groundNormal).normalized;
-            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, groundNormal).normalized;
+            Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, playerSurface.groundNormal).normalized;
+            Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, playerSurface.groundNormal).normalized;
             Vector3 surfaceMoveDir = (surfaceRight * moveVector.x + surfaceForward * moveVector.y).normalized;
             //Getting current direction
-            Vector3 wallRight = Vector3.Cross(Vector3.up, wallNormal).normalized;
+            Vector3 wallRight = Vector3.Cross(Vector3.up, playerSurface.wallNormal).normalized;
             Vector3 wallLeft = -wallRight;
 
             //Getting wall move vector projection
-            Vector3 wallMoveDir = Vector3.ProjectOnPlane(surfaceMoveDir, wallNormal);
+            Vector3 wallMoveDir = Vector3.ProjectOnPlane(surfaceMoveDir, playerSurface.wallNormal);
             float wallMoveSpeed = wallMoveDir.magnitude;
 
             var dotRight = Vector3.Dot(surfaceMoveDir, wallRight);
@@ -739,45 +714,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     //Standard moving
     public void OnJump()
     {
-        if (!features.enableJump) return;
-
-        //print(isGrounded);
-        if (isGrounded == IsGrounded.Grounded && currentState != BodyState.Sliding)
-        {
-            rb.AddForce(Vector2.up * playerMovementConfig.jumpForce * rb.mass, ForceMode.Impulse);
-            BuildSpeed("jump");
-            OnCrouch(false);
-            if (features.enableLifeCamera)
-                OnLifeCamera("jump");
-        }
-        //If on the wall go a little forward 
-        else if (currentState == BodyState.WallRunning && (features.enableWallRun || features.enableWallClimb || features.enableWallSlide))
-        {
-            savedNormal = wallNormal;
-            var lookDirection = cameraFront.forward * moveVector.y + cameraFront.right * moveVector.x;
-            if (lookDirection == Vector3.zero)
-                lookDirection = cameraFront.forward;
-
-            //Projecting vector to xz plane
-            Vector3 lookDirectionXZ = new Vector3(lookDirection.x, 0f, lookDirection.z).normalized;
-
-            //Cant jump into the wall
-            if (Vector3.Dot(lookDirection, wallNormal) <= 0.1f)
-                return;
-
-            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-            rb.AddForce(lookDirectionXZ * playerMovementConfig.acceleration, ForceMode.Impulse);
-
-            //Counter of max wall jump - 3, if overwlow dont use up speed
-            if (wallJumpCounter < 3)
-                rb.AddForce(Vector2.up * playerMovementConfig.jumpForce * rb.mass, ForceMode.Impulse);
-            else { }
-
-            wallJumpCounter++;
-            BuildSpeed("jump");
-            if (features.enableLifeCamera)
-                OnLifeCamera("jump");
-        }
+        playerJump.OnJump();
     }
 
     public void OnMove(Vector2 vector)
@@ -787,40 +724,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
     public void OnDash()
     {
-        //Check if dashing right now
-        if (currentState == BodyState.Dashing || !features.enableDash)
-            return;
-
-        //Nullifying x, z speed
-        rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
-
-        //Get current Look Direction
-        var lookDirection = cameraFront.forward * moveVector.y + cameraFront.right * moveVector.x;
-        if (lookDirection == Vector3.zero)
-            lookDirection = cameraFront.forward;
-
-        //If going down go little up instead
-        //Up dashing
-        rb.AddForce(playerMovementConfig.dashUpForce * Vector3.up, ForceMode.Impulse);
-        Vector3 lookDirectionXZ = new Vector3(lookDirection.x, 0f, lookDirection.z).normalized;
-        lookDirection = lookDirectionXZ;
-        dashDirection = lookDirection;
-
-        //Get needed velocity
-        dashVelocity = playerMovementConfig.dashDistance / playerMovementConfig.dashTime;
-        Vector3 dash = dashDirection.normalized * dashVelocity;
-        rb.velocity = new Vector3(dash.x, rb.velocity.y, dash.z);
-
-        //Dash player
-        currentDashTime = 0;
-        timeOfDash = transform.position;
-
-        //End dash afrter time
-        currentState = BodyState.Dashing;
-        Invoke("EndDash", playerMovementConfig.dashTime);
-        OnCrouch(false);
-        if (features.enableLifeCamera)
-            OnLifeCamera("dash");
+        playerDash.OnDash();
     }
 
     public void OnCrouch(bool isCrouching)
@@ -832,13 +736,13 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     //Check for hang up state
     void HangUpCheck()
     {
-        if (!Physics.Raycast(transform.position + new Vector3(0, playerMovementConfig.hangUpHeight, 0), -wallNormal, out var hit, 1f, groundLayer))
+        if (!Physics.Raycast(transform.position + new Vector3(0, playerMovementConfig.hangUpHeight, 0), -playerSurface.wallNormal, out var hit, 1f, groundLayer))
         {
             //Find point on the clif where I need to be at end
-            Vector3 rayOrigin = transform.position + -wallNormal * 0.7f + Vector3.up * playerMovementConfig.hangUpHeight;
+            Vector3 rayOrigin = transform.position + -playerSurface.wallNormal * 0.7f + Vector3.up * playerMovementConfig.hangUpHeight;
             if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit downHit, playerMovementConfig.hangUpHeight * 2, groundLayer))
             {
-                nextHangUpPosition = downHit.point + wallNormal * playerMovementConfig.forwardOffset + 3f * Vector3.up;
+                nextHangUpPosition = downHit.point + playerSurface.wallNormal * playerMovementConfig.forwardOffset + 3f * Vector3.up;
             }
             else
             {
@@ -859,7 +763,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             //Start animation
             if (features.enableHangUp)
             {
-                if (Physics.Raycast(transform.position, -wallNormal, out RaycastHit wallHit, 1f, groundLayer))
+                if (Physics.Raycast(transform.position, -playerSurface.wallNormal, out RaycastHit wallHit, 1f, groundLayer))
                 {
                     OnLifeCamera("hangup", new float[2] { currentFinalHangUpTime, 1f });
                 }
@@ -875,7 +779,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                 isAlreadyAnimating = true;
 
                 //Check for the wall in front of player to start get up animation
-                if (Physics.Raycast(transform.position, -wallNormal, out RaycastHit wallHit, 1f, groundLayer))
+                if (Physics.Raycast(transform.position, -playerSurface.wallNormal, out RaycastHit wallHit, 1f, groundLayer))
                 {
                     OnAnimating("H_Arms_Get_Up", "l_arm", false);
                     OnAnimating("H_Arms_Get_Up", "r_arm", false);
@@ -885,7 +789,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     }
 
     //Change hang up position
-    void OnHangUp()
+    public void OnHangUp()
     {
         currentHangUpTime += Time.deltaTime;
         float t = currentHangUpTime / currentFinalHangUpTime;
@@ -955,7 +859,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
     //Speed system
-    void BuildSpeed(string type)
+    public void BuildSpeed(string type)
     {
         if (!features.enableSpeedSystem) return;
 
@@ -966,401 +870,24 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     }
 
 
-    
+    //Get something from children
 
 
     // //Event handle
-    // //Ground Check events
-    //Change grounded state
-    void OnFly()
+    
+    // Ground control
+    public void OnFly()
     {
-        if (isGrounded == IsGrounded.InAir && currentState != BodyState.WallRunning)
-            return;
-
-        //If climb higher clif slow down speed
-        if (currentWallState == WallState.Climbing && currentState == BodyState.WallRunning)
-            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-
-
-        currentFallTime = 0;
-        rb.useGravity = true;
-        isGrounded = IsGrounded.InAir;
-        groundNormal = Vector3.up;
-        currentState = BodyState.InAir;
-        justLanded = true;
-        if (lastState == BodyState.WallRunning)
-            if (features.enableLifeCamera)
-                OnLifeCamera("fall", new float[1] { 0 });
+        playerFly.OnFly();
     }
-
-
-    void OnLand()
+    
+    public void OnLand()
     {
-        //Check up for a hang up state
-        if (currentWallState == WallState.HangUp && currentState == BodyState.WallRunning)
-            return;
-
-        if (isGrounded == IsGrounded.Grounded)
-            return;
-        isGrounded = IsGrounded.Grounded;
-
-        //Null normals and jumps
-        savedNormal = Vector3.zero;
-        wallNormal = Vector3.zero;
-
-        //Wall run
-        wallJumpCounter = 0;
-        wallrunCounter = 0;
-        justLanded = false;
-        wallReferenceSaved = null;
-
-        //Start animation
-        if (currentFallTime >= playerMovementConfig.minFallTime)
-            OnLifeCamera("land", new float[1] { currentFallTime - playerMovementConfig.minFallTime });
-        else
-            OnLifeCamera("none", new float[1] { (currentMaxSpeed - playerMovementConfig.maxLowSpeed) / maxSpeedDifference });
+        playerFly.OnLand();
     }
-
-
-    //Handle collisions with surfaces
-    void OnSurfaceCollide(ContactPoint[] contacts)
-    {
-        if (currentState == BodyState.Dashing)
-            return;
-
-        if (currentWallState == WallState.HangUp)
-        {
-            currentState = BodyState.WallRunning;
-            return;
-        }
-
-        //If there is ono contact object is flying
-        if (contacts.Length == 0)
-        {
-            lastState = currentState;
-            OnFly();
-            return;
-        }
-        counterOfAirFrames = 0;
-
-        //Handling and counting multiple contacts
-        int[] contactSurfaces = { 0, 0, 0, 0 };
-        List<int> indexesGround = new List<int>();
-        List<int> indexesSlope = new List<int>();
-        List<int> indexesCeiling = new List<int>();
-        List<int> indexesWall = new List<int>();
-        for (int i = 0; i < contacts.Length; i++)
-        {
-            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, playerCrouch.IsPlayerCrouching());
-            switch (surfaceType)
-            {
-                case SurfaceHandler.SurfaceType.Ground:
-                    contactSurfaces[0]++;
-                    indexesGround.Add(i);
-                    break;
-
-                case SurfaceHandler.SurfaceType.Slope:
-                    contactSurfaces[1]++;
-                    indexesSlope.Add(i);
-                    break;
-
-                case SurfaceHandler.SurfaceType.Ceiling:
-                    contactSurfaces[2]++;
-                    indexesCeiling.Add(i);
-                    break;
-
-                case SurfaceHandler.SurfaceType.Wall:
-                    contactSurfaces[3]++;
-                    indexesWall.Add(i);
-                    break;
-            }
-        }
-
-        //Ground contact main
-        if (contactSurfaces[0] > 0)
-        {
-            //Find main surface: closest to vector.up
-            var curnormal = FindClosestToVector(indexesGround, contacts, Vector3.up);
-
-            //Handle main logic
-            HandleGround(curnormal);
-            OnLand();
-        }
-        //Slope contact main
-        else if (contactSurfaces[1] > 0 && features.enableSlide)
-        {
-            //Find main surface: closest to 90 degrees
-            var curnormal = FindClosestTo90(indexesSlope, contacts, out var index);
-
-            //Handle main logic
-            HandleSlope(curnormal, contacts[index].otherCollider.tag);
-            OnLand();
-        }
-        //Wall contact main
-        else if (contactSurfaces[3] > 0 && (features.enableWallRun || features.enableWallClimb || features.enableWallSlide))
-        {
-            //Find main surface: closest to 90 degrees
-            var curnormal = FindClosestTo90(indexesWall, contacts, out var index);
-            closestWallContact = FindClosestToObjectContatct(indexesWall, contacts, transform.position);
-
-            //Handle main logic
-            HandleWall(curnormal, contacts[index]);
-        }
-        //Ceiling contact main
-        else if (contactSurfaces[2] > 0)
-        {
-            //Find main surface: closest to 90 degrees
-            var curnormal = FindClosestToVector(indexesGround, contacts, Vector3.down);
-
-            //Handle main logic
-            HandleCeiling(curnormal);
-        }
-
-        //Clear all lists
-        indexesGround.Clear();
-        indexesSlope.Clear();
-        indexesCeiling.Clear();
-        indexesWall.Clear();
-    }
-
-    //Find main surface: closest to 90 degrees
-    Vector3 FindClosestTo90(List<int> indexes, ContactPoint[] contacts, out int objIndex)
-    {
-        var closestNormal = Vector3.zero;
-        var closestAngle = 0f;
-        var num = 0;
-        foreach (var i in indexes)
-        {
-            var currentNormal = contacts[i].normal;
-            var angle = Vector3.Angle(currentNormal, Vector3.up);
-            if (angle > closestAngle)
-            {
-                closestNormal = currentNormal;
-                closestAngle = angle;
-                num = i;
-            }
-        }
-        objIndex = num;
-        return closestNormal;
-    }
-
-    //Find main surface: closest to vector.up
-    Vector3 FindClosestToVector(List<int> indexes, ContactPoint[] contacts, Vector3 vec)
-    {
-        var closestNormal = Vector3.zero;
-        var closestDot = 0f;
-        foreach (var i in indexes)
-        {
-            var currentNormal = contacts[i].normal;
-            var dot = Vector3.Dot(currentNormal, vec);
-            if (dot > closestDot)
-            {
-                closestNormal = currentNormal;
-                closestDot = dot;
-            }
-        }
-        return closestNormal;
-    }
-
-    Vector3 FindClosestToObjectContatct(List<int> indexes, ContactPoint[] contacts, Vector3 pos)
-    {
-        var closestPosition = Vector3.positiveInfinity;
-        var closestDistance = Mathf.Infinity;
-        foreach (var i in indexes)
-        {
-            var currentPosition = contacts[i].point;
-            var dist = Vector3.Distance(currentPosition, pos);
-            if (dist < closestDistance)
-            {
-                closestPosition = currentPosition;
-                closestDistance = dist;
-            }
-        }
-        return closestPosition;
-    }
-
-
-
-
-    void HandleCollisionWithObjects(ContactPoint[] contacts)
-    {
-
-        if (currentWallState == WallState.HangUp)
-        {
-            currentState = BodyState.WallRunning;
-            return;
-        }
-
-        //If there is ono contact object is flying
-        if (contacts.Length == 0)
-        {
-            OnFly();
-            return;
-        }
-
-        //Handling and counting multiple contacts
-        int[] contactSurfaces = { 0, 0, 0, 0 };
-        List<int> indexesGround = new List<int>();
-        List<int> indexesSlope = new List<int>();
-        List<int> indexesCeiling = new List<int>();
-        List<int> indexesWall = new List<int>();
-        for (int i = 0; i < contacts.Length; i++)
-        {
-            var surfaceType = surfaceHandler.GetSurfaceType(contacts[i].normal, playerCrouch.IsPlayerCrouching());
-            switch (surfaceType)
-            {
-                case SurfaceHandler.SurfaceType.Ground:
-                    contactSurfaces[0]++;
-                    indexesGround.Add(i);
-                    break;
-
-                case SurfaceHandler.SurfaceType.Slope:
-                    contactSurfaces[1]++;
-                    indexesSlope.Add(i);
-                    break;
-
-                case SurfaceHandler.SurfaceType.Ceiling:
-                    contactSurfaces[2]++;
-                    indexesCeiling.Add(i);
-                    break;
-
-                case SurfaceHandler.SurfaceType.Wall:
-                    contactSurfaces[3]++;
-                    indexesWall.Add(i);
-                    break;
-            }
-        }
-
-        //Ground contact main
-        if (contactSurfaces[0] > 0)
-        {
-            //Find main surface: closest to vector.up
-            var curnormal = FindClosestToVector(indexesGround, contacts, Vector3.up);
-
-            //Handle main logic
-            HandleGround(curnormal);
-            OnLand();
-            rb.useGravity = true;
-        }
-        //Slope contact main
-        else if (contactSurfaces[1] > 0 && features.enableSlide)
-        {
-            //Find main surface: closest to 90 degrees
-            var curnormal = FindClosestTo90(indexesSlope, contacts, out var index);
-
-            //Handle main logic
-            HandleSlope(curnormal, contacts[index].otherCollider.tag);
-            OnLand();
-        }
-
-        //Clear all lists
-        indexesGround.Clear();
-        indexesSlope.Clear();
-        indexesCeiling.Clear();
-        indexesWall.Clear();
-    }
-
-
-    void HandleGround(Vector3 normal)
-    {
-
-        groundNormal = normal;
-        if (currentState != BodyState.Moving)
-        {
-            rb.useGravity = false;
-            //Impulse when touching the ground after slope
-            if (savedSlideNormal != Vector3.zero && groundNormal == Vector3.up && lastState == BodyState.Sliding)
-            {
-                var forceOfSlide = new Vector3(savedSlideNormal.x, 0, savedSlideNormal.z).normalized;
-                rb.AddForce(forceOfSlide * currentMaxSpeed * 100, ForceMode.Impulse);
-            }
-            currentState = BodyState.Moving;
-            savedSlideNormal = Vector3.zero;
-
-        }
-    }
-
-    void HandleSlope(Vector3 normal, string tag)
-    {
-
-        groundNormal = normal;
-        //Check for consistent slope
-        if (savedSlideNormal != groundNormal && tag == "Slope")
-            rb.velocity = Vector3.zero;
-
-        if (savedSlideNormal == groundNormal)
-            counterNormal++;
-        else
-            counterNormal = 0;
-
-        if (counterNormal > 3)
-        {
-            BuildSpeed("slide");
-            if (currentState != BodyState.Sliding)
-            {
-                counterNormal = 0;
-                currentState = BodyState.Sliding;
-                rb.useGravity = true;
-            }
-        }
-
-        savedSlideNormal = groundNormal;
-    }
-
-    void HandleWall(Vector3 normal, ContactPoint contact)
-    {
-
-        if (isGrounded == IsGrounded.InAir)
-        {
-            //Check for consistent wall
-            if (lastWallNormal == normal)
-                checkWallCounter++;
-            else
-                checkWallCounter = 0;
-
-            if (checkWallCounter > 3)
-            {
-                currentState = BodyState.WallRunning;
-                rb.useGravity = true;
-                wallNormal = normal;
-
-                //Check for the same wall for additional wall run possibility
-                wallReference = contact.otherCollider.transform;
-                if (wallReference != wallReferenceSaved)
-                {
-                    runnedAlready = false;
-                    stoppedByWall = true;
-                }
-                wallReferenceSaved = wallReference;
-                OnCrouch(false);
-            }
-
-            lastWallNormal = normal;
-        }
-    }
-
-
-    void HandleCeiling(Vector3 normal)
-    {
-        if (currentState == BodyState.Dashing)
-            return;
-        //rb.AddForce(normal * 100f, ForceMode.Impulse);
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
     //Send command to life camera
-    void OnLifeCamera(string type, float[] parameters = null)
+    public void OnLifeCamera(string type, float[] parameters = null)
     {
         if (!features.enableLifeCamera)
             return;
