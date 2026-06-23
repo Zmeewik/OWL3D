@@ -33,11 +33,12 @@ public class PlayerMovementConfig : ScriptableObject
     [SerializeField] public float wallrunMaxForceX;
     [SerializeField] public float wallrunMaxForceY;
     [SerializeField] public float wallrunTime;
-    [SerializeField] public int wallrunMaxCount;
+    [SerializeField] public int wallrunMaxJumps;
     
     [Header("Wall climb")]
     [SerializeField] public float wallClimbForce;
     [SerializeField] public float wallClimbTime;
+    [SerializeField] public int wallClimbMaxJumps;
     
     [Header("Wall slide")]
     [SerializeField] public float wallSlideMaxSpeed;

@@ -23,7 +23,7 @@ public class PlayerFly : MonoBehaviour
             return;
 
         //If climb higher clif slow down speed
-        if (playerMovement.currentWallState == PlayerMovement.WallState.Climbing && playerMovement.CurrentState == PlayerMovement.BodyState.WallRunning)
+        if (playerMovement.playerWallRun.currentWallState == PlayerWallRun.WallState.Climbing && playerMovement.CurrentState == PlayerMovement.BodyState.WallRunning)
             playerMovement.rb.velocity = new Vector3(playerMovement.rb.velocity.x, 0, playerMovement.rb.velocity.z);
 
         currentFallTime = 0;
@@ -41,7 +41,7 @@ public class PlayerFly : MonoBehaviour
     public void OnLand()
     {
         //Check up for a hang up state
-        if (playerMovement.currentWallState == PlayerMovement.WallState.HangUp && playerMovement.CurrentState == PlayerMovement.BodyState.WallRunning)
+        if (playerMovement.playerWallRun.currentWallState == PlayerWallRun.WallState.HangUp && playerMovement.CurrentState == PlayerMovement.BodyState.WallRunning)
             return;
 
         if (playerMovement.isGrounded == PlayerMovement.IsGrounded.Grounded)
@@ -52,10 +52,10 @@ public class PlayerFly : MonoBehaviour
         playerMovement.playerSurface.wallNormal = Vector3.zero;
 
         //Wall run
-        playerMovement.wallJumpCounter = 0;
-        playerMovement.wallrunCounter = 0;
+        playerMovement.playerWallRun.wallJumpCounter = 0;
+        playerMovement.playerWallRun.wallrunCounter = 0;
         playerMovement.justLanded = false;
-        playerMovement.wallReferenceSaved = null;
+        playerMovement.playerWallRun.wallReferenceSaved = null;
 
         //Start animation
         if (currentFallTime >= playerMovement.playerMovementConfig.minFallTime)

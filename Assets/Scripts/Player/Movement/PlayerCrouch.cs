@@ -122,9 +122,33 @@ public class PlayerCrouch : MonoBehaviour
         else if (!isCrouch && isCrouching != IsCrouching.Standing)
         {
             //Start standing
-            if (Physics.Raycast(headPosition.position, Vector3.up, 2.3f, playerMovement.groundLayer))
+            // Checkout if player can stand sending 5 rays up
+            float standCheckDistance = 2.3f;
+            float standCheckRadius = 0.5f;
+            Vector3 center = headPosition.position;
+            Vector3[] rayOrigins =
             {
-                //Switching standing up under low ceiling and starting checkout
+                center,
+                center + transform.forward * standCheckRadius,
+                center - transform.forward * standCheckRadius,
+                center + transform.right * standCheckRadius,
+                center - transform.right * standCheckRadius
+            };
+            bool cannotStand = false;
+            foreach (Vector3 origin in rayOrigins)
+            {
+                if (Physics.Raycast(
+                        origin,
+                        Vector3.up,
+                        standCheckDistance,
+                        playerMovement.groundLayer))
+                {
+                    cannotStand = true;
+                    break;
+                }
+            }
+            if (cannotStand)
+            {
                 print("Cannot stand!");
                 isStandingUp = true;
                 return;

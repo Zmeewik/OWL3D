@@ -2032,8 +2032,13 @@ GameObject:
   - component: {fileID: 322448635}
   - component: {fileID: 322448636}
   - component: {fileID: 322448637}
+  - component: {fileID: 322448638}
+  - component: {fileID: 322448639}
+  - component: {fileID: 322448641}
+  - component: {fileID: 322448640}
   - component: {fileID: 322448630}
   - component: {fileID: 322448631}
+  - component: {fileID: 322448642}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -2194,46 +2199,24 @@ MonoBehaviour:
   surfaceHandler: {fileID: 322448631}
   playerMovementConfig: {fileID: 11400000, guid: 89946635daebf43419d3fb08c3f23c79,
     type: 2}
-  moveVector: {x: 0, y: 0}
-  counterNormal: 0
-  savedSlideNormal: {x: 0, y: 0, z: 0}
-  checkWallCounter: 0
-  currentWallState: 0
-  wallReferenceSaved: {fileID: 0}
-  wallReference: {fileID: 0}
-  runnedAlready: 0
-  stoppedByWall: 0
-  wallrunCounter: 0
-  wallJumpCounter: 0
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
   isGrounded: 0
   justLanded: 0
   lastState: 0
-  maxSpeedDifference: 0
-  currentMaxSpeed: 0
-  momentum: 0
-  speedPointList:
-  - key: wallrun
-    value: 3
-  - key: jump
-    value: 2
-  - key: slide
-    value: 0.1
-  - key: not moving
-    value: -0.5
-  - key: none
-    value: -0.01
-  - key: dash
-    value: 2
-  - key: crouch
-    value: -0.05
+  isAlreadyAnimating: 0
+  animatingArmsPutAway: 0
+  playerWalking: {fileID: 322448638}
   playerCrouch: {fileID: 322448633}
   playerDash: {fileID: 322448634}
   playerSurface: {fileID: 322448635}
   playerJump: {fileID: 322448636}
   playerFly: {fileID: 322448637}
+  playerSlide: {fileID: 322448639}
+  playerWallRun: {fileID: 322448641}
+  playerHangUp: {fileID: 322448640}
+  playerMomentum: {fileID: 322448642}
 --- !u!114 &322448630
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2343,6 +2326,100 @@ MonoBehaviour:
   playerMovement: {fileID: 322448629}
   currentFallTime: 0
   currentDownFallTime: 0
+--- !u!114 &322448638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e319799e849248e6be20df968da0f828, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+  moveVector: {x: 0, y: 0}
+--- !u!114 &322448639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8acd3413c1b44f938ff56f2d0620b66a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+--- !u!114 &322448640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 929e5a86cb6c4e25a41ce5058d5b8fb8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+--- !u!114 &322448641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b0eaa26a4a94928a8026d0b0e73aa70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+  checkWallCounter: 0
+  currentWallState: 0
+  wallReferenceSaved: {fileID: 0}
+  wallReference: {fileID: 0}
+  runnedAlready: 0
+  stoppedByWall: 0
+  wallrunCounter: 0
+  wallJumpCounter: 0
+--- !u!114 &322448642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322448622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03f31335c5504047aceb7d0f63ba2393, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 322448629}
+  maxSpeedDifference: 0
+  currentMaxSpeed: 0
+  momentum: 0
+  speedPointList:
+  - key: wallrun
+    value: 3
+  - key: jump
+    value: 2
+  - key: slide
+    value: 0.1
+  - key: not moving
+    value: -0.5
+  - key: dash
+    value: 2
+  - key: none
+    value: -0.01
+  - key: crouch
+    value: -0.05
+  - key: move_forward
+    value: 0.04
 --- !u!1 &325084850
 GameObject:
   m_ObjectHideFlags: 0
@@ -3860,7 +3937,7 @@ Transform:
   m_GameObject: {fileID: 941037583}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.812, z: 0.423}
+  m_LocalPosition: {x: 0, y: 0.812, z: 0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

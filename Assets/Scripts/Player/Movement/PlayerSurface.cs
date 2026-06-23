@@ -10,13 +10,16 @@ public class PlayerSurface: MonoBehaviour
     [HideInInspector] public Vector3 wallNormal;
     Vector3 closestWallContact = Vector3.zero;
     
+    private Vector3 savedSlideNormal;
+    private int counterNormal;
+    
     //Handle collisions with surfaces
     public void OnSurfaceCollide(ContactPoint[] contacts)
     {
         if (playerMovement.CurrentState == PlayerMovement.BodyState.Dashing)
             return;
 
-        if (playerMovement.currentWallState == PlayerMovement.WallState.HangUp)
+        if (playerMovement.playerWallRun.currentWallState == PlayerWallRun.WallState.HangUp)
         {
             playerMovement.CurrentState = PlayerMovement.BodyState.WallRunning;
             return;
@@ -172,7 +175,7 @@ public class PlayerSurface: MonoBehaviour
     public void HandleCollisionWithObjects(ContactPoint[] contacts)
     {
 
-        if (playerMovement.currentWallState == PlayerMovement.WallState.HangUp)
+        if (playerMovement.playerWallRun.currentWallState == PlayerWallRun.WallState.HangUp)
         {
             playerMovement.CurrentState = PlayerMovement.BodyState.WallRunning;
             return;
@@ -256,13 +259,13 @@ public class PlayerSurface: MonoBehaviour
         {
             playerMovement.rb.useGravity = false;
             //Impulse when touching the ground after slope
-            if (playerMovement.savedSlideNormal != Vector3.zero && groundNormal == Vector3.up && playerMovement.lastState == PlayerMovement.BodyState.Sliding)
+            if (savedSlideNormal != Vector3.zero && groundNormal == Vector3.up && playerMovement.lastState == PlayerMovement.BodyState.Sliding)
             {
-                var forceOfSlide = new Vector3(playerMovement.savedSlideNormal.x, 0, playerMovement.savedSlideNormal.z).normalized;
+                var forceOfSlide = new Vector3(savedSlideNormal.x, 0, savedSlideNormal.z).normalized;
                 playerMovement.rb.AddForce(forceOfSlide * playerMovement.currentMaxSpeed * 100, ForceMode.Impulse);
             }
             playerMovement.CurrentState = PlayerMovement.BodyState.Moving;
-            playerMovement.savedSlideNormal = Vector3.zero;
+            savedSlideNormal = Vector3.zero;
 
         }
     }
@@ -272,26 +275,26 @@ public class PlayerSurface: MonoBehaviour
 
         groundNormal = normal;
         //Check for consistent slope
-        if (playerMovement.savedSlideNormal != groundNormal && tag == "Slope")
+        if (savedSlideNormal != groundNormal && tag == "Slope")
             playerMovement.rb.velocity = Vector3.zero;
 
-        if (playerMovement.savedSlideNormal == groundNormal)
-            playerMovement.counterNormal++;
+        if (savedSlideNormal == groundNormal)
+            counterNormal++;
         else
-            playerMovement.counterNormal = 0;
+            counterNormal = 0;
 
-        if (playerMovement.counterNormal > 3)
+        if (counterNormal > 3)
         {
             playerMovement.BuildSpeed("slide");
             if (playerMovement.CurrentState != PlayerMovement.BodyState.Sliding)
             {
-                playerMovement.counterNormal = 0;
+                counterNormal = 0;
                 playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
                 playerMovement.rb.useGravity = true;
             }
         }
 
-        playerMovement.savedSlideNormal = groundNormal;
+        savedSlideNormal = groundNormal;
     }
 
     void HandleWall(Vector3 normal, ContactPoint contact)
@@ -301,24 +304,24 @@ public class PlayerSurface: MonoBehaviour
         {
             //Check for consistent wall
             if (lastWallNormal == normal)
-                playerMovement.checkWallCounter++;
+                playerMovement.playerWallRun.checkWallCounter++;
             else
-                playerMovement.checkWallCounter = 0;
+                playerMovement.playerWallRun.checkWallCounter = 0;
 
-            if (playerMovement.checkWallCounter > 3)
+            if (playerMovement.playerWallRun.checkWallCounter > 3)
             {
                 playerMovement.CurrentState = PlayerMovement.BodyState.WallRunning;
                 playerMovement.rb.useGravity = true;
                 wallNormal = normal;
 
                 //Check for the same wall for additional wall run possibility
-                playerMovement.wallReference = contact.otherCollider.transform;
-                if (playerMovement.wallReference != playerMovement.wallReferenceSaved)
+                playerMovement.playerWallRun.wallReference = contact.otherCollider.transform;
+                if (playerMovement.playerWallRun.wallReference != playerMovement.playerWallRun.wallReferenceSaved)
                 {
-                    playerMovement.runnedAlready = false;
-                    playerMovement.stoppedByWall = true;
+                    playerMovement.playerWallRun.runnedAlready = false;
+                    playerMovement.playerWallRun.stoppedByWall = true;
                 }
-                playerMovement.wallReferenceSaved = playerMovement.wallReference;
+                playerMovement.playerWallRun.wallReferenceSaved = playerMovement.playerWallRun.wallReference;
                 playerMovement.OnCrouch(false);
             }
 

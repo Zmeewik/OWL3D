@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Movement
   m_EditorClassIdentifier: 
   acceleration: 100
-  decceleration: 100
+  decceleration: 30
   maxSpeed: 15
   jumpForce: 15
   dashDistance: 10
@@ -29,9 +29,10 @@ MonoBehaviour:
   wallrunMaxForceX: 10
   wallrunMaxForceY: 5
   wallrunTime: 1
-  wallrunMaxCount: 2
+  wallrunMaxJumps: 3
   wallClimbForce: 10
   wallClimbTime: 0.5
+  wallClimbMaxJumps: 2
   wallSlideMaxSpeed: 3
   minHangUpTime: 0.3
   maxHangUpTime: 0.4
@@ -40,6 +41,6 @@ MonoBehaviour:
   crouchHeadOffset: 0.6
   crouchMaxMultiplyer: 0.6
   crouchTime: 0.2
-  maxTopSpeed: 13
-  maxLowSpeed: 10
+  maxTopSpeed: 12
+  maxLowSpeed: 9
   maxMomentum: 10

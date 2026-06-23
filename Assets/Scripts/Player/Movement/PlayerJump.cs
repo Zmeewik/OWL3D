@@ -34,12 +34,12 @@ public class PlayerJump: MonoBehaviour
             playerMovement.rb.velocity = new Vector3(playerMovement.rb.velocity.x, 0, playerMovement.rb.velocity.z);
             playerMovement.rb.AddForce(lookDirectionXZ * playerMovement.playerMovementConfig.acceleration, ForceMode.Impulse);
 
-            //Counter of max wall jump - 3, if overwlow dont use up speed
-            if (playerMovement.wallJumpCounter < 3)
+            //Counter of max wall jump, if overwlow dont use up speed
+            if (playerMovement.playerWallRun.wallJumpCounter < playerMovement.playerMovementConfig.wallrunMaxJumps)
                 playerMovement.rb.AddForce(Vector2.up * playerMovement.playerMovementConfig.jumpForce * playerMovement.rb.mass, ForceMode.Impulse);
             else { }
 
-            playerMovement.wallJumpCounter++;
+            playerMovement.playerWallRun.wallJumpCounter++;
             playerMovement.BuildSpeed("jump");
             if (playerMovement.features.enableLifeCamera)
                 playerMovement.OnLifeCamera("jump");
