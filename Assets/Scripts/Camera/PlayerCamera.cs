@@ -485,7 +485,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         float shake = Mathf.Lerp(breathYShake, maxBreathYShake, breathMultiplyer);
 
         breathPhase += Time.deltaTime * speed;
-        float breath = Mathf.Sin(breathPhase) * shake;
+        float breath = (Mathf.Sin(breathPhase)) * shake;
 
         cameraOffsetTarget = Vector3.up * breath;
 
@@ -502,7 +502,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
         movementPhase += Time.deltaTime * frequency;
         float xShake = Mathf.Sin(movementPhase) * amplitudeX;
-        float yShake = Mathf.Abs(Mathf.Cos(movementPhase)) * amplitudeY;
+        float yShake = Mathf.Abs(Mathf.Cos(movementPhase)) * amplitudeY - amplitudeY;
 
         cameraOffsetTarget = new Vector3(0, 0, 0);
         cameraOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
@@ -625,7 +625,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         //print("climb");
         wallrunPhase += Time.deltaTime * wallclimbSpeed;
         float xShake = Mathf.Sin(wallrunPhase) * wallclimbXShake;
-        float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallclimbYShake;
+        float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallclimbYShake - wallclimbYShake;
 
         cameraOffsetTarget = new Vector3(0, 0, 0);
         cameraOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;

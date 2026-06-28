@@ -15,11 +15,11 @@ public class SurfaceHandler : MonoBehaviour
     public enum SurfaceType { Ground, Slope,  Wall, Ceiling, None }
 
     //Check for normal angle to up to get type of surface
-    public SurfaceType GetSurfaceType(Vector3 normal, IsCrouching isCrouching)
+    public SurfaceType GetSurfaceType(Vector3 normal, bool isCrouching)
     {
         float angle = Vector3.Angle(normal, Vector3.up);
         
-        if(isCrouching == IsCrouching.Crouching)
+        if(isCrouching)
         {
             if(angle < groundAngleCrouch)
                 return SurfaceType.Ground;
