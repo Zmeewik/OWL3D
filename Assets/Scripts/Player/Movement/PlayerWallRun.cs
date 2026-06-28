@@ -102,16 +102,25 @@ public class PlayerWallRun: MonoBehaviour
         Vector3 surfaceForward = Vector3.ProjectOnPlane(transform.forward, playerMovement.playerSurface.groundNormal).normalized;
         Vector3 surfaceRight = Vector3.ProjectOnPlane(transform.right, playerMovement.playerSurface.groundNormal).normalized;
         var currentMoveInputDirection = surfaceForward * playerMovement.moveVector.y + surfaceRight * playerMovement.moveVector.x;
+        // movement toward wall normal
         var moveDirectionDot = Vector3.Dot(currentMoveInputDirection, -playerMovement.playerSurface.wallNormal);
+        print("wall run action: ");
         print(moveDirectionDot);
 
         var rbMoveVector = transform.forward;
         var dot = Vector3.Dot(rbMoveVector, -playerMovement.playerSurface.wallNormal);
+        print(dot);
         Vector3 wallRight = Vector3.Cross(Vector3.up, playerMovement.playerSurface.wallNormal).normalized;
         Vector3 wallLeft = -wallRight;
-
+            
+        // camera toward right
         var dotRight = Vector3.Dot(rbMoveVector, wallRight);
-
+        print(dotRight);
+        
+        // movement toward right
+        var dotMovementRight = Vector3.Dot(currentMoveInputDirection, wallRight);
+        var dotMovementCameraDirection = Vector3.Dot(currentMoveInputDirection, rbMoveVector);
+        
         //Upward movement
         if (dot > 0.7f && moveDirectionDot > 0.7f && playerMovement.features.enableWallClimb)
         {
@@ -140,16 +149,18 @@ public class PlayerWallRun: MonoBehaviour
             }
         }
         //Left/Right movement
-        else if (dot < 0.7f && dot > -0.5f && moveDirectionDot < 0.7f && moveDirectionDot > 0f && playerMovement.features.enableWallRun)
+        else if (moveDirectionDot != 0 && dotMovementCameraDirection > 0.5f && playerMovement.features.enableWallRun)
         {
             //Going right
-            if (dotRight > 0)
+            if (dotMovementRight >= 0)
             {
+                print("Start movement right");
                 wallrunDirection = wallRight;
             }
             //Going left
             else
             {
+                print("Start movement left");
                 wallrunDirection = wallLeft;
             }
             Invoke("DeactivateWallRun", playerMovement.playerMovementConfig.wallrunTime);
@@ -171,7 +182,7 @@ public class PlayerWallRun: MonoBehaviour
         {
             //Nullifying start speed
             stoppedByWall = true;
-            playerMovement.rb.velocity = new Vector3(0, 0, 0);
+            playerMovement.rb.velocity = new Vector3(0, playerMovement.rb.velocity.y, 0);
         }
 
     }
@@ -285,19 +296,19 @@ public class PlayerWallRun: MonoBehaviour
 
             var dotRight = Vector3.Dot(surfaceMoveDir, wallRight);
             if (dotRight > 0)
-                playerMovement.rb.AddForce(wallRight * (playerMovement.playerMovementConfig.acceleration * wallMoveSpeed * playerMovement.playerMovementConfig.airControlMultiplier) / 2, ForceMode.Acceleration);
+                playerMovement.rb.AddForce(wallRight * (playerMovement.playerMovementConfig.acceleration * wallMoveSpeed * playerMovement.playerMovementConfig.wallMovementMultiplier) / 2, ForceMode.Acceleration);
             else if (dotRight < 0)
-                playerMovement.rb.AddForce(wallLeft * (playerMovement.playerMovementConfig.acceleration * wallMoveSpeed * playerMovement.playerMovementConfig.airControlMultiplier) / 2, ForceMode.Acceleration);
+                playerMovement.rb.AddForce(wallLeft * (playerMovement.playerMovementConfig.acceleration * wallMoveSpeed * playerMovement.playerMovementConfig.wallMovementMultiplier) / 2, ForceMode.Acceleration);
 
 
             //Counter movement
             var horizontalVel = new Vector3(playerMovement.rb.velocity.x, 0, playerMovement.rb.velocity.z);
-            if (horizontalVel.magnitude > playerMovement.currentMaxSpeed)
+            if (horizontalVel.magnitude > playerMovement.currentMaxSpeed * playerMovement.playerMovementConfig.wallMovementMultiplier)
             {
                 //Getting direction of movement
                 Vector3 moveDir = horizontalVel.normalized;
                 //Force to counter movement
-                Vector3 counterForce = -moveDir * (playerMovement.playerMovementConfig.acceleration * playerMovement.playerMovementConfig.airControlMultiplier);
+                Vector3 counterForce = -moveDir * (playerMovement.playerMovementConfig.acceleration);
                 playerMovement.rb.AddForce(counterForce, ForceMode.Acceleration);
             }
         }

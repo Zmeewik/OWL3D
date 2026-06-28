@@ -42,6 +42,7 @@ public class PlayerMovementConfig : ScriptableObject
     
     [Header("Wall slide")]
     [SerializeField] public float wallSlideMaxSpeed;
+    [SerializeField, Range(0, 1)] public float wallMovementMultiplier;
     
     [Header("Hang Up")]
     [SerializeField] public float minHangUpTime;

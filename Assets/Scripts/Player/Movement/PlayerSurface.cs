@@ -319,7 +319,7 @@ public class PlayerSurface: MonoBehaviour
                 if (playerMovement.playerWallRun.wallReference != playerMovement.playerWallRun.wallReferenceSaved)
                 {
                     playerMovement.playerWallRun.runnedAlready = false;
-                    playerMovement.playerWallRun.stoppedByWall = true;
+                    playerMovement.playerWallRun.stoppedByWall = false;
                 }
                 playerMovement.playerWallRun.wallReferenceSaved = playerMovement.playerWallRun.wallReference;
                 playerMovement.OnCrouch(false);

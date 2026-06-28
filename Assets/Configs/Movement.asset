@@ -34,6 +34,7 @@ MonoBehaviour:
   wallClimbTime: 0.5
   wallClimbMaxJumps: 2
   wallSlideMaxSpeed: 3
+  wallMovementMultiplier: 0.2
   minHangUpTime: 0.3
   maxHangUpTime: 0.4
   hangUpHeight: 0.4
