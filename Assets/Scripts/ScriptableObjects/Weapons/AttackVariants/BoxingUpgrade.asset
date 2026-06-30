@@ -20,8 +20,8 @@ MonoBehaviour:
   maxChargeTime: 0
   minChargeTime: 0
   damage: {fileID: 11400000, guid: 7e2911c12236d794cb55e0e3703a301c, type: 2}
-  range: 3
-  radius: 0.4
+  range: 4
+  radius: 0.5
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
   rayDistance: 50

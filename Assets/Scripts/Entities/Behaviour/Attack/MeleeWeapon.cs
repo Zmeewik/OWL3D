@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 public class MeleeWeapon : WeaponBase
 {
@@ -11,7 +12,7 @@ public class MeleeWeapon : WeaponBase
         Debug.DrawLine(pos + Vector3.right * radius, pos - Vector3.right * radius, color);
         Debug.DrawLine(pos + Vector3.forward * radius, pos - Vector3.forward * radius, color);
     }
-    
+
     protected override void ExecuteAttack(AttackVariant attack, float charged = -1)
     {
         if (attack.kind != AttackKind.Melee)
@@ -21,13 +22,32 @@ public class MeleeWeapon : WeaponBase
         Vector3 dir = transform.forward;
 
         print("Start attack");
+        
+        Collider[] overlaps = Physics.OverlapSphere(origin, attack.radius, hitMask);
+        RaycastHit[] hits = Physics.SphereCastAll(
+            origin,
+            attack.radius,
+            dir,
+            attack.range,
+            hitMask
+        );
+        
+        HashSet<Collider> hitColliders = new();
+        
+        foreach (var col in overlaps)
+            hitColliders.Add(col);
 
-        if (Physics.SphereCast(origin, attack.radius, dir, out var hit, attack.range, hitMask))
+        foreach (var hit in hits)
+            hitColliders.Add(hit.collider);
+        
+        print($"Unique hits: {hitColliders.Count}");
+
+        foreach (var collider in hitColliders)
         {
             print("Sphere cast successful!");
-            var health = hit.collider.GetComponent<EntityHealth>();
-            var receiver = hit.collider.GetComponent<EntityHealth>();
-            var rb = hit.collider.attachedRigidbody;
+            var health = collider.GetComponent<EntityHealth>();
+            var receiver = collider.GetComponent<EntityHealth>();
+            var rb = collider.attachedRigidbody;
 
             if (health)
             {
@@ -38,19 +58,15 @@ public class MeleeWeapon : WeaponBase
                     dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
                 else
                 {
-                    print(dmg);
                     dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
-                    print(dmg);
                     var baseAttack = dmg / attack.maxChargeMultyplier;
-                    print(baseAttack);
                     dmg = Mathf.Lerp(baseAttack, attack.damage.baseDamage, charged);
-                    print(dmg);
                 }
                 
                 var isCharged = charged == -1 ? false : true;
                 DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, isCharged);
                 health.ApplyDamage(packet);
-                print("Damage pocket send");
+                print("Damage packet send");
                 
                 //Apply knockback
                 if (attack.knockbackForce > 0 && rb != null)
@@ -58,7 +74,7 @@ public class MeleeWeapon : WeaponBase
                     var force = attack.knockbackForce;
                     if(charged != -1)
                         force = Mathf.Lerp(0, attack.knockbackForce, charged);
-                    Vector3 kbDir = (hit.transform.position - origin).normalized;
+                    Vector3 kbDir = (collider.transform.position - origin).normalized;
                     rb.AddForce(kbDir * force, ForceMode.Impulse);
                 }
             }
