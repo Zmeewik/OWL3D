@@ -104,18 +104,14 @@ public class PlayerWallRun: MonoBehaviour
         var currentMoveInputDirection = surfaceForward * playerMovement.moveVector.y + surfaceRight * playerMovement.moveVector.x;
         // movement toward wall normal
         var moveDirectionDot = Vector3.Dot(currentMoveInputDirection, -playerMovement.playerSurface.wallNormal);
-        print("wall run action: ");
-        print(moveDirectionDot);
 
         var rbMoveVector = transform.forward;
         var dot = Vector3.Dot(rbMoveVector, -playerMovement.playerSurface.wallNormal);
-        print(dot);
         Vector3 wallRight = Vector3.Cross(Vector3.up, playerMovement.playerSurface.wallNormal).normalized;
         Vector3 wallLeft = -wallRight;
             
         // camera toward right
         var dotRight = Vector3.Dot(rbMoveVector, wallRight);
-        print(dotRight);
         
         // movement toward right
         var dotMovementRight = Vector3.Dot(currentMoveInputDirection, wallRight);

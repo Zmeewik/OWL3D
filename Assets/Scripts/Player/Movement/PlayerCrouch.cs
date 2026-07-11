@@ -18,6 +18,8 @@ public class PlayerCrouch : MonoBehaviour
     private enum IsCrouching { Crouching, Standing }
     IsCrouching isCrouching = IsCrouching.Standing;
 
+    [HideInInspector] public bool savedCrouch;
+
     public void StartFunc()
     {
         //Set start head position
@@ -102,6 +104,7 @@ public class PlayerCrouch : MonoBehaviour
     //Crouch action
     public void OnCrouch(bool isCrouch)
     {
+        print("Crouching: " + isCrouch);
         if (!playerMovement.features.enableCrouch)
             return;
 

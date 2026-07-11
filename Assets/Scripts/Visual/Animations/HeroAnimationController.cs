@@ -9,7 +9,8 @@ public class HeroAnimationController : IAnimation
     [Header("References")]
     [SerializeField] Animator leftHandAnimator;
     [SerializeField] Animator rightHandAnimator;
-    [SerializeField] Animator LegAnimator;
+    [SerializeField] Animator leftLegAnimator;
+    [SerializeField] Animator rightLegAnimator;
     [SerializeField] AnimationState startLeftHandState;
     [SerializeField] AnimationState startRightHandState;
     [SerializeField] AnimationState startLegState;
@@ -167,7 +168,7 @@ public class HeroAnimationController : IAnimation
                                 "H_Arms_GetUp",
                                 "H_Arms_ClimbUp"
                                 };
-    public enum BodyPart { left_hand, right_hand, right_leg }
+    public enum BodyPart { left_hand, right_hand, right_leg, left_leg }
     private Vector2 rotationVector;
 
 
@@ -211,8 +212,13 @@ public class HeroAnimationController : IAnimation
         }
         else if (bodyPart == BodyPart.right_leg)
         {
-            LegAnimator.Play(animationClip, 0, 0f);
+            rightLegAnimator.Play(animationClip, 0, 0f);
             print($"right leg animation {animationClip} started!");
+        }
+        else if (bodyPart == BodyPart.left_leg)
+        {
+            leftLegAnimator.Play(animationClip, 0, 0f);
+            print($"left leg animation {animationClip} started!");
         }
     }
 
@@ -276,7 +282,10 @@ public class HeroAnimationController : IAnimation
                 rightHandAnimator.gameObject.SetActive(state);
                 break;
             case BodyPart.right_leg:
-                LegAnimator.gameObject.SetActive(state);
+                rightLegAnimator.gameObject.SetActive(state);
+                break;
+            case BodyPart.left_leg:
+                leftLegAnimator.gameObject.SetActive(state);
                 break;
         }
     }
@@ -355,7 +364,9 @@ public class HeroAnimationController : IAnimation
         if (part == BodyPart.right_hand)
             anim = rightHandAnimator;
         else if (part == BodyPart.right_leg)
-            anim = LegAnimator;
+            anim = rightLegAnimator;
+        else if (part == BodyPart.left_leg)
+            anim = leftLegAnimator;
 
         foreach (var clip in anim.runtimeAnimatorController.animationClips)
             if (clip.name == clipName)

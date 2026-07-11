@@ -1058,6 +1058,38 @@ MonoBehaviour:
   entity: {fileID: 105640805}
   offset: {x: 0, y: 0.8, z: 0}
   barSize: {x: 1, y: 0.1}
+--- !u!1 &106846240
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 106846241}
+  m_Layer: 0
+  m_Name: BodyPartsOffset
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &106846241
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 106846240}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 484444990}
+  m_Father: {fileID: 617528314}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &121183240
 GameObject:
   m_ObjectHideFlags: 0
@@ -2192,6 +2224,7 @@ MonoBehaviour:
     enableLifeCamera: 1
     cameraScrReference: {fileID: 2078209526}
     enableParticles: 1
+    enableSlideGround: 1
   rb: {fileID: 322448627}
   front: {fileID: 776521181}
   cameraFront: {fileID: 2078209525}
@@ -2270,6 +2303,7 @@ MonoBehaviour:
   headPosition: {fileID: 941037584}
   headCrouchPosition: {x: 0, y: 0, z: 0.423}
   crouchCollider: {fileID: 322448623}
+  savedCrouch: 0
 --- !u!114 &322448634
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2326,6 +2360,7 @@ MonoBehaviour:
   playerMovement: {fileID: 322448629}
   currentFallTime: 0
   currentDownFallTime: 0
+  maxFallTimeToSlide: 1
 --- !u!114 &322448638
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2420,6 +2455,8 @@ MonoBehaviour:
     value: -0.05
   - key: move_forward
     value: 0.04
+  - key: slide_ground
+    value: -5
 --- !u!1 &325084850
 GameObject:
   m_ObjectHideFlags: 0
@@ -3328,8 +3365,7 @@ Transform:
   m_Children:
   - {fileID: 394346258}
   - {fileID: 1431805602}
-  - {fileID: 1492929087}
-  m_Father: {fileID: 617528314}
+  m_Father: {fileID: 106846241}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &533941455
 GameObject:
@@ -3573,7 +3609,8 @@ Transform:
   - {fileID: 330585546}
   - {fileID: 437348371}
   - {fileID: 1735258473}
-  - {fileID: 484444990}
+  - {fileID: 106846241}
+  - {fileID: 1492929087}
   m_Father: {fileID: 2078209525}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &753236253
@@ -6241,6 +6278,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1397886977
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1397886978}
+  - component: {fileID: 1397886979}
+  m_Layer: 0
+  m_Name: GameSettings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1397886978
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1397886977}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2043020563}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1397886979
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1397886977}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ed516f96a6642c4e836c14f6ffe8eef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  frameRate: 60
 --- !u!1001 &1431805601
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6494,7 +6576,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 484444990}
+    m_TransformParent: {fileID: 617528314}
     m_Modifications:
     - target: {fileID: -9178444455063585268, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
@@ -6518,38 +6600,53 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
+        type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.39999998
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -2.19
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
         type: 3}
@@ -8301,7 +8398,6 @@ GameObject:
   - component: {fileID: 2043020563}
   - component: {fileID: 2043020564}
   - component: {fileID: 2043020562}
-  - component: {fileID: 2043020565}
   - component: {fileID: 2043020566}
   - component: {fileID: 2043020567}
   - component: {fileID: 2043020568}
@@ -8344,7 +8440,8 @@ Transform:
   m_LocalPosition: {x: -1.5631324, y: 2.1883106, z: 1.9900233}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1397886978}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2043020564
@@ -8610,19 +8707,6 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
---- !u!114 &2043020565
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2043020561}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1ed516f96a6642c4e836c14f6ffe8eef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  frameRate: 60
 --- !u!114 &2043020566
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8669,10 +8753,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   leftHandAnimator: {fileID: 2060365246}
   rightHandAnimator: {fileID: 1431805603}
-  LegAnimator: {fileID: 1492929088}
-  startLeftHandState: 13
-  startRightHandState: 13
-  startLegState: 17
+  leftLegAnimator: {fileID: 0}
+  rightLegAnimator: {fileID: 1492929088}
+  startLeftHandState: 19
+  startRightHandState: 19
+  startLegState: 19
   handsOffsetObject: {fileID: 484444990}
 --- !u!114 &2043020569
 MonoBehaviour:
@@ -8723,6 +8808,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2078209525}
   - component: {fileID: 2078209526}
+  - component: {fileID: 2078209527}
   m_Layer: 0
   m_Name: Camera
   m_TagString: Untagged
@@ -8803,6 +8889,7 @@ MonoBehaviour:
   slideSpeed: 2
   slideYAngle: 0
   slideZAngle: 5
+  slideTimeMaxSpeed: 1
   wallrunAngle: 10
   wallrunXShake: 0.1
   wallrunYShake: 0.1
@@ -8830,6 +8917,93 @@ MonoBehaviour:
   maxSecondsToMaxLandForce: 3
   FOVOffset: 3
   changeFOVTime: 2
+--- !u!114 &2078209527
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2078209524}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d141eca866bd0741a4993f262659f22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  armsOffset: {fileID: 106846241}
+  cameraObj: {fileID: 617528313}
+  isCameraOn: 0
+  featureFlags:
+    enableBreath: 1
+    enableMovement: 1
+    enableRotate: 1
+    enableJump: 1
+    enableDash: 1
+    enableLand: 1
+    enableSlide: 1
+    enableWallrun: 1
+    enableClimb: 1
+    enableHangup: 1
+    enableFall: 1
+    enableFallcliff: 1
+    enableLeghit: 1
+  smoothSpeed: 5
+  smoothRotationSpeed: 5
+  hangupAngle: 30
+  hangUpTime: 0.4
+  breathYShake: 0.01
+  maxBreathYShake: 0.02
+  breathSpeed: 3
+  maxBreathSpeed: 7
+  relaxTime: 10
+  walkXShake: 0.1
+  walkYShake: 0.1
+  runXShake: 0.2
+  runYShake: 0.2
+  startMoveSpeed: 10
+  endMoveSpeed: 20
+  minAngle: 0
+  maxAngle: 5
+  rotateAnimSensivity: 0.1
+  maxRotationDelta: 75
+  minRotationDelta: 25
+  jumpYShake: 0
+  jumpAngle: 0
+  jumpTime: 0
+  dashAngle: -10
+  dashTime: 0.2
+  slideSpeed: 2
+  slideYAngle: 0
+  slideZAngle: 5
+  wallrunAngle: 10
+  wallrunXShake: 0.1
+  wallrunYShake: 0.1
+  wallrunSpeed: 15
+  wallclimbXShake: 0.2
+  wallclimbYShake: 0.2
+  wallclimbSpeed: 15
+  minFallSpeed: 0
+  fallSpeed: 5
+  minFallXShake: 3
+  fallXShake: 10
+  minFallYShake: 3
+  fallYShake: 10
+  minFallZRotation: 0
+  fallZRotation: 10
+  fallToMinTime: 0.5
+  fallToMaxTime: 2
+  landOffset: -0.1
+  landAngle: -1
+  landTime: 0.1
+  maxLandMultiplyer: 3
+  minLandMultiplyer: 1
+  maxSecondsToMaxLandForce: 3
+  fallCliffYShake: 0
+  fallCliffAngle: -10
+  fallCliffTime: 0.4
+  weaponBase: {fileID: 407313066}
+  leghitYShake: 0
+  leghitAngle: -60
+  leghitTime: 0.35
 --- !u!1 &2096672662
 GameObject:
   m_ObjectHideFlags: 0

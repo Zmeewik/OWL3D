@@ -27,6 +27,12 @@ public class PlayerMovementConfig : ScriptableObject
     [SerializeField] public float maxSlideSpeed;
     [SerializeField] public float slideSpeed;
     
+    [Header("Slide ground")]
+    [SerializeField] public float maxSlideGroundSpeed;
+    [SerializeField] public float minSlideGroundSpeed;
+    [SerializeField] public float minSlideGroundMovementSpeed;
+    [SerializeField] public float slideGroundTime;
+    
     [Header("Wall run")]
     [SerializeField] public float wallrunForceX;
     [SerializeField] public float wallRunForceY;

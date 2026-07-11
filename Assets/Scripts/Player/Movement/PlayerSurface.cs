@@ -10,6 +10,7 @@ public class PlayerSurface: MonoBehaviour
     [HideInInspector] public Vector3 wallNormal;
     Vector3 closestWallContact = Vector3.zero;
     
+    private Vector3 currentWallNormal;
     private Vector3 savedSlideNormal;
     private int counterNormal;
     
@@ -90,11 +91,11 @@ public class PlayerSurface: MonoBehaviour
         else if (contactSurfaces[3] > 0 && (playerMovement.features.enableWallRun || playerMovement.features.enableWallClimb || playerMovement.features.enableWallSlide))
         {
             //Find main surface: closest to 90 degrees
-            var curnormal = FindClosestTo90(indexesWall, contacts, out var index);
+            var curnormal = FindClosestTo90(indexesWall, contacts, out var mainIndex);
             closestWallContact = FindClosestToObjectContatct(indexesWall, contacts, transform.position);
 
             //Handle main logic
-            HandleWall(curnormal, contacts[index]);
+            HandleWall(curnormal, contacts[mainIndex]);
         }
         //Ceiling contact main
         else if (contactSurfaces[2] > 0)
@@ -253,8 +254,11 @@ public class PlayerSurface: MonoBehaviour
 
     void HandleGround(Vector3 normal)
     {
-
         groundNormal = normal;
+        //If sliding not move
+        if (playerMovement.CurrentState == PlayerMovement.BodyState.SlidingGround)
+            return;
+        
         if (playerMovement.CurrentState != PlayerMovement.BodyState.Moving)
         {
             playerMovement.rb.useGravity = false;
@@ -276,7 +280,9 @@ public class PlayerSurface: MonoBehaviour
         groundNormal = normal;
         //Check for consistent slope
         if (savedSlideNormal != groundNormal && tag == "Slope")
+        {
             playerMovement.rb.velocity = Vector3.zero;
+        }
 
         if (savedSlideNormal == groundNormal)
             counterNormal++;
@@ -293,17 +299,17 @@ public class PlayerSurface: MonoBehaviour
                 playerMovement.rb.useGravity = true;
             }
         }
-
+        
         savedSlideNormal = groundNormal;
     }
 
-    void HandleWall(Vector3 normal, ContactPoint contact)
+    /*void HandleWall(Vector3 normal, ContactPoint contact)
     {
 
         if (playerMovement.isGrounded == PlayerMovement.IsGrounded.InAir)
         {
             //Check for consistent wall
-            if (lastWallNormal == normal)
+            if (Vector3.Angle(lastWallNormal, normal) < 2f)
                 playerMovement.playerWallRun.checkWallCounter++;
             else
                 playerMovement.playerWallRun.checkWallCounter = 0;
@@ -327,6 +333,50 @@ public class PlayerSurface: MonoBehaviour
 
             lastWallNormal = normal;
         }
+    }*/
+    
+    void HandleWall(Vector3 normal, ContactPoint contact)
+    {
+        if (playerMovement.isGrounded != PlayerMovement.IsGrounded.InAir)
+            return;
+
+        Transform wall = contact.otherCollider.transform;
+
+        //Wall change
+        if (wall != playerMovement.playerWallRun.wallReferenceSaved)
+        {
+            playerMovement.playerWallRun.wallReferenceSaved = wall;
+            playerMovement.playerWallRun.wallReference = wall;
+
+            playerMovement.playerWallRun.runnedAlready = false;
+            playerMovement.playerWallRun.stoppedByWall = false;
+
+            playerMovement.playerWallRun.checkWallCounter = 0;
+            lastWallNormal = normal;
+            wallNormal = normal;
+        }
+
+        //Check for consistent wall
+        if (Vector3.Angle(lastWallNormal, normal) < 2f)
+            playerMovement.playerWallRun.checkWallCounter++;
+        else
+            playerMovement.playerWallRun.checkWallCounter = 0;
+
+        lastWallNormal = normal;
+
+        if (playerMovement.playerWallRun.checkWallCounter <= 3)
+            return;
+
+        playerMovement.CurrentState = PlayerMovement.BodyState.WallRunning;
+        playerMovement.rb.useGravity = true;
+        wallNormal = normal;
+
+        playerMovement.OnCrouch(false);
+    }
+
+    void HandleSecondaryWall()
+    {
+        
     }
 
 

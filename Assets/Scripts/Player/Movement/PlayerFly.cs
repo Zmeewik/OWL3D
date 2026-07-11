@@ -5,6 +5,7 @@ public class PlayerFly : MonoBehaviour
      [SerializeField] private PlayerMovement playerMovement;
      [HideInInspector] public float currentFallTime;
      [HideInInspector] public float currentDownFallTime;
+     public float maxFallTimeToSlide;
 
      public void HandleFallTime()
      {
@@ -35,6 +36,9 @@ public class PlayerFly : MonoBehaviour
         if (playerMovement.lastState == PlayerMovement.BodyState.WallRunning)
             if (playerMovement.features.enableLifeCamera)
                 playerMovement.OnLifeCamera("fall", new float[1] { 0 });
+        if (playerMovement.lastState == PlayerMovement.BodyState.Moving)
+            if (playerMovement.features.enableLifeCamera)
+                playerMovement.OnLifeCamera("fallcliff", new float[1] { 0 });
     }
 
 

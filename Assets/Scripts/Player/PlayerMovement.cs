@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using System.Diagnostics;
 
 [RequireComponent(typeof(Rigidbody)), RequireComponent(typeof(Collider))]
 public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
@@ -24,6 +25,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         public bool enableLifeCamera = true;
         public PlayerCamera cameraScrReference;
         public bool enableParticles = true;
+        public bool enableSlideGround = true;
     }
 
 
@@ -52,7 +54,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
 
 
     //State handle
-    public enum BodyState { Moving, Dashing, WallRunning, Sliding, InAir };
+    public enum BodyState { Moving, Dashing, WallRunning, Sliding, InAir, SlidingGround };
 
     public BodyState CurrentState {
         get
@@ -61,6 +63,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         }
         set
         {
+            UnityEngine.Debug.Log($"STATE {currentState} -> {value}");
+            UnityEngine.Debug.Log(new StackTrace());
             currentState = value;
         }
     }
@@ -131,16 +135,16 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         var dot = Vector2.Dot(
             moveVector.normalized,
             Vector2.up);
-        if (playerCrouch.IsPlayerCrouching() && horizontalVel != Vector3.zero)
+        if (playerCrouch.IsPlayerCrouching() && currentState != BodyState.InAir && currentState != BodyState.SlidingGround && horizontalVel != Vector3.zero)
             BuildSpeed("crouch");
         else if(horizontalVel.magnitude < 0.3f * currentMaxSpeed && isGrounded == IsGrounded.Grounded)
             BuildSpeed("not moving");
         // If moves forward
-        else if (dot > 0.707f && !playerCrouch.IsPlayerCrouching() && horizontalVel.magnitude > 0.5f * currentMaxSpeed)
+        else if (dot > 0.707f && !playerCrouch.IsPlayerCrouching() && horizontalVel.magnitude > 0.5f * currentMaxSpeed && playerFly)
             BuildSpeed("move_forward");
         else if (moveVector != Vector2.zero || currentState == BodyState.WallRunning)
             BuildSpeed("none");
-        else if (moveVector == Vector2.zero && isGrounded == IsGrounded.Grounded)
+        else if (moveVector == Vector2.zero && isGrounded == IsGrounded.Grounded && currentState != BodyState.SlidingGround)
             BuildSpeed("not moving");
 
         //Handle crouch check
@@ -195,7 +199,15 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
                     playerWalking.CounterMovement();
                 }
                 break;
+            case BodyState.SlidingGround:
+                if (features.enableSlideGround)
+                {
+                    playerSlide.SlideGround();
+                }
+                break;
         }
+        
+        //UnityEngine.Debug.Log(currentState);
 
         //Handle visual effects
         if (features.enableParticles)
@@ -246,10 +258,36 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     {
         playerDash.OnDash();
     }
-
+    
     public void OnCrouch(bool isCrouching)
     {
-        playerCrouch.OnCrouch(isCrouching);
+        var currentMaxspeed_temp =
+            currentMaxSpeed * (playerCrouch.IsPlayerCrouching() ? playerCrouch.CrouchMultiplyer() : 1);
+        
+        // Crouch handle
+        if (currentState != BodyState.SlidingGround)
+            playerCrouch.OnCrouch(isCrouching);
+        else
+            playerCrouch.savedCrouch = isCrouching;
+        
+        // Slide handle
+        if (currentState != BodyState.SlidingGround)
+        {
+            var currentSpeedMagnitude = (currentMaxspeed_temp - playerMovementConfig.maxLowSpeed) /
+                                        (playerMovementConfig.maxTopSpeed - playerMovementConfig.maxLowSpeed);
+            print(currentSpeedMagnitude);
+            if (isCrouching &&
+                isGrounded == IsGrounded.Grounded &&
+                currentSpeedMagnitude > playerMovementConfig.minSlideGroundMovementSpeed)
+            {
+                print("Sliding");
+                playerSlide.StartSlideGround(currentMaxspeed_temp);
+            }
+            else
+            {
+                print("Not sliding");
+            }
+        }
     }
 
 

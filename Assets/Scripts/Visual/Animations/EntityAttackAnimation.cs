@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EntityAttckAnimation : MonoBehaviour
+public class EntityAttackAnimation : MonoBehaviour
 {
     [Serializable]
     class AnimationNamed

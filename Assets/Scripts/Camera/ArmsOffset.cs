@@ -1,26 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class PlayerCamera : MonoBehaviour, IRotatable
+public class ArmsOffset : MonoBehaviour
 {
-
-    [Header("References")]
-    [SerializeField]
-    GameObject cameraObj;
-    Camera cameraRef;
-    [SerializeField] Transform cameraOffsetObject;
-    [SerializeField] Transform cameraPosition;
-
-
-    [Header("Rotation")]
-    [SerializeField] float speedRotation;
-    [SerializeField] float sensitivity;
-    public float Sensitivity => sensitivity;
-
+    [SerializeField] private Transform armsOffset;
+    [SerializeField] GameObject cameraObj;
+    
     enum IsCameraOn { On, Off }
     [Header("Life camera")]
     [SerializeField] IsCameraOn isCameraOn = IsCameraOn.On;
@@ -38,17 +25,38 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         public bool enableClimb = true;
         public bool enableHangup = true;
         public bool enableFall = true;
+        public bool enableFallcliff = true;
+        public bool enableLeghit = true;
     }
     [SerializeField] FeatureFlags featureFlags;
+    
+    private enum LifeCameraState { None, Movement, Jump, Wallrun, Slide, Hangup, Land, Fall, Dash, Fallcliff, Leghit };
+    List<string> stateNames = new List<string> { "none", "movement", "jump", "wallrun", "slide", "hangup", "land", "fall", "dash", "fallcliff", "leghit" };
+    LifeCameraState currentLifeCameraState = LifeCameraState.None;
+    string currentState = "none";
+    string savedState = "";
+    Coroutine endCoroutine;
+    
+    //Rotation handle
+    Vector2 rotationVector;
+    float xRotation;
+    
     [SerializeField] float smoothSpeed = 5f;
     [SerializeField] float smoothRotationSpeed = 5f;
-    Vector3 cameraOffsetTarget = Vector3.zero;
-    Vector3 cameraOffsetCurrent = Vector3.zero;
-
-    Quaternion cameraRotationTarget = Quaternion.identity;
-    Quaternion cameraRotationCurrent = Quaternion.identity;
-
-
+    
+    Vector3 armsOffsetTarget = Vector3.zero;
+    Vector3 armsOffsetCurrent = Vector3.zero;
+    Quaternion armsRotationTarget = Quaternion.identity;
+    Quaternion armsRotationCurrent = Quaternion.identity;
+    
+    [Header("Hungup")]
+    [SerializeField] float hangupAngle;
+    [SerializeField] float hangUpTime;
+    float currentHangUpAngle = 0f;
+    float currentHangUpSpeed = 0f;
+    int hangupDirection = 1;
+    float hangupPercent = 0f;
+    
     [Header("Breath")]
     [SerializeField] float breathYShake;
     [SerializeField] float maxBreathYShake;
@@ -57,6 +65,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     [SerializeField] float relaxTime;
     float savedBreathMultiplyer = 0;
     float breathMultiplyer = 0;
+    
     [Header("Movement")]
     [SerializeField] float walkXShake;
     [SerializeField] float walkYShake;
@@ -66,12 +75,14 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     [SerializeField] float endMoveSpeed;
     float currentSpeed;
     float movementPhase = 0;
+    
     [Header("Rotate")]
     [SerializeField] float minAngle;
     [SerializeField] float maxAngle;
     [SerializeField] float rotateAnimSensivity;
     [SerializeField] float maxRotationDelta;
     [SerializeField] float minRotationDelta;
+    
     [Header("Jump")]
     [SerializeField] float jumpYShake;
     [SerializeField] float jumpAngle;
@@ -79,17 +90,18 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     //For smoothDamp
     float angleJumpVelocity;
     float currentJumpAngle = 0f;
+    
     [Header("Dash")]
     [SerializeField] float dashAngle;
     [SerializeField] float dashTime;
     //For smoothDamp
     float angleDashVelocity;
     float currentDashAngle = 0f;
+    
     [Header("Slide")]
     [SerializeField] float slideSpeed;
     [SerializeField] float slideYAngle;
     [SerializeField] float slideZAngle;
-    [SerializeField] private float slideTimeMaxSpeed;
     private float slideMultiplier;
     
     [Header("Wallrun")]
@@ -101,18 +113,12 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     bool isWallrunRight = false;
     float wallrunRightDot = 0f;
     int wallrunState = 0;
+    
     [Header("Climb")]
     [SerializeField] float wallclimbXShake;
     [SerializeField] float wallclimbYShake;
     [SerializeField] float wallclimbSpeed;
-
-    [Header("Hungup")]
-    [SerializeField] float hangupAngle;
-    [SerializeField] float hangUpTime;
-    float currentHangUpAngle = 0f;
-    float currentHangUpSpeed = 0f;
-    int hangupDirection = 1;
-    float hangupPercent = 0f;
+    
     [Header("Fall")]
     [SerializeField] float minFallSpeed;
     [SerializeField] float fallSpeed;
@@ -125,6 +131,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     [SerializeField] float fallToMinTime;
     [SerializeField] float fallToMaxTime;
     float fallMultiplyer = 0;
+    
     [Header("Land")]
     [SerializeField] float landOffset;
     [SerializeField] float landAngle;
@@ -138,109 +145,56 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     float currentLandAngle = 0f;
     float currentLandYOffset = 0f;
     float offsetLandVelocity = 0f;
-    Vector3 initialCameraOffset = Vector3.zero;
+    Vector3 initialArmsOffset = Vector3.zero;
+    
+    [Header("Fall Cliff")]
+    [SerializeField] float fallCliffYShake;
+    [SerializeField] float fallCliffAngle;
+    [SerializeField] float fallCliffTime;
+    //For smoothDamp
+    float anglefallCliffVelocity;
+    float currentfallCliffAngle = 0f;
 
-
-    //life camera states
-    private enum LifeCameraState { None, Movement, Jump, Wallrun, Slide, Hangup, Land, Fall, Dash };
-    List<string> stateNames = new List<string> { "none", "movement", "jump", "wallrun", "slide", "hangup", "land", "fall", "dash" };
-    LifeCameraState currentLifeCameraState = LifeCameraState.None;
-    string currentState = "none";
-
-    string savedState = "";
-    Coroutine endCoroutine;
-
-
-    //Rotation handle
-    Vector2 rotationVector;
-    float xRotation;
-
-
-
-
-    //Other camera settings
-    [Header("Other settings")]
-    [SerializeField] float FOVOffset;
-    [SerializeField] float changeFOVTime;
-    float targetFOV;
-    private float currentFOVVelocity = 0f;
-    float savedFov = 0;
-
-
+    [Header("Leg hit")] [SerializeField] private WeaponBase weaponBase;
+    [SerializeField] float leghitYShake;
+    [SerializeField] float leghitAngle;
+    [SerializeField] float leghitTime;
+    //For smoothDamp
+    float angleleghitVelocity;
+    float currentleghitAngle = 0f;
+    
     private void Start()
     {
-        cameraRef = cameraObj.transform.GetChild(0).GetChild(0).GetComponent<Camera>();
-        savedFov = cameraRef.fieldOfView;
         PlayerMovement.OnLifeCameraAction += ChangeLifeCameraState;
+        weaponBase.OnAnimation += OnLeghit;
     }
 
     private void OnDisable()
     {
         PlayerMovement.OnLifeCameraAction -= ChangeLifeCameraState;
+        weaponBase.OnAnimation -= OnLeghit;
     }
-
-    //Update camera position and rotation at late update
-    public void LateUpdate()
+    
+    private bool IsFeatureEnabled(LifeCameraState state)
     {
-        if (rotationVector != Vector2.zero)
-            FirstPerson();
-        AttachCamera();
-        if (isCameraOn == IsCameraOn.On)
+        string fieldName = state.ToString().ToLower(); //"Wallrun" → "wallrun"
+        var field = typeof(FeatureFlags).GetField($"enable{char.ToUpper(fieldName[0]) + fieldName.Substring(1)}");
+        if (fieldName == "none")
+            field = typeof(FeatureFlags).GetField($"enableBreath");
+        if (field != null && field.FieldType == typeof(bool))
         {
-            ApplyCameraOffset();
-            LifeCamera();
-            if (featureFlags.enableRotate)
-            {
-                OnRotate(rotationVector.x);
-            }
-            ChangeFOV();
+            return (bool)field.GetValue(featureFlags);
         }
-    }
 
-    //Attach camera to an object
-    public void AttachCamera()
+        return false; //false if flag does not exist
+    }
+    
+    //On Leg hit handle
+    private void OnLeghit(string anim)
     {
-        transform.position = cameraPosition.position;
+        if(anim == "left_attack")
+            ChangeLifeCameraState("leghit", new float []{0});
     }
-
-    //Rotate camera with mouse
-    public void FirstPerson()
-    {
-        //Find current look rotation
-        Vector3 rot = cameraObj.transform.rotation.eulerAngles;
-        var desiredX = rot.y + rotationVector.x * speedRotation * sensitivity;
-
-        //Rotate and limit y axis
-        xRotation -= rotationVector.y * speedRotation * sensitivity;
-        xRotation = Mathf.Clamp(xRotation, -89f, 89f);
-
-        //Perform the rotations
-        cameraObj.transform.rotation = Quaternion.Euler(xRotation, desiredX, 0);
-    }
-
-    //Change camera FOV Smoothly
-    void ChangeFOV()
-    {
-        //Go down FOV Slow
-        if(Mathf.Abs(cameraRef.fieldOfView - targetFOV) > 0.01f && cameraRef.fieldOfView > targetFOV)
-        {
-            cameraRef.fieldOfView = Mathf.SmoothDamp(cameraRef.fieldOfView, targetFOV, ref currentFOVVelocity, changeFOVTime);
-        }   
-        //Go up FOV fast
-        else if(Mathf.Abs(cameraRef.fieldOfView - targetFOV) > 0.01f && cameraRef.fieldOfView < targetFOV)
-        {
-            cameraRef.fieldOfView = Mathf.SmoothDamp(cameraRef.fieldOfView, targetFOV, ref currentFOVVelocity, changeFOVTime/4);
-        }
-    }
-
-
-    //Change camera rotation
-    public void DeltaRotation(Vector2 delta)
-    {
-        rotationVector = new Vector2(delta.x, delta.y);
-    }
-
-
 
     //Life camera
     public void ChangeLifeCameraState(string state, float[] parameters)
@@ -249,19 +203,17 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         if (!stateNames.Contains(state))
             return;
 
-        //print(state);
-
         //Return if state disabled
         int id = stateNames.IndexOf(state);
         if (!IsFeatureEnabled((LifeCameraState)id))
             return;
 
-        //print(state);
-        
+        //Dont breath if continuous animation
         if (state == "none" &&
-            (currentLifeCameraState == LifeCameraState.Dash
-             || currentLifeCameraState == LifeCameraState.Jump
-             || currentLifeCameraState == LifeCameraState.Land))
+                    (currentLifeCameraState == LifeCameraState.Dash
+                     || currentLifeCameraState == LifeCameraState.Leghit
+                     || currentLifeCameraState == LifeCameraState.Jump
+                     || currentLifeCameraState == LifeCameraState.Land))
             return;
 
         //Change life camera state
@@ -277,19 +229,18 @@ public class PlayerCamera : MonoBehaviour, IRotatable
             {
                 //Immediate functions
                 currentLifeCameraState = (LifeCameraState)id;
-                cameraOffsetTarget = Vector3.zero;
-                cameraRotationTarget = Quaternion.identity;
+                armsOffsetTarget = Vector3.zero;
+                armsRotationTarget = Quaternion.identity;
                 if (state == "none")
                     if (breathMultiplyer < parameters[0])
                         breathMultiplyer = parameters[0];
                 if (state == "wallrun")
                     wallrunPhase = 0;
                 /*if (state == "slide")
-                    slideMultiplier = Mathf.Min(parameters[0], slideTimeMaxSpeed);*/
+                    slideMultiplier = parameters[0];*/
             }
         }
-
-
+        
         //Action on state change
         switch (state)
         {
@@ -297,11 +248,11 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
                 break;
             case "dash":
-                Vector3 currentEulerDash = cameraRotationTarget.eulerAngles;
-                float xD = currentEulerDash.x - jumpAngle;
+                Vector3 currentEulerDash = armsRotationTarget.eulerAngles;
+                float xD = currentEulerDash.x - dashAngle;
                 float yD = currentEulerDash.y;
                 float zD = currentEulerDash.z;
-                cameraRotationTarget = Quaternion.Euler(xD, yD, zD);
+                armsRotationTarget = Quaternion.Euler(xD, yD, zD);
                 currentDashAngle = -dashAngle;
                 angleDashVelocity = 0f;
                 StartCoroutine(NullStateDelayed(id, dashTime));
@@ -313,11 +264,11 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                     savedBreathMultiplyer = currentSpeed;
                 break;
             case "jump":
-                Vector3 currentEulerJump = cameraRotationTarget.eulerAngles;
+                Vector3 currentEulerJump = armsRotationTarget.eulerAngles;
                 float xJ = currentEulerJump.x - jumpAngle;
                 float yJ = currentEulerJump.y;
                 float zJ = currentEulerJump.z;
-                cameraRotationTarget = Quaternion.Euler(xJ, yJ, zJ);
+                armsRotationTarget = Quaternion.Euler(xJ, yJ, zJ);
                 currentJumpAngle = -jumpAngle;
                 angleJumpVelocity = 0f;
                 StartCoroutine(NullStateDelayed(id, jumpTime));
@@ -329,7 +280,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                 wallrunRightDot = parameters[2];
                 break;
             case "slide":
-
+                
                 break;
             case "land":
                 //Transfer parameter
@@ -337,17 +288,18 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                     currentLandForce = minLandMultiplyer + Math.Min(parameters[0], maxSecondsToMaxLandForce) / maxSecondsToMaxLandForce * maxLandMultiplyer;
 
                 // //Start rotation
-                Vector3 currentEulerLand = cameraRotationTarget.eulerAngles;
+                Vector3 currentEulerLand = armsRotationTarget.eulerAngles;
                 float xL = currentEulerLand.x + landAngle * currentLandForce;
                 float yL = currentEulerLand.y;
                 float zL = currentEulerLand.z;
-                cameraRotationTarget = Quaternion.Euler(xL, yL, zL);
+                armsRotationTarget = Quaternion.Euler(xL, yL, zL);
                 currentLandAngle = landAngle * currentLandForce;
                 angleLandVelocity = 0f;
+                print(currentLandAngle);
 
                 //Start change position
-                initialCameraOffset = cameraOffsetTarget;
-                cameraOffsetTarget = new Vector3(cameraOffsetTarget.x, cameraOffsetTarget.y - landOffset * currentLandForce, cameraOffsetTarget.z);
+                initialArmsOffset = armsOffsetTarget;
+                armsOffsetTarget = new Vector3(armsOffsetTarget.x, armsOffsetTarget.y - landOffset * currentLandForce, armsOffsetTarget.z);
                 currentLandYOffset = -landOffset * currentLandForce;
                 offsetLandVelocity = 0f;
                 StartCoroutine(NullStateDelayed(id, landTime));
@@ -360,56 +312,57 @@ public class PlayerCamera : MonoBehaviour, IRotatable
             case "fall":
                 fallMultiplyer = Math.Min(parameters[0] - fallToMinTime, fallToMaxTime - fallToMinTime) / (fallToMaxTime - fallToMinTime);
                 break;
+            case "fallcliff":
+                Vector3 currentEulerFall = armsRotationTarget.eulerAngles;
+                float xF = currentEulerFall.x - fallCliffAngle;
+                float yF = currentEulerFall.y;
+                float zF = currentEulerFall.z;
+                armsRotationTarget = Quaternion.Euler(xF, yF, zF);
+                currentfallCliffAngle = -fallCliffAngle;
+                anglefallCliffVelocity = 0f;
+                StartCoroutine(NullStateDelayed(id, fallCliffTime));
+                savedState = state;
+                break;
+            case "leghit":
+                Vector3 currentEulerLeghit = armsRotationTarget.eulerAngles;
+                float xLh = currentEulerLeghit.x - leghitAngle;
+                float yLh = currentEulerLeghit.y;
+                float zLh = currentEulerLeghit.z;
+                armsRotationTarget = Quaternion.Euler(xLh, yLh, zLh);
+                currentleghitAngle = -leghitAngle;
+                angleleghitVelocity = 0f;
+                StartCoroutine(NullStateDelayed(id, leghitTime));
+                savedState = state;
+                break;
         }
     }
-
-    public void ChangeFOV(float num)
+    
+    //Update camera position and rotation at late update
+    public void LateUpdate()
     {
-        targetFOV = savedFov + num * FOVOffset;
-    }
-
-
-    void HangUpDelayStart()
-    {
-        //Start state
-        print("hangup");
-        currentLifeCameraState = LifeCameraState.Hangup;
-        savedState = "hangup";
-        cameraOffsetTarget = Vector3.zero;
-        cameraRotationTarget = Quaternion.identity;
-
-        //Start Rotation
-        var num = Math.Sign(UnityEngine.Random.value-0.5f);
-        hangupDirection = num == 0 ? 1 : num;
-        Vector3 currentEulerHang = cameraRotationTarget.eulerAngles;
-        float xH = currentEulerHang.x;
-        float yH = currentEulerHang.y;
-        float zH = currentEulerHang.z + hangupAngle * hangupDirection * hangupPercent;
-        cameraRotationTarget = Quaternion.Euler(xH, yH, zH);
-        currentHangUpAngle = hangupAngle * hangupDirection * hangupPercent;
-        currentHangUpSpeed = 0f;
-        
-    }
-
-    public string GetCurrentState()
-    {
-        return stateNames[(int)currentLifeCameraState];
-    }
-
-    private bool IsFeatureEnabled(LifeCameraState state)
-    {
-        string fieldName = state.ToString().ToLower(); //"Wallrun" → "wallrun"
-        var field = typeof(FeatureFlags).GetField($"enable{char.ToUpper(fieldName[0]) + fieldName.Substring(1)}");
-        if (fieldName == "none")
-            field = typeof(FeatureFlags).GetField($"enableBreath");
-        if (field != null && field.FieldType == typeof(bool))
+        if (isCameraOn == IsCameraOn.On)
         {
-            return (bool)field.GetValue(featureFlags);
+            ApplyCameraOffset();
+            LifeCamera();
+            if (featureFlags.enableRotate)
+            {
+                OnRotate(rotationVector.x);
+            }
         }
-
-        return false; //false if flag does not exist
     }
+    
+    void ApplyCameraOffset()
+    {
+        //armsOffsetCurrent = armsOffsetTarget;
+        //armsRotationCurrent = armsRotationTarget;
+        armsOffsetCurrent = Vector3.Lerp(armsOffsetCurrent, armsOffsetTarget, Time.deltaTime * smoothSpeed);
+        armsRotationCurrent = Quaternion.Slerp(armsRotationCurrent, armsRotationTarget, Time.deltaTime * smoothRotationSpeed);
 
+        armsOffset.transform.position = armsOffsetCurrent + cameraObj.transform.position;
+        armsOffset.transform.localRotation = armsRotationCurrent;
+    }
+    
+    
     void LifeCamera()
     {
         switch (currentLifeCameraState)
@@ -468,6 +421,18 @@ public class PlayerCamera : MonoBehaviour, IRotatable
                     OnFall();
                 }
                 break;
+            case LifeCameraState.Fallcliff:
+                if (featureFlags.enableFallcliff)
+                {
+                    OnFallCliff();
+                }
+                break;
+            case LifeCameraState.Leghit:
+                if (featureFlags.enableLeghit)
+                {
+                    OnLegHit();
+                }
+                break;
         }
     }
 
@@ -483,8 +448,8 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         {
             //print("none");
             currentLifeCameraState = LifeCameraState.None;
-            cameraOffsetTarget = Vector3.zero;
-            cameraRotationTarget = Quaternion.identity;
+            armsOffsetTarget = Vector3.zero;
+            armsRotationTarget = Quaternion.identity;
         }
     }
 
@@ -496,9 +461,9 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         float shake = Mathf.Lerp(breathYShake, maxBreathYShake, breathMultiplyer);
 
         breathPhase += Time.deltaTime * speed;
-        float breath = (Mathf.Sin(breathPhase)) * shake;
+        float breath = (Mathf.Sin(breathPhase + Mathf.PI)) * shake;
 
-        cameraOffsetTarget = Vector3.up * breath;
+        armsOffsetTarget = Vector3.up * breath;
 
         breathMultiplyer = Mathf.Max(0, breathMultiplyer - Time.deltaTime / relaxTime);
     }
@@ -515,8 +480,8 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         float xShake = Mathf.Sin(movementPhase) * amplitudeX;
         float yShake = Mathf.Abs(Mathf.Cos(movementPhase)) * amplitudeY - amplitudeY;
 
-        cameraOffsetTarget = new Vector3(0, 0, 0);
-        cameraOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
+        armsOffsetTarget = new Vector3(0, 0, 0);
+        armsOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
     }
 
     //Rotate
@@ -529,11 +494,11 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         var signOfDelta = Math.Sign(-delta);
         var targetRollZ = Mathf.Lerp(minAngle * signOfDelta, maxAngle * signOfDelta, targetRot);
         //Changing z rotation axis
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
         float x = currentEuler.x;
         float y = currentEuler.y;
         float z = Mathf.LerpAngle(currentEuler.z, targetRollZ, Time.deltaTime * smoothSpeed);
-        cameraRotationTarget = Quaternion.Euler(x, y, z);
+        armsRotationTarget = Quaternion.Euler(x, y, z);
     }
 
     //Jump
@@ -541,10 +506,10 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         //Change x rotation over time
         currentJumpAngle = Mathf.SmoothDamp(currentJumpAngle, 0f, ref angleJumpVelocity, jumpTime);
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
         float y = currentEuler.y;
         float z = currentEuler.z;
-        cameraRotationTarget = Quaternion.Euler(currentJumpAngle, y, z);
+        armsRotationTarget = Quaternion.Euler(currentJumpAngle, y, z);
     }
 
     //Dash
@@ -552,10 +517,10 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         //Change x rotation over time
         currentDashAngle = Mathf.SmoothDamp(currentDashAngle, 0f, ref angleDashVelocity, dashTime);
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
         float y = currentEuler.y;
         float z = currentEuler.z;
-        cameraRotationTarget = Quaternion.Euler(currentDashAngle, y, z);
+        armsRotationTarget = Quaternion.Euler(currentDashAngle, y, z);
     }
 
     //Land
@@ -563,14 +528,14 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         //Change x rotation over time
         currentLandAngle = Mathf.SmoothDamp(currentLandAngle, 0f, ref angleLandVelocity, landTime);
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
         float y = currentEuler.y;
         float z = currentEuler.z;
-        cameraRotationTarget = Quaternion.Euler(currentLandAngle, y, z);
+        armsRotationTarget = Quaternion.Euler(currentLandAngle, y, z);
 
         // Change y position of camera smooth
         currentLandYOffset = Mathf.SmoothDamp(currentLandYOffset, 0f, ref offsetLandVelocity, landTime);
-        cameraOffsetTarget = initialCameraOffset + new Vector3(0, currentLandYOffset, 0);
+        armsOffsetTarget = initialArmsOffset + new Vector3(0, currentLandYOffset, 0);
     }
 
     //Slide
@@ -578,10 +543,10 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         // Random small tilt (rotation around Z)
         float randomTilt = Mathf.PerlinNoise(Time.time * 5f * slideSpeed, 0f) * 2f - 1f; // From -1 to 1
-        float zRotation = randomTilt * slideZAngle /** slideMultiplier*/;
+        float zRotation = randomTilt * slideZAngle  /** slideMultiplier*/;
 
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
-        cameraRotationTarget = Quaternion.Euler(currentEuler.x, currentEuler.y, zRotation);
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
+        armsRotationTarget = Quaternion.Euler(currentEuler.x, currentEuler.y, zRotation);
     }
 
     //Wallrun
@@ -607,12 +572,12 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         if (isWallrunRight)
         {
             var curAngle = Mathf.Lerp(0, wallrunAngle, wallrunRightDot);
-            cameraRotationTarget = Quaternion.Euler(cameraRotationTarget.x, cameraRotationTarget.y, curAngle);
+            armsRotationTarget = Quaternion.Euler(armsRotationTarget.x, armsRotationTarget.y, curAngle);
         }
         else
         {
             var curAngle = Mathf.Lerp(0, -wallrunAngle, -wallrunRightDot);
-            cameraRotationTarget = Quaternion.Euler(cameraRotationTarget.x, cameraRotationTarget.y, curAngle);
+            armsRotationTarget = Quaternion.Euler(armsRotationTarget.x, armsRotationTarget.y, curAngle);
         }
     }
 
@@ -625,8 +590,8 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         float xShake = Mathf.Sin(wallrunPhase) * wallrunXShake;
         float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallrunYShake;
 
-        cameraOffsetTarget = new Vector3(0, 0, 0);
-        cameraOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
+        armsOffsetTarget = new Vector3(0, 0, 0);
+        armsOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
     }
 
     //Wall climb
@@ -638,8 +603,8 @@ public class PlayerCamera : MonoBehaviour, IRotatable
         float xShake = Mathf.Sin(wallrunPhase) * wallclimbXShake;
         float yShake = Mathf.Abs(Mathf.Cos(wallrunPhase)) * wallclimbYShake - wallclimbYShake;
 
-        cameraOffsetTarget = new Vector3(0, 0, 0);
-        cameraOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
+        armsOffsetTarget = new Vector3(0, 0, 0);
+        armsOffsetTarget += cameraObj.transform.up * yShake + cameraObj.transform.right * xShake;
     }
 
     //Hang up
@@ -647,10 +612,10 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         //Change x rotation over time
         currentHangUpAngle = Mathf.SmoothDamp(currentHangUpAngle, 0f, ref currentHangUpSpeed, hangUpTime);
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
         float x = currentEuler.x;
         float y = currentEuler.y;
-        cameraRotationTarget = Quaternion.Euler(x, y, currentHangUpAngle);
+        armsRotationTarget = Quaternion.Euler(x, y, currentHangUpAngle);
     }
 
     //Fall
@@ -658,7 +623,7 @@ public class PlayerCamera : MonoBehaviour, IRotatable
     {
         if (fallMultiplyer <= 0)
         {
-            cameraOffsetTarget = new Vector3(0, 0, 0);
+            armsOffsetTarget = new Vector3(0, 0, 0);
             return;
         }
         float speed = Mathf.Lerp(minFallSpeed, fallSpeed, fallMultiplyer);
@@ -668,26 +633,36 @@ public class PlayerCamera : MonoBehaviour, IRotatable
 
         // Random offset within a small radius (shake)
         Vector2 shakeOffset = UnityEngine.Random.insideUnitCircle * speed * Time.deltaTime;
-        cameraOffsetTarget = new Vector3(0, 0, 0);
-        cameraOffsetTarget += cameraObj.transform.up * shakeOffset.y * y + cameraObj.transform.right * shakeOffset.x * x;
+        armsOffsetTarget = new Vector3(0, 0, 0);
+        armsOffsetTarget += cameraObj.transform.up * shakeOffset.y * y + cameraObj.transform.right * shakeOffset.x * x;
 
         // Random small tilt (rotation around Z)
         float randomTilt = Mathf.PerlinNoise(Time.time * 5f * speed, 0f) * 2f - 1f; // From -1 to 1
         float zRotation = randomTilt * angle;
 
-        Vector3 currentEuler = cameraRotationTarget.eulerAngles;
-        cameraRotationTarget = Quaternion.Euler(currentEuler.x, currentEuler.y, zRotation);
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
+        armsRotationTarget = Quaternion.Euler(currentEuler.x, currentEuler.y, zRotation);
     }
-
-    //Aim rotation and move
-    void ApplyCameraOffset()
+    
+    // Fall from cliff
+    void OnFallCliff()
     {
-        cameraOffsetCurrent = Vector3.Lerp(cameraOffsetCurrent, cameraOffsetTarget, Time.deltaTime * smoothSpeed);
-        cameraRotationCurrent = Quaternion.Slerp(cameraRotationCurrent, cameraRotationTarget, Time.deltaTime * smoothRotationSpeed);
-
-        cameraOffsetObject.transform.position = cameraOffsetCurrent + cameraObj.transform.position;
-        cameraOffsetObject.transform.localRotation = cameraRotationCurrent;
+        //Change x rotation over time
+        currentfallCliffAngle = Mathf.SmoothDamp(currentfallCliffAngle, 0f, ref anglefallCliffVelocity, fallCliffTime);
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
+        float y = currentEuler.y;
+        float z = currentEuler.z;
+        armsRotationTarget = Quaternion.Euler(currentfallCliffAngle, y, z);
     }
-
-
+    
+    // Animate arms at leg hit
+    void OnLegHit()
+    {
+        //Change x rotation over time
+        currentleghitAngle = Mathf.SmoothDamp(currentleghitAngle, 0f, ref angleleghitVelocity, leghitTime);
+        Vector3 currentEuler = armsRotationTarget.eulerAngles;
+        float y = currentEuler.y;
+        float z = currentEuler.z;
+        armsRotationTarget = Quaternion.Euler(currentleghitAngle, y, z);
+    }
 }

@@ -24,6 +24,10 @@ MonoBehaviour:
   flyMaxParticleTime: 0.5
   maxSlideSpeed: 20
   slideSpeed: 10
+  maxSlideGroundSpeed: 1
+  minSlideGroundSpeed: 0
+  minSlideGroundMovementSpeed: 0.3
+  slideGroundTime: 0.6
   wallrunForceX: 20
   wallRunForceY: 10
   wallrunMaxForceX: 10

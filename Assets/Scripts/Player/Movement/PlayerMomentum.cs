@@ -40,6 +40,7 @@ public class PlayerMomentum: MonoBehaviour
     public void BuildSpeed(string type)
     {
         if (!playerMovement.features.enableSpeedSystem) return;
+       
 
         momentum += speedPoints[type];
         if (momentum > playerMovement.playerMovementConfig.maxMomentum) momentum = playerMovement.playerMovementConfig.maxMomentum;
