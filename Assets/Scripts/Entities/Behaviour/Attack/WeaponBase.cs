@@ -5,7 +5,10 @@ using System;
 public abstract class WeaponBase : MonoBehaviour
 {
     public AttackVariant[] attacks;
-
+    
+    
+    // Weapon actions
+    public Action<string, float[]> OnWeaponAction;
 
     //Animation handle
     public Action<string> OnAnimation;
@@ -86,6 +89,7 @@ public abstract class WeaponBase : MonoBehaviour
             float finalCharge = Mathf.Clamp(chargeTime[index], 0, attack.maxChargeTime);
             print(finalCharge);
             ExecuteAttack(attack, finalCharge);
+            
         }
     }
 
@@ -144,6 +148,7 @@ public abstract class WeaponBase : MonoBehaviour
     {
         print("Start animation: " + anim);
         OnAnimation?.Invoke(anim);
+        OnWeaponAction?.Invoke(anim, new []{ 0f });
     }
 
 
