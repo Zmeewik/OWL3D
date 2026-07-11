@@ -20,7 +20,7 @@ public class PlayerMovementConfig : ScriptableObject
     
     [Header("Air")]
     [SerializeField, Range(0, 1)] public float airControlMultiplier;
-    [SerializeField] public float minFallTime;
+    [SerializeField] public float minFallForce;
     [SerializeField] public float flyMaxParticleTime;
     
     [Header("Slide")]

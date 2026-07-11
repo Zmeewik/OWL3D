@@ -8900,15 +8900,15 @@ MonoBehaviour:
   hangupAngle: 30
   hangUpTime: 0.4
   minFallSpeed: 0
-  fallSpeed: 5
+  fallSpeed: 4
   minFallXShake: 3
-  fallXShake: 20
+  fallXShake: 10
   minFallYShake: 3
-  fallYShake: 20
-  minFallZRotation: 0
+  fallYShake: 10
+  minFallZRotation: 3
   fallZRotation: 10
-  fallToMinTime: 0.5
-  fallToMaxTime: 2
+  fallToMinTime: 20
+  fallToMaxTime: 80
   landOffset: 0.8
   landAngle: 3
   landTime: 0.1
@@ -8982,15 +8982,15 @@ MonoBehaviour:
   wallclimbYShake: 0.2
   wallclimbSpeed: 15
   minFallSpeed: 0
-  fallSpeed: 5
+  fallSpeed: 4
   minFallXShake: 3
   fallXShake: 10
   minFallYShake: 3
   fallYShake: 10
-  minFallZRotation: 0
+  minFallZRotation: 3
   fallZRotation: 10
-  fallToMinTime: 0.5
-  fallToMaxTime: 2
+  fallToMinTime: 20
+  fallToMaxTime: 80
   landOffset: -0.1
   landAngle: -1
   landTime: 0.1

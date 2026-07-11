@@ -27,8 +27,9 @@ public class PlayerWalking : MonoBehaviour
         }
         else
         {
-            if (playerMovement.playerFly.currentFallTime >= playerMovement.playerMovementConfig.minFallTime && playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("fall", new float[1] { playerMovement.playerFly.currentDownFallTime });
+            var y_force = Mathf.Abs(playerMovement.rb.velocity.y);
+            if (y_force >= playerMovement.playerMovementConfig.minFallForce && playerMovement.features.enableLifeCamera)
+                playerMovement.OnLifeCamera("fall", new float[1] { y_force });
         }
 
         if (playerMovement.features.enableMovement && moveVector != Vector2.zero)

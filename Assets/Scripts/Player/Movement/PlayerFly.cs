@@ -62,8 +62,9 @@ public class PlayerFly : MonoBehaviour
         playerMovement.playerWallRun.wallReferenceSaved = null;
 
         //Start animation
-        if (currentFallTime >= playerMovement.playerMovementConfig.minFallTime)
-            playerMovement.OnLifeCamera("land", new float[1] { currentFallTime - playerMovement.playerMovementConfig.minFallTime });
+        var y_force = Mathf.Abs(playerMovement.rb.velocity.y);
+        if (y_force >= playerMovement.playerMovementConfig.minFallForce)
+            playerMovement.OnLifeCamera("land", new float[1] { y_force - playerMovement.playerMovementConfig.minFallForce });
         else
             playerMovement.OnLifeCamera("none", new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
     }

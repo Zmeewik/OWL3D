@@ -20,7 +20,7 @@ MonoBehaviour:
   dashUpForce: 30
   dashTime: 0.3
   airControlMultiplier: 0.5
-  minFallTime: 0.5
+  minFallForce: 20
   flyMaxParticleTime: 0.5
   maxSlideSpeed: 20
   slideSpeed: 10
