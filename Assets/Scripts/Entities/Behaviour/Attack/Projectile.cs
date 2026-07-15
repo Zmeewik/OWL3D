@@ -22,11 +22,7 @@ public class Projectile : MonoBehaviour
         if (health)
         {
             float dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
-            
-            DamagePacket packet = new DamagePacket();
-            packet.damage = dmg;
-            packet.tags = attack.damage.tags;
-            packet.effects = attack.damage.effects;
+            DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, attack.knockbackForce * transform.forward, transform.position);
             health.ApplyDamage(packet);
         }
 

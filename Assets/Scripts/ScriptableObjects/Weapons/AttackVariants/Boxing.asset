@@ -25,4 +25,4 @@ MonoBehaviour:
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
   rayDistance: 50
-  knockbackForce: 300
+  knockbackForce: 600

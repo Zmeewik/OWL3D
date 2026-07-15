@@ -63,18 +63,18 @@ public class MeleeWeapon : WeaponBase
                     dmg = Mathf.Lerp(baseAttack, attack.damage.baseDamage, charged);
                 }
                 
+                var force = attack.knockbackForce;
+                if(charged != -1)
+                    force = Mathf.Lerp(0, attack.knockbackForce, charged);
+                Vector3 kbDir = dir.normalized;
                 var isCharged = charged == -1 ? false : true;
-                DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, isCharged);
+                DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, transform.position, isCharged);
                 health.ApplyDamage(packet);
                 print("Damage packet send");
                 
                 //Apply knockback
                 if (attack.knockbackForce > 0 && rb != null)
                 {
-                    var force = attack.knockbackForce;
-                    if(charged != -1)
-                        force = Mathf.Lerp(0, attack.knockbackForce, charged);
-                    Vector3 kbDir = (collider.transform.position - origin).normalized;
                     rb.AddForce(kbDir * force, ForceMode.Impulse);
                 }
             }

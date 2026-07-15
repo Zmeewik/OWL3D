@@ -24,7 +24,7 @@ public class EntityAnimator : MonoBehaviour
     private readonly Dictionary<string, Coroutine> _loops = new();
 
     //Queue handle
-    private readonly Queue<(string anim, string part, bool loop)> _queue = new();
+    private readonly Queue<(string anim, string part, bool loop, float speed)> _queue = new();
     private Coroutine _queueRoutine;
 
 
@@ -48,16 +48,16 @@ public class EntityAnimator : MonoBehaviour
     private bool stopThis = false;
     
     //Delete this
-    private void GetHitAndReturn(string anim, string part, bool loop)
+    private void GetHitAndReturn(string anim, string part, bool loop, float speed = 1)
     {
         if (stopThis) return;
         stopThis = true;
         StopAllLoops();
-        StartCoroutine(PlayThenRoutine(anim, "E_Robot_Boxer_Dance", "Body", true));
+        StartCoroutine(PlayThenRoutine(anim, "E_Robot_Boxer_Dance", "Body", true, speed));
     }
     
     //Delegte this too
-    private IEnumerator PlayThenRoutine(string firstAnim, string nextAnim, string part, bool nextLoop)
+    private IEnumerator PlayThenRoutine(string firstAnim, string nextAnim, string part, bool nextLoop, float speed)
     {
         Animator anim;
 
@@ -67,16 +67,18 @@ public class EntityAnimator : MonoBehaviour
             anim = _partAnimators[part];
 
         // play first
+        anim.speed = speed;
         anim.Play(firstAnim, 0, 0);
 
         // wait for first animation length
         float len = GetClipLength(anim, firstAnim);
-        yield return new WaitForSeconds(len);
+        yield return new WaitForSeconds(len / speed);
 
         // play second
         stopThis = false;
+        
         anim.Play(nextAnim, 0, 0);
-
+        
         if (nextLoop)
             _loops[nextAnim] = StartCoroutine(Loop(anim, nextAnim));
     }
@@ -85,7 +87,7 @@ public class EntityAnimator : MonoBehaviour
     /// <summary>
     /// Play animation at all body
     /// </summary>
-    public void Play(string animationName, bool loop = false)
+    public void Play(string animationName, bool loop = false, float speed = 1)
     {
         // Clear queue to avoid overlap
         _queue.Clear();
@@ -108,16 +110,17 @@ public class EntityAnimator : MonoBehaviour
         }
 
         StopAllLoops();
-
+        
+        sharedAnimator.speed = speed;
         sharedAnimator.Play(animationName, 0, 0);
         if (loop)
-            _loops["__shared"] = StartCoroutine(Loop(sharedAnimator, animationName));
+            _loops["__shared"] = StartCoroutine(Loop(sharedAnimator, animationName, speed));
     }
 
     /// <summary>
     /// Play animation at one bodypart
     /// </summary>
-    public void Play(string animationName, string bodyPart, bool loop = false)
+    public void Play(string animationName, string bodyPart, bool loop = false, float speed = 1)
     {
         if (!_partAnimators.TryGetValue(bodyPart, out var animator))
         {
@@ -132,19 +135,20 @@ public class EntityAnimator : MonoBehaviour
         }
 
         StopLoop(bodyPart);
-
+        
+        animator.speed = speed;
         animator.Play(animationName, 0, 0);
         if (loop)
-            _loops[bodyPart] = StartCoroutine(Loop(animator, animationName));
+            _loops[bodyPart] = StartCoroutine(Loop(animator, animationName, speed));
     }
 
     /// <summary>
     /// Play animation at several bodyparts
     /// </summary>
-    public void Play(string animationName, string[] bodyParts, bool loop = false)
+    public void Play(string animationName, string[] bodyParts, bool loop = false, float speed = 1)
     {
         foreach (var part in bodyParts)
-            Play(animationName, part, loop);
+            Play(animationName, part, loop, speed);
     }
 
 
@@ -162,13 +166,14 @@ public class EntityAnimator : MonoBehaviour
     }
 
     // Loop Handle
-    private IEnumerator Loop(Animator animator, string animationName)
+    private IEnumerator Loop(Animator animator, string animationName, float speed = 1)
     {
         var clip = GetClipLength(animator, animationName);
         while (true)
         {
+            animator.speed = speed;
             animator.Play(animationName, 0, 0);
-            yield return new WaitForSeconds(clip);
+            yield return new WaitForSeconds(clip / speed);
         }
     }
 
@@ -201,9 +206,9 @@ public class EntityAnimator : MonoBehaviour
 
 
     //Queue handle
-    public void Enqueue(string animationName, string bodyPart = null, bool loop = false)
+    public void Enqueue(string animationName, string bodyPart = null, bool loop = false, float speed = 1)
     {
-        _queue.Enqueue((animationName, bodyPart, loop));
+        _queue.Enqueue((animationName, bodyPart, loop, speed));
 
         if (_queueRoutine == null)
             _queueRoutine = StartCoroutine(ProcessQueue());
@@ -213,13 +218,13 @@ public class EntityAnimator : MonoBehaviour
     {
         while (_queue.Count > 0)
         {
-            var (anim, part, loop) = _queue.Dequeue();
+            var (anim, part, loop, speed) = _queue.Dequeue();
 
             // Start with current bodypart
             if (part == null)
-                Play(anim, loop);
+                Play(anim, loop, speed);
             else
-                Play(anim, part, loop);
+                Play(anim, part, loop, speed);
 
             float length = part == null 
                 ? GetClipLength(sharedAnimator, anim)
@@ -227,7 +232,7 @@ public class EntityAnimator : MonoBehaviour
 
             if (!loop)
             {
-                yield return new WaitForSeconds(length);
+                yield return new WaitForSeconds(length / speed);
             }
             else
             {
@@ -235,11 +240,17 @@ public class EntityAnimator : MonoBehaviour
                 while (_queue.Count == 0)
                 {
                     if (part == null)
+                    {
+                        sharedAnimator.speed = speed;
                         sharedAnimator.Play(anim, 0, 0);
+                    }
                     else
+                    {
+                        sharedAnimator.speed = speed;
                         _partAnimators[part].Play(anim, 0, 0);
+                    }
 
-                    yield return new WaitForSeconds(length);
+                    yield return new WaitForSeconds(length / speed);
                 }
             }
         }

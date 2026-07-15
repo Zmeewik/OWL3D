@@ -36,18 +36,18 @@ public class RangedWeapon : WeaponBase
                             dmg = Math.Clamp(charged, baseAttack, attack.damage.baseDamage);
                         }
                         
+                        // Apply damage and additional force
+                        var force = attack.knockbackForce;
+                        if(charged != -1)
+                            force = Mathf.Lerp(0, attack.knockbackForce, charged);
+                        Vector3 kbDir = (hit.transform.position - transform.position).normalized;
                         var isCharged = charged == -1 ? false : true;
-                        DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, isCharged);
+                        DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, kbDir * force, hit.point, isCharged);
                         health.ApplyDamage(packet);
-                        
                         
                         //Apply knockback
                         if (attack.knockbackForce > 0 && rb != null)
                         {
-                            var force = attack.knockbackForce;
-                            if(charged != -1)
-                                force = Mathf.Lerp(0, attack.knockbackForce, charged);
-                            Vector3 kbDir = (hit.transform.position - transform.position).normalized;
                             rb.AddForce(kbDir * force, ForceMode.Impulse);
                         }
                     }

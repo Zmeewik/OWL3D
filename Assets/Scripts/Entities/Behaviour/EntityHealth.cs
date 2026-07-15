@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -23,6 +24,10 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     public List<DamageTag> VulnerableTo = new();
     public List<DamageTag> ResistantTo = new();
 
+    [Header("Animation")] 
+    [SerializeField] private float ragdollAnimationTime;
+    [SerializeField] private float animationDistance;
+    [SerializeField] LayerMask layerMask;
     
 
     // Actions on damage events
@@ -32,7 +37,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     public event Action<float> OnHealed;
     
     //Animation activation
-    public Action<string, string, bool> OnAnimateCommand { get; set; }
+    public Action<string, string, bool, float> OnAnimateCommand { get; set; }
     [SerializeField] private ComplexColliderHandle complexColliderHandle;
 
     private void Awake() {
@@ -56,7 +61,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 
         float finalDamage = damagePacket.damage;
 
-        // Applying effects
+        // Applying effects and damage
         foreach (var effect in damagePacket.effects)
             effect.ApplyEffect(this);
 
@@ -65,13 +70,31 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 
         OnTakeDamage?.Invoke(finalDamage);
         string anim = UnityEngine.Random.Range(0, 1) == 0 ? "E_Robot_Boxer_GetDamage1" : "E_Robot_Boxer_GetDamage2";
-        Animate(anim);
+        Animate(anim, speed: 2);
+
+        // Death sequence
         if (currentHealth <= 0)
         {
             OnDeath?.Invoke();
-            complexColliderHandle.ActivateRagdoll();
+            if (complexColliderHandle != null)
+            {
+                complexColliderHandle.ActivateGravity();
+                // Apply force to correct body part
+                if (Physics.Raycast(
+                        damagePacket.collisionPoint,
+                        damagePacket.forceApplied.normalized,
+                        out RaycastHit hit,
+                        animationDistance,
+                        layerMask))
+                {
+                    print(hit.collider.name);
+                    hit.collider.GetComponent<Rigidbody>().AddForce(damagePacket.forceApplied / 30, ForceMode.Impulse);
+                }
+                complexColliderHandle.ActivateRagdoll();
+            }
         }
     }
+
 
     // Apply pure damage for effects
     public void ApplyPureDamage(float amount)
@@ -100,9 +123,9 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     }
     
     //Animate entity if needed
-    void Animate(string anim,  string part = "", bool loop = false)
+    void Animate(string anim,  string part = "", bool loop = false, float speed = 1)
     {
-        OnAnimateCommand?.Invoke(anim, part, loop);
+        OnAnimateCommand?.Invoke(anim, part, loop, speed);
     }
 
     public float GetHealth() => currentHealth;

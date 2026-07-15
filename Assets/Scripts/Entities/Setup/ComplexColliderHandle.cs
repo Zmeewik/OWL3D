@@ -198,6 +198,31 @@ public class ComplexColliderHandle : MonoBehaviour
         SetEnabledAll(false);
         SetTriggerAll(true);
     }
+    
+    // Set pelvis upper side
+    public void DeactivateGravity()
+    {
+        DeactivateGravityRecursively(false);
+    }
+
+    public void ActivateGravity()
+    {
+        DeactivateGravityRecursively(true);
+    }
+    
+    private void DeactivateGravityRecursively(bool gravity)
+    {
+        foreach (var part in rootParts)
+            SetGravityRecursive(part, gravity);
+    }
+
+    void SetGravityRecursive(HitboxPart part, bool gravity)
+    {
+        if (part.rb != null)
+            part.rb.useGravity = gravity;
+        foreach (var child in part.children)
+            SetGravityRecursive(child, gravity);
+    }
 
     void SetRagdollRecursive(HitboxPart part, bool state)
     {
