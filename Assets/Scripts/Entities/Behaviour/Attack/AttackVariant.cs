@@ -15,7 +15,7 @@ public class AttackVariant : ScriptableObject
     public bool chargeable;     
     public float maxChargeTime; 
     public float minChargeTime;
-
+    
     public DamageProfile damage;
 
     [Header("Melee")]
@@ -23,7 +23,8 @@ public class AttackVariant : ScriptableObject
     public float radius = 0.4f;
 
     [Header("Projectile")]
-    public Projectile projectilePrefab;
+    public Projectile[] projectilePrefabs;
+    public HitObject[] hitObjects;
     public float projectileSpeed = 20f;
 
     [Header("Ray")]

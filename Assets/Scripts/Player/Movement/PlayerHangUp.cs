@@ -31,8 +31,8 @@ public class PlayerHangUp : MonoBehaviour
                 return;
             }
 
-            print("Start hang up!");
-            print(nextHangUpPosition);
+            //print("Start hang up!");
+            //print(nextHangUpPosition);
 
             //Start hang up
             hangUpStartPos = transform.position;
@@ -62,8 +62,8 @@ public class PlayerHangUp : MonoBehaviour
                 //Check for the wall in front of player to start get up animation
                 if (Physics.Raycast(transform.position, -playerMovement.playerSurface.wallNormal, out RaycastHit wallHit, 1f, playerMovement.groundLayer))
                 {
-                    playerMovement.OnAnimating("H_Arms_Get_Up", "l_arm", false);
-                    playerMovement.OnAnimating("H_Arms_Get_Up", "r_arm", false);
+                    playerMovement.OnAnimating("H_Arms_GetUp", "l_arm", false);
+                    playerMovement.OnAnimating("H_Arms_GetUp", "r_arm", false);
                 }
             }
         }
@@ -78,7 +78,7 @@ public class PlayerHangUp : MonoBehaviour
 
         if (t < 0.8f && !hangUpImpulseUp)
         {
-            print("Go up!");
+            //print("Go up!");
             //Getting next position vector
             Vector3 start = hangUpStartPos;
             Vector3 end = new Vector3(hangUpStartPos.x, nextHangUpPosition.y, hangUpStartPos.z);
@@ -101,7 +101,7 @@ public class PlayerHangUp : MonoBehaviour
         }
         else if (t >= 0.8f && !hangUpImpulseForward)
         {
-            print("Go forward!");
+            //print("Go forward!");
             // Движение вперёд
             //Getting next position vector
             Vector3 start = transform.position;
@@ -118,7 +118,7 @@ public class PlayerHangUp : MonoBehaviour
                 displacement.z / time
             );
 
-            print(velocity);
+            //print(velocity);
 
             playerMovement.rb.AddForce(velocity, ForceMode.VelocityChange);
 

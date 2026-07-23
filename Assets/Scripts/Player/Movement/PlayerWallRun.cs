@@ -120,7 +120,7 @@ public class PlayerWallRun: MonoBehaviour
         //Upward movement
         if (dot > 0.7f && moveDirectionDot > 0.7f && playerMovement.features.enableWallClimb)
         {
-            print("start climb!");
+            //print("start climb!");
             //Add maximum of continueing wall climb
             if (wallrunCounter >= playerMovement.playerMovementConfig.wallClimbMaxJumps)
                 return;
@@ -139,6 +139,8 @@ public class PlayerWallRun: MonoBehaviour
                 playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
             if (Physics.Raycast(playerMovement.cameraFront.position, -playerMovement.playerSurface.wallNormal, out RaycastHit wallHit, 1f, playerMovement.groundLayer))
             {
+                playerMovement.OnAnimating("PutAwayAnimation", "l_arm", false);
+                playerMovement.OnAnimating("PutAwayAnimation", "r_arm", false);
                 playerMovement.OnAnimating("H_Arms_ClimbUp", "r_arm", false);
                 playerMovement.OnAnimating("H_Arms_ClimbUp", "l_arm", false);
                 playerMovement.animatingArmsPutAway = false;
@@ -150,13 +152,13 @@ public class PlayerWallRun: MonoBehaviour
             //Going right
             if (dotMovementRight >= 0)
             {
-                print("Start movement right");
+                //print("Start movement right");
                 wallrunDirection = wallRight;
             }
             //Going left
             else
             {
-                print("Start movement left");
+                //print("Start movement left");
                 wallrunDirection = wallLeft;
             }
             Invoke("DeactivateWallRun", playerMovement.playerMovementConfig.wallrunTime);
@@ -211,8 +213,8 @@ public class PlayerWallRun: MonoBehaviour
         var turnPercent = Vector3.Dot(playerMovement.cameraFront.forward, -playerMovement.playerSurface.wallNormal);
         if (turnPercent < 0.5f && !playerMovement.animatingArmsPutAway)
         {
-            playerMovement.OnAnimating("H_Arms_Boxing_PutAway", "r_arm", false);
-            playerMovement.OnAnimating("H_Arms_Boxing_PutAway", "l_arm", false);
+            playerMovement.OnAnimating("PutAwayAnimation", "r_arm", false);
+            playerMovement.OnAnimating("PutAwayAnimation", "l_arm", false);
             playerMovement.animatingArmsPutAway = true;
         }
 

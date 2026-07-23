@@ -1,19 +1,45 @@
 using UnityEngine;
 using System;
+using Random = System.Random;
 
 public class RangedWeapon : WeaponBase
 {
+    Random rnd = new Random();
+    [SerializeField] protected Transform muzzle;
+    [SerializeField] protected string muzzleEffect;
+    
     protected override void ExecuteAttack(AttackVariant attack, float charged = -1)
     {
         switch (attack.kind)
         {
             case AttackKind.Projectile:
-                var proj = Instantiate(
-                    attack.projectilePrefab,
-                    transform.position,
-                    transform.rotation
-                );
-                proj.Launch(attack);
+                var indexProjectile = rnd.Next(0, attack.projectilePrefabs.Length);
+                var indexHitObject = rnd.Next(0, attack.hitObjects.Length);
+                
+                Projectile proj = null;
+                if (attack.projectilePrefabs.Length > 0)
+                {
+                     proj = Instantiate(
+                        attack.projectilePrefabs[indexProjectile],
+                        transform.position + transform.forward * 1f,
+                        transform.rotation
+                    );
+                }
+                HitObject hitObj = null;
+                if (attack.projectilePrefabs.Length > 0)
+                {
+                     hitObj = Instantiate(
+                        attack.hitObjects[indexHitObject],
+                        transform.position,
+                        transform.rotation
+                    );
+                }
+                
+                // Start animation muzzle flash
+                if(muzzle != null)
+                    Particles.Instance.StartEffect(muzzleEffect, muzzle.position, Quaternion.LookRotation(transform.forward));
+
+                proj?.Launch(attack, charged, hitObj, owner);
                 break;
 
             case AttackKind.Ray:

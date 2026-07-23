@@ -15,6 +15,7 @@ public class EntityAnimator : MonoBehaviour
 
     [Header("General Animator (for full-body animations)")]
     [SerializeField] private Animator sharedAnimator;
+    [SerializeField] private string startAnimation;
 
     [Header("Body Parts (for partial animations)")]
     public List<BodyPart> bodyParts = new();
@@ -34,7 +35,8 @@ public class EntityAnimator : MonoBehaviour
     private void Awake()
     {
         _partAnimators.Clear();
-        Play("E_Robot_Boxer_Dance", true);
+        if(startAnimation != "")
+            Play(startAnimation, true);
 
         health.OnAnimateCommand += GetHitAndReturn;
         

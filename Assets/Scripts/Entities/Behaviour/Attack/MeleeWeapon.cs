@@ -1,10 +1,13 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Random = System.Random;
 
 public class MeleeWeapon : WeaponBase
 {
     public LayerMask hitMask;
+    public LayerMask appliedMask;
+    Random random = new Random();
 
     void DebugDrawSphere(Vector3 pos, float radius, Color color)
     {
@@ -21,7 +24,7 @@ public class MeleeWeapon : WeaponBase
         Vector3 origin = transform.position;
         Vector3 dir = transform.forward;
 
-        print("Start attack");
+        //print("Start attack");
         
         Collider[] overlaps = Physics.OverlapSphere(origin, attack.radius, hitMask);
         RaycastHit[] hits = Physics.SphereCastAll(
@@ -40,11 +43,11 @@ public class MeleeWeapon : WeaponBase
         foreach (var hit in hits)
             hitColliders.Add(hit.collider);
         
-        print($"Unique hits: {hitColliders.Count}");
+        //print($"Unique hits: {hitColliders.Count}");
 
         foreach (var collider in hitColliders)
         {
-            print("Sphere cast successful!");
+            //print("Sphere cast successful!");
             var health = collider.GetComponent<EntityHealth>();
             var receiver = collider.GetComponent<EntityHealth>();
             var rb = collider.attachedRigidbody;
@@ -78,6 +81,33 @@ public class MeleeWeapon : WeaponBase
                     rb.AddForce(kbDir * force, ForceMode.Impulse);
                 }
             }
+        }
+        
+        if (Physics.Raycast(
+                transform.position,
+                dir,
+                out RaycastHit hit1,
+                attack.range + attack.radius,
+                appliedMask))
+        {
+            var rbBodyPart = hit1.collider.attachedRigidbody;
+            rbBodyPart?.AddForce(transform.forward * attack.knockbackForce, ForceMode.Impulse);
+            
+            // Add hit effect
+            if (attack.hitObjects.Length > 0)
+            {
+                var index = random.Next(0, attack.hitObjects.Length);
+                var hitObject = Instantiate(attack.hitObjects[index]);
+                // Set bullets
+                hitObject.transform.position = hit1.point;
+                hitObject.transform.rotation = Quaternion.LookRotation(-hit1.normal);
+                hitObject.transform.parent = hit1.transform;
+                hitObject.gameObject.SetActive(true);
+                hitObject.Disappear();
+            }
+            
+            // Activate effect
+            Particles.Instance.StartEffect("MetalHit", hit1.point, Quaternion.LookRotation(-hit1.normal));
         }
     }
 }

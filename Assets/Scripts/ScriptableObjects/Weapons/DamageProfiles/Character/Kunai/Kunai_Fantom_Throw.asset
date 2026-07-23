@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c06119f1cc33ffc449a9d6dd790ecdda, type: 3}
+  m_Name: Kunai_Fantom_Throw
+  m_EditorClassIdentifier: 
+  baseDamage: 20
+  tags:
+  - {fileID: 11400000, guid: 530eb8972fbc04049953c3b0e02288dd, type: 2}
+  - {fileID: 11400000, guid: c6e609687f8a13e4488eb92665af2dd7, type: 2}
+  effects: []

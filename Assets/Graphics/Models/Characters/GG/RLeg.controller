@@ -61,33 +61,6 @@ AnimatorController:
     m_IKPass: 0
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
---- !u!1102 &1665928540524219093
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: H_Arms_Boxing_BlockAction1
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: -3053452660900391863, guid: 4d4f9dd3877325740a505b1b7d4b85ac,
-    type: 3}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
 --- !u!1102 &2898457394466538944
 AnimatorState:
   serializedVersion: 6
@@ -125,14 +98,11 @@ AnimatorStateMachine:
   m_Name: LowerBody
   m_ChildStates:
   - serializedVersion: 1
-    m_State: {fileID: 1665928540524219093}
-    m_Position: {x: 121.17267, y: 199.66205, z: 0}
-  - serializedVersion: 1
     m_State: {fileID: 2898457394466538944}
-    m_Position: {x: 268.2748, y: 340.56302, z: 0}
+    m_Position: {x: 100, y: 220, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 7403956071561463829}
-    m_Position: {x: 278.2748, y: 350.56302, z: 0}
+    m_Position: {x: 230, y: 300, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []
@@ -142,7 +112,7 @@ AnimatorStateMachine:
   m_EntryPosition: {x: 50, y: 120, z: 0}
   m_ExitPosition: {x: 800, y: 120, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
-  m_DefaultState: {fileID: 1665928540524219093}
+  m_DefaultState: {fileID: 2898457394466538944}
 --- !u!1102 &7403956071561463829
 AnimatorState:
   serializedVersion: 6

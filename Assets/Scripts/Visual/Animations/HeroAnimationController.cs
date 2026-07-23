@@ -18,9 +18,6 @@ public class HeroAnimationController : IAnimation
     //Animation states control
     Coroutine[] OnAnimationLoop = new Coroutine[3];
 
-    [Header("OffsetAnimation")]
-    
-
     [Header("RotationCamera")]
     [SerializeField] Transform handsOffsetObject;
 
@@ -119,19 +116,68 @@ public class HeroAnimationController : IAnimation
                                 //Boxing
                                 H_Arms_Boxing_Idle,
                                 H_Arms_Boxing_PutAway,
+                                H_Arms_Boxing_PickUp,
+                                H_Arms_Boxing_ShowOff,
                                 H_Arms_Boxing_WeakHit1,
                                 H_Arms_Boxing_WeakHit2,
                                 H_Arms_Boxing_WeakHit3,
                                 H_Arms_Boxing_LegHit1,
                                 H_Arms_Boxing_LegHit2,
                                 H_Arms_Hide,
+                                
+                                //Pistol
+                                H_Arms_Pistol_Reload,
+                                H_Arms_Pistol_ChargeContinue1,
+                                H_Arms_Pistol_ChargeContinue2,
+                                H_Arms_Pistol_ChargeStart1,
+                                H_Arms_Pistol_ChargeStart2,
+                                H_Arms_Pistol_ChargeEnd1,
+                                H_Arms_Pistol_ChargeEnd2,
+                                H_Arms_Pistol_BlockAction1,
+                                H_Arms_Pistol_BlockAction2,
+                                H_Arms_Pistol_BlockActionStrong,
+                                H_Arms_Pistol_BlockEnd,
+                                H_Arms_Pistol_BlockIdle,
+                                H_Arms_Pistol_BlockStart,
+                                H_Arms_Pistol_Idle,
+                                H_Arms_Pistol_PickUp,
+                                H_Arms_Pistol_PutAway,
+                                H_Arms_Pistol_ShowOff,
+                                H_Arms_Pistol_Attack1,
+                                H_Arms_Pistol_Attack2,
+                                H_Arms_Pistol_Attack3,
+                                
+                                //Kunai
+                                H_Arms_Kunai_Reload,
+                                H_Arms_Kunai_ChargeContinue1,
+                                H_Arms_Kunai_ChargeContinue2,
+                                H_Arms_Kunai_ChargeStart1,
+                                H_Arms_Kunai_ChargeStart2,
+                                H_Arms_Kunai_ChargeEnd1,
+                                H_Arms_Kunai_ChargeEnd2,
+                                H_Arms_Kunai_BlockAction1,
+                                H_Arms_Kunai_BlockAction2,
+                                H_Arms_Kunai_BlockActionStrong,
+                                H_Arms_Kunai_BlockEnd,
+                                H_Arms_Kunai_BlockIdle,
+                                H_Arms_Kunai_BlockStart,
+                                H_Arms_Kunai_Idle,
+                                H_Arms_Kunai_PickUp,
+                                H_Arms_Kunai_PutAway,
+                                H_Arms_Kunai_ShowOff,
+                                H_Arms_Kunai_Attack1,
+                                H_Arms_Kunai_Attack2,
+                                H_Arms_Kunai_Attack3,
+                                H_Arms_Kunai_Throw1,
+                                H_Arms_Kunai_Throw2,
+                                H_Arms_Kunai_Throw3,
 
                                 //Parkour
-                                H_Arms_Get_Up,
+                                H_Arms_GetUp,
                                 H_Arms_ClimbUp
     }
     static string[] animationNames = {
-                                //Charge boxing hit
+                                //Boxing
                                 "H_Arms_Boxing_HitChargeContinue1",
                                 "H_Arms_Boxing_HitChargeContinue1_1",
                                 "H_Arms_Boxing_HitChargeContinue2",
@@ -145,7 +191,7 @@ public class HeroAnimationController : IAnimation
                                 "H_Arms_Boxing_HitChargeEnd2",
                                 "H_Arms_Boxing_HitChargeEnd2_1",
                                 "H_Arms_Boxing_HitWrong1",
-                                
+        
                                 //Block boxing
                                 "H_Arms_Boxing_BlockAction1",
                                 "H_Arms_Boxing_BlockAction2",
@@ -157,12 +203,61 @@ public class HeroAnimationController : IAnimation
                                 //Boxing
                                 "H_Arms_Boxing_Idle",
                                 "H_Arms_Boxing_PutAway",
+                                "H_Arms_Boxing_PickUp",
+                                "H_Arms_Boxing_ShowOff",
                                 "H_Arms_Boxing_WeakHit1",
                                 "H_Arms_Boxing_WeakHit2",
                                 "H_Arms_Boxing_WeakHit3",
                                 "H_Arms_Boxing_LegHit1",
                                 "H_Arms_Boxing_LegHit2",
                                 "H_Arms_Hide",
+                                
+                                // Pistol
+                                "H_Arms_Pistol_Reload",
+                                "H_Arms_Pistol_ChargeContinue1",
+                                "H_Arms_Pistol_ChargeContinue2",
+                                "H_Arms_Pistol_ChargeStart1",
+                                "H_Arms_Pistol_ChargeStart2",
+                                "H_Arms_Pistol_ChargeEnd1",
+                                "H_Arms_Pistol_ChargeEnd2",
+                                "H_Arms_Pistol_BlockAction1",
+                                "H_Arms_Pistol_BlockAction2",
+                                "H_Arms_Pistol_BlockActionStrong",
+                                "H_Arms_Pistol_BlockEnd",
+                                "H_Arms_Pistol_BlockIdle",
+                                "H_Arms_Pistol_BlockStart",
+                                "H_Arms_Pistol_Idle",
+                                "H_Arms_Pistol_PickUp",
+                                "H_Arms_Pistol_PutAway",
+                                "H_Arms_Pistol_ShowOff",
+                                "H_Arms_Pistol_Attack1",
+                                "H_Arms_Pistol_Attack2",
+                                "H_Arms_Pistol_Attack3",
+
+                                // Kunai
+                                "H_Arms_Kunai_Reload",
+                                "H_Arms_Kunai_ChargeContinue1",
+                                "H_Arms_Kunai_ChargeContinue2",
+                                "H_Arms_Kunai_ChargeStart1",
+                                "H_Arms_Kunai_ChargeStart2",
+                                "H_Arms_Kunai_ChargeEnd1",
+                                "H_Arms_Kunai_ChargeEnd2",
+                                "H_Arms_Kunai_BlockAction1",
+                                "H_Arms_Kunai_BlockAction2",
+                                "H_Arms_Kunai_BlockActionStrong",
+                                "H_Arms_Kunai_BlockEnd",
+                                "H_Arms_Kunai_BlockIdle",
+                                "H_Arms_Kunai_BlockStart",
+                                "H_Arms_Kunai_Idle",
+                                "H_Arms_Kunai_PickUp",
+                                "H_Arms_Kunai_PutAway",
+                                "H_Arms_Kunai_ShowOff",
+                                "H_Arms_Kunai_Attack1",
+                                "H_Arms_Kunai_Attack2",
+                                "H_Arms_Kunai_Attack3",
+                                "H_Arms_Kunai_Throw1",
+                                "H_Arms_Kunai_Throw2",
+                                "H_Arms_Kunai_Throw3",
 
                                 //Parkour
                                 "H_Arms_GetUp",
@@ -190,6 +285,7 @@ public class HeroAnimationController : IAnimation
 
     public void ChangeAnimation(string animationName, BodyPart bodyPart, bool loop)
     {
+        print(animationName);
         AnimationState state = (AnimationState)Enum.Parse(typeof(AnimationState), animationName);
         int index = (int)state;
         PlayAnimation(animationNames[index], bodyPart, loop);
@@ -202,23 +298,19 @@ public class HeroAnimationController : IAnimation
     {
         if (bodyPart == BodyPart.left_hand)
         {
-            leftHandAnimator.Play(animationClip, 0, 0f);
-            print($"left hand animation {animationClip} started!");
+            leftHandAnimator?.Play(animationClip, 0, 0f);
         }
         else if (bodyPart == BodyPart.right_hand)
         {
-            rightHandAnimator.Play(animationClip, 0, 0f);
-            print($"right hand animation {animationClip} started!");
+            rightHandAnimator?.Play(animationClip, 0, 0f);
         }
         else if (bodyPart == BodyPart.right_leg)
         {
-            rightLegAnimator.Play(animationClip, 0, 0f);
-            print($"right leg animation {animationClip} started!");
+            rightLegAnimator?.Play(animationClip, 0, 0f);
         }
         else if (bodyPart == BodyPart.left_leg)
         {
-            leftLegAnimator.Play(animationClip, 0, 0f);
-            print($"left leg animation {animationClip} started!");
+            leftLegAnimator?.Play(animationClip, 0, 0f);
         }
     }
 
@@ -239,7 +331,6 @@ public class HeroAnimationController : IAnimation
                 if (clip.name == animationClip)
                 {
                     animationTime = clip.averageDuration;
-                    print($"Average {clip.name} clip time: {animationTime}");
                 }
             }
             OnAnimationLoop[(int)bodyPart] = StartCoroutine(AnimationLoop(animationClip, bodyPart, animationTime));
@@ -263,7 +354,6 @@ public class HeroAnimationController : IAnimation
     {
         while (true)
         {
-            print($"Starting animation {animationClip}");
             PlayAnimation(animationClip, bodyPart);
             yield return new WaitForSeconds(waitTime);
         }

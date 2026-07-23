@@ -52,7 +52,7 @@ public class PlayerDash : MonoBehaviour
         if (playerMovement.CurrentState == PlayerMovement.BodyState.Dashing)
         {
             playerMovement.BuildSpeed("dash");
-            print(Vector3.Distance(transform.position, timeOfDash));
+            //print(Vector3.Distance(transform.position, timeOfDash));
             var normVel = new Vector3(playerMovement.rb.velocity.x, 0, playerMovement.rb.velocity.z).normalized;
             playerMovement.rb.velocity = normVel * playerMovement.playerMovementConfig.maxSpeed * playerMovement.playerMovementConfig.airControlMultiplier;
             playerMovement.CurrentState = PlayerMovement.BodyState.InAir;

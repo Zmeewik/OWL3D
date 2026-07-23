@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3631cadc32d9da24fb8fd36f6d7525e5, type: 3}
+  m_Name: PistolUpgradeCharged
+  m_EditorClassIdentifier: 
+  variantName: 
+  kind: 1
+  cooldown: 0.3
+  maxChargeMultyplier: 3
+  chargeable: 1
+  maxChargeTime: 1
+  minChargeTime: 0.2
+  damage: {fileID: 11400000, guid: 1408a6d2d16dd9b409dea39cab1e4de5, type: 2}
+  range: 0
+  radius: 0
+  projectilePrefabs:
+  - {fileID: 2499936374456516572, guid: 93dd105d24338384890c704ef0595ce8, type: 3}
+  hitObjects:
+  - {fileID: -2818233886865661232, guid: 6ea86d367cae1724cb373586e3a721fb, type: 3}
+  projectileSpeed: 15
+  rayDistance: 50
+  knockbackForce: 900

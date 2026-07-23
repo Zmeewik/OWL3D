@@ -63,8 +63,8 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         }
         set
         {
-            UnityEngine.Debug.Log($"STATE {currentState} -> {value}");
-            UnityEngine.Debug.Log(new StackTrace());
+            /*UnityEngine.Debug.Log($"STATE {currentState} -> {value}");
+            UnityEngine.Debug.Log(new StackTrace());*/
             currentState = value;
         }
     }
@@ -275,17 +275,17 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         {
             var currentSpeedMagnitude = (currentMaxspeed_temp - playerMovementConfig.maxLowSpeed) /
                                         (playerMovementConfig.maxTopSpeed - playerMovementConfig.maxLowSpeed);
-            print(currentSpeedMagnitude);
+            //print(currentSpeedMagnitude);
             if (isCrouching &&
                 isGrounded == IsGrounded.Grounded &&
                 currentSpeedMagnitude > playerMovementConfig.minSlideGroundMovementSpeed)
             {
-                print("Sliding");
+                //print("Sliding");
                 playerSlide.StartSlideGround(currentMaxspeed_temp);
             }
             else
             {
-                print("Not sliding");
+                //print("Not sliding");
             }
         }
     }

@@ -61,6 +61,11 @@ public class Particles : MonoBehaviour
     {
         StartEffectObject(name, -1, new Color[0], pos);
     }
+    
+    public void StartEffect(string name, Vector3 pos, Quaternion rotation)
+    {
+        StartEffectObject(name, -1, new Color[0], pos);
+    }
 
     public void StartEffect(string name, float duration, Vector3 pos)
     {
@@ -110,7 +115,7 @@ public class Particles : MonoBehaviour
     }
 
     //Create and start effect object
-    private void StartEffectObject(string name, float duration, Color[] colors, Vector3 pos)
+    private void StartEffectObject(string name, float duration, Color[] colors, Vector3 pos, Quaternion rot = new Quaternion())
     {
         //Find effect
         ParticleEffect effect = new ParticleEffect();
@@ -130,7 +135,6 @@ public class Particles : MonoBehaviour
         }
 
         //Create or enable effect object
-        //Create or enable effect object
         GameObject SystemObject = null;
         if (effect.type == typesOfEffects.InFront)
         {
@@ -139,7 +143,7 @@ public class Particles : MonoBehaviour
         }
         else if (effect.type == typesOfEffects.InPlace)
         {
-            SystemObject = Instantiate(effect.objectEffect, pos, Quaternion.identity);
+            SystemObject = Instantiate(effect.objectEffect, pos, rot);
         }
 
         //Start all effects attached to System

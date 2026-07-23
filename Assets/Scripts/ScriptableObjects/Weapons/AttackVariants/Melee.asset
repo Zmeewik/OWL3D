@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   variantName: Melee
   kind: 0
-  cooldown: 0.3
+  cooldown: 0.7
   maxChargeMultyplier: 0
   chargeable: 0
   maxChargeTime: 0
@@ -22,7 +22,9 @@ MonoBehaviour:
   damage: {fileID: 11400000, guid: 74dd6c0940b677645b8c580f23c5c79c, type: 2}
   range: 4
   radius: 0.5
-  projectilePrefab: {fileID: 0}
+  projectilePrefabs: []
+  hitObjects:
+  - {fileID: -2818233886865661232, guid: 6ea86d367cae1724cb373586e3a721fb, type: 3}
   projectileSpeed: 20
   rayDistance: 50
   knockbackForce: 1000

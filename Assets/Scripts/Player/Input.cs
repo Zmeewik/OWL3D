@@ -13,6 +13,9 @@ public class Input : MonoBehaviour
     List<IRotatable> rotatable_goal = new List<IRotatable>();
     [SerializeField] List<GameObject> attack_goal;
     private List<IAttackable> attackable_goal = new List<IAttackable>();
+    [SerializeField] List<GameObject> button_goal;
+    private List<IButtonClick> pressable_goal = new List<IButtonClick>();
+    
 
     //Chnage goal of moving
     void Awake()
@@ -25,6 +28,9 @@ public class Input : MonoBehaviour
 
         foreach (var goal in attack_goal)
             if (goal.TryGetComponent(out IAttackable a)) attackable_goal.Add(a);
+        
+        foreach (var goal in button_goal)
+            if (goal.TryGetComponent(out IButtonClick b)) pressable_goal.Add(b);
     }
 
     //Work with goals for interacting
@@ -121,12 +127,12 @@ public class Input : MonoBehaviour
         if (context.started)
         {
             foreach (var target in attackable_goal)
-                target.OnAttackPressed(3);
+                target.OnAttackPressed(2);
         }
 
         if (context.canceled)
             foreach (var target in attackable_goal)
-                target.OnAttackReleased(3);
+                target.OnAttackReleased(2);
     }
 
 
@@ -198,6 +204,40 @@ public class Input : MonoBehaviour
         if (context.canceled)
             foreach (var target in attackable_goal)
                 target.OnBlockReleased();
+    }
+    
+    //Button pressed
+    public void OnWeaponWheel(InputAction.CallbackContext context)
+    {
+        if (context.started)
+            foreach (var target in pressable_goal)
+                target.PressButton("Wheel", true);
+
+        if (context.canceled)
+            foreach (var target in pressable_goal)
+                target.PressButton("Wheel", false);
+    }
+    
+    public void OnShowOff(InputAction.CallbackContext context)
+    {
+        if (context.started)
+            foreach (var target in pressable_goal)
+                target.PressButton("ShowOff", true);
+
+        if (context.canceled)
+            foreach (var target in pressable_goal)
+                target.PressButton("ShowOff", false);
+    }
+
+    public void OnHideWeapon(InputAction.CallbackContext context)
+    {
+        if (context.started)
+            foreach (var target in pressable_goal)
+                target.PressButton("HideWeapon", true);
+
+        if (context.canceled)
+            foreach (var target in pressable_goal)
+                target.PressButton("HideWeapon", false);
     }
 
 }

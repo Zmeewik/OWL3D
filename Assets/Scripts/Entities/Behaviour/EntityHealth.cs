@@ -80,6 +80,9 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
             {
                 complexColliderHandle.ActivateGravity();
                 // Apply force to correct body part
+                Rigidbody rbBodyPart = null;
+                if(damagePacket.bodyPart != null)
+                    rbBodyPart = damagePacket.bodyPart;
                 if (Physics.Raycast(
                         damagePacket.collisionPoint,
                         damagePacket.forceApplied.normalized,
@@ -87,10 +90,10 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
                         animationDistance,
                         layerMask))
                 {
-                    print(hit.collider.name);
-                    hit.collider.GetComponent<Rigidbody>().AddForce(damagePacket.forceApplied / 30, ForceMode.Impulse);
+                    rbBodyPart = hit.collider?.GetComponent<Rigidbody>();
                 }
                 complexColliderHandle.ActivateRagdoll();
+                //rbBodyPart?.AddForce(damagePacket.forceApplied, ForceMode.Impulse);
             }
         }
     }

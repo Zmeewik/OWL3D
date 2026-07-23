@@ -5,7 +5,8 @@ using System;
 public abstract class WeaponBase : MonoBehaviour
 {
     public AttackVariant[] attacks;
-    
+    public WeaponAnimationController[] weaponAnimationController;
+    public Transform owner;
     
     // Weapon actions
     public Action<string, float[]> OnWeaponAction;
@@ -13,6 +14,7 @@ public abstract class WeaponBase : MonoBehaviour
     //Animation handle
     public Action<string> OnAnimation;
 
+    private bool isWeaponHided;
     private bool[] held;
     private float[] chargeTime;
 
@@ -31,7 +33,13 @@ public abstract class WeaponBase : MonoBehaviour
 
     public void HandleInput(int index, AttackInputType type)
     {
-        print(type);
+        if (isWeaponHided)
+        {
+            PickUp();
+            return;
+        }
+        
+        print(type + " attack");
         var attack = attacks[index];
         if (attack == null) return;
         
@@ -71,8 +79,22 @@ public abstract class WeaponBase : MonoBehaviour
         
         held[index] = true;
         chargeTime[index] = Time.time;
-    
-        OnAnimationCall(index - 3 == 0 ? "left_attack_start" : "right_attack_start");
+
+        var animation = "";
+        switch (index - 3)
+        {
+            case 0:
+                animation = "left_attack_start";
+                break;
+            case 1:
+                animation = "right_attack_start";
+                break;
+            case 2:
+                animation = "middle_attack_start";
+                break;
+        }
+
+        OnAnimationCall(animation);
     }
 
     private void OnReleased(int index, AttackVariant attack)
@@ -85,9 +107,23 @@ public abstract class WeaponBase : MonoBehaviour
 
         if (attack.chargeable)
         {
-            OnAnimationCall(index - 3 == 0 ? "left_attack_end" : "right_attack_end");
+            var animation = "";
+            switch (index - 3)
+            {
+                case 0:
+                    animation = "left_attack_end";
+                    break;
+                case 1:
+                    animation = "right_attack_end";
+                    break;
+                case 2:
+                    animation = "middle_attack_end";
+                    break;
+            }
+
+            OnAnimationCall(animation);
             float finalCharge = Mathf.Clamp(chargeTime[index], 0, attack.maxChargeTime);
-            print(finalCharge);
+            //print(finalCharge);
             ExecuteAttack(attack, finalCharge);
             
         }
@@ -105,7 +141,20 @@ public abstract class WeaponBase : MonoBehaviour
             return;
 
         lastAttackTime = Time.time;
-        OnAnimationCall(index == 0 ? "left_attack" : "right_attack");
+        var animation = "";
+        switch (index)
+        {
+            case 0:
+                animation = "left_attack";
+                break;
+            case 1:
+                animation = "right_attack";
+                break;
+            case 2:
+                animation = "middle_attack";
+                break;
+        }
+        OnAnimationCall(animation);
         ExecuteAttack(attack);
     }
 
@@ -113,6 +162,11 @@ public abstract class WeaponBase : MonoBehaviour
     // Block handle
     public void OnBlockPressed()
     {
+        if (isWeaponHided)
+        {
+            PickUp();
+            return;
+        }
         OnAnimationCall("block_start");
     }
     public void OnBlockReleased()
@@ -130,6 +184,11 @@ public abstract class WeaponBase : MonoBehaviour
 
     public void ShowOff()
     {
+        if (isWeaponHided)
+        {
+            PickUp();
+            return;
+        }
         OnAnimationCall("show_off");
     }
 
@@ -140,17 +199,53 @@ public abstract class WeaponBase : MonoBehaviour
 
     public void PutAway()
     {
-        OnAnimationCall("put_away");
+        if (!isWeaponHided)
+        {
+            isWeaponHided = true;
+            OnAnimationCall("put_away");
+        }
+    }
+
+    public void HideWeapon()
+    {
+        if (!isWeaponHided)
+        {
+            isWeaponHided = true;
+            OnAnimationCall("put_away");
+            foreach (var weapon in weaponAnimationController)
+            {
+                weapon.ChangeVisibility(false);
+            }
+            
+        }
+    }
+    
+
+    public void PickUp()
+    {
+        isWeaponHided = false;
+        foreach (var weapon in weaponAnimationController)
+        {
+            weapon.ChangeVisibility(true);
+        }
+
+        OnAnimationCall("pick_up");
     }
 
 
     void OnAnimationCall(string anim)
     {
-        print("Start animation: " + anim);
         OnAnimation?.Invoke(anim);
         OnWeaponAction?.Invoke(anim, new []{ 0f });
     }
 
 
     protected abstract void ExecuteAttack(AttackVariant attack, float charged = -1);
+    public void PressButton(string buttonName, bool buttonState)
+    {
+        if(buttonName == "ShowOff" && buttonState)
+            ShowOff();
+        if(buttonName == "HideWeapon" && buttonState)
+            PutAway();
+    }
 }

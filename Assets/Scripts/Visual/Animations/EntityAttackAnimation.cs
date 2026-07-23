@@ -40,6 +40,11 @@ public class EntityAttackAnimation : MonoBehaviour
         new AnimationNamed("right_attack_start"),
         new AnimationNamed("right_attack_continue"),
         new AnimationNamed("right_attack_end"),
+        
+        new AnimationNamed("middle_attack"),
+        new AnimationNamed("middle_attack_start"),
+        new AnimationNamed("middle_attack_continue"),
+        new AnimationNamed("middle_attack_end"),
 
         new AnimationNamed("block_start"),
         new AnimationNamed("block_continue"),
@@ -51,6 +56,7 @@ public class EntityAttackAnimation : MonoBehaviour
         new AnimationNamed("show_off"),
         new AnimationNamed("idle"),
         new AnimationNamed("put_away"),
+        new AnimationNamed("pick_up"),
     };
 
     //Save value for synchronize multipart animations in continuous
@@ -67,17 +73,41 @@ public class EntityAttackAnimation : MonoBehaviour
             weaponBase.OnAnimation += HandleAnimations;
     }
 
+    private void OnDisable()
+    {
+        if(weaponBase != null)
+            weaponBase.OnAnimation -= HandleAnimations;
+    }
+
+    // Main animation handle
     // Main animation handle
     private void HandleAnimations(string animName)
     {
-        //Check for animation avialability
-        if(!FindAnimation(animName, out var found))
-            return;
         
-        print(found.name);
+        // Check for animation availability
+        if (!FindAnimation(animName, out var found))
+            return;
 
-        armSynchronize = -1;
-        // Start animation at all body parts
+        int randomIndex = -1;
+
+        // One random variant for all simple animations
+        if (!animName.EndsWith("_start") &&
+            !animName.EndsWith("_continue") &&
+            !animName.EndsWith("_end"))
+        {
+            randomIndex = UnityEngine.Random.Range(0, found.animations.Length);
+        }
+
+        // One random variant for start/continue/end
+        if (animName.EndsWith("_start"))
+        {
+            if (!animationIndexes.ContainsKey(found.name))
+                animationIndexes[found.name] = UnityEngine.Random.Range(0, found.animations.Length);
+        }
+
+
+
+        // BODY PARTS
         if (found.bodyPartsIntended != null)
         {
             foreach (int index in found.bodyPartsIntended)
@@ -87,63 +117,59 @@ public class EntityAttackAnimation : MonoBehaviour
 
                 var part = bodyPartToAnimates[index];
 
-                if (part.animator != null)
+                if (part.animator == null)
+                    continue;
+
+                if (animName.EndsWith("_start"))
                 {
-                    //Start folowing animation if holding
-                    //Realize start and continue of long animation
-                    if(animName.EndsWith("_start"))
-                    {
-                        if (!animationIndexes.ContainsKey(found.name))
-                            animationIndexes[found.name] = UnityEngine.Random.Range(0, found.animations.Length);
+                    int idx = animationIndexes[found.name];
 
-                        int index_anim = animationIndexes[found.name];
-                        
-                        // start animation
-                        var animationClip = found.animations[index_anim];
-                        part.animator.Play(part.entityAnimator, animationClip, part.name);
+                    part.animator.Play(part.entityAnimator, found.animations[idx], part.name);
 
-                        // Continue animation
-                        var continueAnimation = animName.Replace("_start", "_continue");
-                        if (!FindAnimation(continueAnimation, out var new_found))
-                            return;
+                    var continueAnimation = animName.Replace("_start", "_continue");
+                    if (!FindAnimation(continueAnimation, out var foundContinue))
+                        return;
 
-                        var animationClipContinue = new_found.animations[index_anim];
-                        part.animator.Enqueue(part.entityAnimator, animationClipContinue, part.name, loop: true);
-                    }
-                    //Realize fixate ending of long animation
-                    else if(animName.EndsWith("_end"))
-                    {
-                        int index_anim;
-                        if (!animationIndexes.TryGetValue(found.name.Replace("_end", "_start"), out index_anim))
-                            index_anim = 0;
-
-                        var animationClip = found.animations[index_anim];
-                        part.animator.Play(part.entityAnimator, animationClip, part.name);
-
-                        //Clearing index
-                        animationIndexes.Remove(found.name.Replace("_end", "_start"));
-                    }
-                    //Simple play of the animation
-                    else
-                    {
-                        var selectedIndex  = UnityEngine.Random.Range(0, found.animations.Length);
-                        if(armSynchronize != -1)
-                            selectedIndex  = armSynchronize;
-                        else
-                            armSynchronize = selectedIndex ;
-                        var animationClip = found.animations[selectedIndex];
-                        print(selectedIndex);
-                        print(animationClip);
-                        part.animator.Play(part.entityAnimator, animationClip, part.name);
-                    }
+                    part.animator.Enqueue(
+                        part.entityAnimator,
+                        foundContinue.animations[idx],
+                        part.name,
+                        loop: true);
                 }
+                else if (animName.EndsWith("_end"))
+                {
+                    int idx;
+                    if (!animationIndexes.TryGetValue(found.name.Replace("_end", "_start"), out idx))
+                        idx = 0;
 
-                
+                    part.animator.Play(part.entityAnimator, found.animations[idx], part.name);
+                    
+                    // Animate idle after animation
+                    /*if (!FindAnimation("idle", out var foundIdle))
+                        return;
+                    part.animator.Enqueue(part.entityAnimator, foundIdle.animations[0], part.name, loop:true);*/
+                }
+                else
+                {
+                    part.animator.Play(
+                        part.entityAnimator,
+                        found.animations[randomIndex],
+                        part.name);
+                    
+                    // Animate idle after animation
+                    /*if (!animName.Contains("put_away"))
+                    {
+                        // Animate idle after animation
+                        if (!FindAnimation("idle", out var foundIdle))
+                            return;
+                        part.animator.Enqueue(part.entityAnimator, foundIdle.animations[0], part.name, loop:true);
+                    }*/
+                }
             }
         }
 
-        // Start animation at all weapons
-        if (found.weaponIntended != null)
+        // WEAPONS
+        if (found.weaponIntended.Length != 0)
         {
             foreach (int index in found.weaponIntended)
             {
@@ -152,49 +178,55 @@ public class EntityAttackAnimation : MonoBehaviour
 
                 var weap = weaponsToAnimate[index];
 
-                if (weap.animator != null)
+                if (weap.animator == null)
+                    continue;
+
+                if (animName.EndsWith("_start"))
                 {
-                    // Start folowing animation if holding
-                    if(animName.EndsWith("_start"))
-                    {
-                        // get or assign index for this animation
-                        if (!animationIndexes.ContainsKey(found.name))
-                            animationIndexes[found.name] = UnityEngine.Random.Range(0, found.animations.Length);
-                        int idx = animationIndexes[found.name];
-                        var clipStart = found.animations[idx];
+                    int idx = animationIndexes[found.name];
 
-                        // play start
-                        weap.animator.Play(weap.entityAnimator, clipStart);
-                        // play continue
-                        var continueAnim = animName.Replace("_start", "_continue");
-                        if (!FindAnimation(continueAnim, out var foundContinue))
-                            return;
-                        var clipContinue = foundContinue.animations[idx];
-                        weap.animator.Enqueue(weap.entityAnimator, clipContinue, loop: true);
-                    }
-                    else if(animName.EndsWith("_end"))
-                    {
-                        int idx;
-                        if (!animationIndexes.TryGetValue(found.name.Replace("_end", "_start"), out idx))
-                            idx = 0;
-                        var clipEnd = found.animations[idx];
-                        
-                        weap.animator.Play(weap.entityAnimator, clipEnd);
-                        if (index == found.weaponIntended.Length - 1)
-                        {
-                            animationIndexes.Remove(found.name.Replace("_end", "_start"));
-                        }
-                    }
-                    else
-                    {
-                        var selectedIndex = UnityEngine.Random.Range(0, found.animations.Length);
-                        
-                        var animationClip = found.animations[selectedIndex];
-                        weap.animator.Play(weap.entityAnimator, animationClip);
-                    }
+                    weap.animator.Play(weap.entityAnimator, found.animations[idx]);
+
+                    var continueAnimation = animName.Replace("_start", "_continue");
+                    if (!FindAnimation(continueAnimation, out var foundContinue))
+                        return;
+
+                    weap.animator.Enqueue(
+                        weap.entityAnimator,
+                        foundContinue.animations[idx],
+                        loop: true);
                 }
+                else if (animName.EndsWith("_end"))
+                {
+                    int idx;
+                    if (!animationIndexes.TryGetValue(found.name.Replace("_end", "_start"), out idx))
+                        idx = 0;
 
-                
+                    weap.animator.Play(weap.entityAnimator, found.animations[idx]);
+
+                    if (index == found.weaponIntended.Length - 1)
+                        animationIndexes.Remove(found.name.Replace("_end", "_start"));
+                    
+                    // Animate idle after animation
+                    /*if (!FindAnimation("idle", out var foundIdle))
+                        return;
+                    weap.animator.Enqueue(weap.entityAnimator, foundIdle.animations[0], weap.name, loop:true);*/
+                }
+                else
+                {
+                    weap.animator.Play(
+                        weap.entityAnimator,
+                        found.animations[randomIndex]);
+                    
+                    // Animate idle after animation
+                    /*if (!animName.Contains("put_away"))
+                    {
+                        // Animate idle after animation
+                        if (!FindAnimation("idle", out var foundIdle))
+                            return;
+                        weap.animator.Enqueue(weap.entityAnimator, foundIdle.animations[0], weap.name, loop:true);
+                    }*/
+                }
             }
         }
     }
@@ -204,6 +236,7 @@ public class EntityAttackAnimation : MonoBehaviour
     {
         // Find animation by name
         found = Array.Find(animationList, a => a.name == animName);
+        Debug.Log($"{gameObject.name}: {animName} -> {found?.name}");
         if (found == null)
         {
             Debug.LogWarning($"[EntityAttackAnimation] Animation '{animName}' not found.");

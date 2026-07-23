@@ -192,7 +192,7 @@ public class ArmsOffset : MonoBehaviour
     //On Leg hit handle
     private void OnLeghit(string anim)
     {
-        if(anim == "left_attack")
+        if(anim.Contains("left_attack"))
             ChangeLifeCameraState("leghit", new float []{0});
     }
 
@@ -295,7 +295,7 @@ public class ArmsOffset : MonoBehaviour
                 armsRotationTarget = Quaternion.Euler(xL, yL, zL);
                 currentLandAngle = landAngle * currentLandForce;
                 angleLandVelocity = 0f;
-                print(currentLandAngle);
+                //print(currentLandAngle);
 
                 //Start change position
                 initialArmsOffset = armsOffsetTarget;

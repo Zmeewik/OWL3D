@@ -53,7 +53,7 @@ public class PlayerCrouch : MonoBehaviour
                 {
                     //Switching standing up under low ceiling and starting checkout
                     OnCrouch(true);
-                    print("Cannot stand!");
+                    //print("Cannot stand!");
                     isStandingUp = true;
                     return;
                 }
@@ -104,7 +104,7 @@ public class PlayerCrouch : MonoBehaviour
     //Crouch action
     public void OnCrouch(bool isCrouch)
     {
-        print("Crouching: " + isCrouch);
+        //print("Crouching: " + isCrouch);
         if (!playerMovement.features.enableCrouch)
             return;
 
@@ -152,7 +152,7 @@ public class PlayerCrouch : MonoBehaviour
             }
             if (cannotStand)
             {
-                print("Cannot stand!");
+                //print("Cannot stand!");
                 isStandingUp = true;
                 return;
             }

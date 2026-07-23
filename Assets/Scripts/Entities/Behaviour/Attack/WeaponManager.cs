@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 public interface IDefender
@@ -7,21 +8,21 @@ public interface IDefender
     bool IsBlocking { get; }
 }
 
-public class WeaponManager : MonoBehaviour, IAttackable, IDefender
+public class WeaponManager : MonoBehaviour, IAttackable, IDefender, IButtonClick
 {
+    [Header("Settings")] [SerializeField] private float timeToChange;
+    [Header("Weapons")]
     public WeaponBase[] weapons;
     public WeaponBase leg;
     private int currentWeaponIndex = 0;
     public WeaponBase CurrentWeapon => weapons.Length > 0 ? weapons[currentWeaponIndex] : null;
 
     //References
+    [Header("References")]
     [SerializeField] private Transform[] commandSendersObjects;
+    [SerializeField] private WeaponWheelUI weaponWheelUI;
     private IWeaponCommand[] commandSenders;
-
-
-    //Animation handling
-    public Action<string, bool> OnAnimateEvent;
-
+    
     public bool IsBlocking { get; private set; }
 
 
@@ -37,6 +38,9 @@ public class WeaponManager : MonoBehaviour, IAttackable, IDefender
         foreach(var ws in commandSenders)
             if(ws != null)
                 ws.OnWeaponCommand += HandleCommand;
+        weaponWheelUI.OnWeaponChange += SwitchWeapon;
+        weaponWheelUI.lastWeapon = CurrentWeapon.name;
+        PlayerMovement.OnPlayAnimationLArm += OnMovementAnimation;
     }
 
     void OnDisable()
@@ -44,15 +48,42 @@ public class WeaponManager : MonoBehaviour, IAttackable, IDefender
         foreach(var ws in commandSenders)
             if(ws != null)
                 ws.OnWeaponCommand -= HandleCommand;
+        weaponWheelUI.OnWeaponChange -= SwitchWeapon;
     }
 
     // Switch weapons
-    public void SwitchWeapon(int index)
+    private void SwitchWeapon(int index)
     {
         if (index < 0 || index >= weapons.Length)
             return;
-
+        CurrentWeapon.PutAway();
         currentWeaponIndex = index;
+        StartCoroutine(PickUpWeaponAtTime(CurrentWeapon));
+    }
+
+    IEnumerator PickUpWeaponAtTime(WeaponBase lastWeapon)
+    {
+        yield return new WaitForSeconds(timeToChange);
+        CurrentWeapon.PickUp();
+    }
+
+    private void SwitchWeapon(string weaponName)
+    {
+        if (weaponName == "")
+            return;
+        
+        var id = 0;
+        foreach (var weapon in weapons)
+        {
+            if (weapon.name == weaponName)
+            {
+                print(weapon.name + " is selected!");
+                SwitchWeapon(id);
+                break;
+            }
+
+            id++;
+        }
     }
 
     // Input forwarding
@@ -72,6 +103,12 @@ public class WeaponManager : MonoBehaviour, IAttackable, IDefender
         => CurrentWeapon?.HandleInput(attackIndex, AttackInputType.Released);
     public void OnAttackCancelled()
         => CurrentWeapon?.OnAttackCancelled();
+    
+    public void PressButton(string buttonName, bool buttonState)
+    {
+        //print(buttonName + " pressed");
+        CurrentWeapon?.PressButton(buttonName, buttonState);
+    }
 
     // Block actions
     public void OnBlockPressed()
@@ -107,6 +144,7 @@ public class WeaponManager : MonoBehaviour, IAttackable, IDefender
     //Animations only
     public void OnLegHit() => leg?.HandleInput(0, AttackInputType.Pressed);
     public void OnPutAway() => CurrentWeapon?.PutAway();
+    public void HideWeapon() => CurrentWeapon?.HideWeapon();
     public void OnIdle() => CurrentWeapon?.Idle();
     public void OnShowOff() => CurrentWeapon?.ShowOff();
 
@@ -176,5 +214,13 @@ public class WeaponManager : MonoBehaviour, IAttackable, IDefender
             break;
         }
     }
-
+    
+    // Moves at players animations
+    void OnMovementAnimation(string animationName, bool loop)
+    {
+        if (animationName == "PutAwayAnimation")
+            CurrentWeapon?.HideWeapon();
+        if (animationName == "H_Arms_GetUp")
+            CurrentWeapon?.HideWeapon();
+    }
 }
