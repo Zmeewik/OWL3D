@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 
 
-public abstract class WeaponBase : MonoBehaviour
+public abstract class WeaponBase : MonoBehaviour, IAnimationSender
 {
     public AttackVariant[] attacks;
     public WeaponAnimationController[] weaponAnimationController;
@@ -235,8 +235,9 @@ public abstract class WeaponBase : MonoBehaviour
 
     void OnAnimationCall(string anim)
     {
-        OnAnimation?.Invoke(anim);
+        //OnAnimation?.Invoke(anim);
         OnWeaponAction?.Invoke(anim, new []{ 0f });
+        OnAnimateCommand?.Invoke(anim, false, 1);
     }
 
 
@@ -248,4 +249,6 @@ public abstract class WeaponBase : MonoBehaviour
         if(buttonName == "HideWeapon" && buttonState)
             PutAway();
     }
+
+    public Action<string, bool, float> OnAnimateCommand { get; set; }
 }

@@ -61,6 +61,11 @@ public class ComplexColliderHandleEditor : Editor
             script.AutoGenerateBones();
         }
         GUILayout.Space(5);
+        if (GUILayout.Button("Set All Colliders New Mass"))
+        {
+            script.ChangeCollidersMass();
+        }
+        
         if (GUILayout.Button("Initialize Colliders (With Size)"))
         {
             script.InitializeCollidersWithSize();

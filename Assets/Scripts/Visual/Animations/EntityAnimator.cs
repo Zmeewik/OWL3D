@@ -2,10 +2,45 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = System.Random;
 
 [DisallowMultipleComponent]
 public class EntityAnimator : MonoBehaviour
 {
+    private Random rnd = new Random();
+    
+    [Serializable]
+    class AnimationNamed
+    {
+        public string name;
+        public string[] animations;
+        public int[] bodyPartsIntended;
+        public int[] weaponIntended;
+        public AnimationNamed(string name) {this.name = name;}
+    }
+
+    [SerializeField] 
+    private AnimationNamed[] animationList = new AnimationNamed[]{
+        new AnimationNamed("melee_attack"),
+        new AnimationNamed("range_attack"),
+        new AnimationNamed("ability"),
+        
+        new AnimationNamed("hit_front"),
+        new AnimationNamed("hit_back"),
+        new AnimationNamed("stagger"),
+
+        new AnimationNamed("block_start"),
+        new AnimationNamed("block_continue"),
+        new AnimationNamed("block_action"),
+        new AnimationNamed("block_end"),
+        new AnimationNamed("block_break"),
+
+        new AnimationNamed("show_off"),
+        new AnimationNamed("idle"),
+        new AnimationNamed("put_away"),
+        new AnimationNamed("pick_up"),
+    };
+    
     [System.Serializable]
     public class BodyPart
     {
@@ -46,43 +81,26 @@ public class EntityAnimator : MonoBehaviour
                 _partAnimators.Add(part.name, part.animator);
         }
     }
-
-    private bool stopThis = false;
     
     //Delete this
-    private void GetHitAndReturn(string anim, string part, bool loop, float speed = 1)
+    private void GetHitAndReturn(string anim, bool loop, float speed = 1)
     {
-        if (stopThis) return;
-        stopThis = true;
         StopAllLoops();
-        StartCoroutine(PlayThenRoutine(anim, "E_Robot_Boxer_Dance", "Body", true, speed));
+        GetHitAnimation(anim, speed);
     }
-    
-    //Delegte this too
-    private IEnumerator PlayThenRoutine(string firstAnim, string nextAnim, string part, bool nextLoop, float speed)
+
+    void GetHitAnimation(string anim, float speed)
     {
-        Animator anim;
-
-        if (part == null)
-            anim = sharedAnimator;
-        else
-            anim = _partAnimators[part];
-
-        // play first
-        anim.speed = speed;
-        anim.Play(firstAnim, 0, 0);
-
-        // wait for first animation length
-        float len = GetClipLength(anim, firstAnim);
-        yield return new WaitForSeconds(len / speed);
-
-        // play second
-        stopThis = false;
+        if (!FindAnimation(anim, out var animationHit))
+            return;
+        var animHit = animationHit.animations[rnd.Next(0, animationHit.animations.Length)];
         
-        anim.Play(nextAnim, 0, 0);
-        
-        if (nextLoop)
-            _loops[nextAnim] = StartCoroutine(Loop(anim, nextAnim));
+        if (!FindAnimation(anim, out var animationIdle))
+            return;
+        var animIdle = animationIdle.animations[rnd.Next(0, animationIdle.animations.Length)];
+
+        Play(animHit, speed : speed);
+        Enqueue(animIdle);
     }
 
     //Animation calls
@@ -91,6 +109,9 @@ public class EntityAnimator : MonoBehaviour
     /// </summary>
     public void Play(string animationName, bool loop = false, float speed = 1)
     {
+
+        print(animationName + " started!");
+        
         // Clear queue to avoid overlap
         _queue.Clear();
         if (_queueRoutine != null)
@@ -301,6 +322,27 @@ public class EntityAnimator : MonoBehaviour
                     animator.Play("Empty", 0, 0);
             }
         }
+    }
+    
+    private bool FindAnimation(string animName, out AnimationNamed found)
+    {
+        // Find animation by name
+        found = Array.Find(animationList, a => a.name == animName);
+        Debug.Log($"{gameObject.name}: {animName} -> {found?.name}");
+        if (found == null)
+        {
+            Debug.LogWarning($"[EntityAttackAnimation] Animation '{animName}' not found.");
+            return false;
+        }
+
+        // Check does animation has clips
+        if (found.animations == null || found.animations.Length == 0)
+        {
+            Debug.LogWarning($"[EntityAttackAnimation] Animation '{animName}' has no clips.");
+            return false;
+        }
+
+        return true;
     }
 
 

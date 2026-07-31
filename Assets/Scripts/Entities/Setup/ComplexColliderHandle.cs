@@ -24,11 +24,18 @@ public class ComplexColliderHandle : MonoBehaviour
     [Header("Body structure")]
     public List<HitboxPart> rootParts = new List<HitboxPart>();
 
+    [SerializeField] private Rigidbody mainRigidbody;
+    [SerializeField] private Collider mainCollider;
+    [SerializeField] private Animator[] animators;
+    [SerializeField] private BoxCollider[] boxCollidersAdditional;
+    [SerializeField] private Rigidbody[] rigidbodiesAdditional;
 
-    // void Start()
-    // {
-    //     SetMassAll(5f);
-    // } 
+    
+    [ContextMenu("Set All Colliders New Mass")]
+    public void ChangeCollidersMass()
+     {
+         SetMassAll(rigidbodyMass);
+     } 
 
     // Collider and Rigidbody initialization
     [ContextMenu("Initialize Colliders (With Size)")]
@@ -156,47 +163,69 @@ public class ComplexColliderHandle : MonoBehaviour
     public void ActivateRagdoll()
     {
         // Disable Animator
-        Animator animator = GetComponent<Animator>();
-        if (animator != null)
-            animator.enabled = false;
-
-
-        
-        // Disable main collider
-        Collider mainCollider = transform.parent.GetComponent<Collider>();
-        var mainRB = transform.parent.GetComponent<Rigidbody>();
-        if (mainCollider != null)
+        foreach (var animator in animators)
         {
-            mainCollider.enabled = false;
-            mainRB.isKinematic = true;
+            animator.enabled = false;
         }
-
+        
         // Disable ragdoll triggers and isKinetic
         // Enable ragdoll colliders & rigidbodies
         SetEnabledAll(true);
         SetTriggerAll(false);
+        
+        // Disable main collider
+        if (mainCollider != null)
+        {
+            mainCollider.enabled = false;
+            mainRigidbody.isKinematic = true;
+        }
+        
+        // Activate weapon ragdolls
+        foreach (var rb in rigidbodiesAdditional)
+        {
+            rb.velocity = Vector3.zero;
+            rb.isKinematic = false;
+        }
+        
+        foreach (var col in boxCollidersAdditional)
+        {
+            col.isTrigger = false;
+        }
+        
     }
 
     public void DeactivateRagdoll()
     {
         // Re-enable Animator
-        Animator animator = GetComponent<Animator>();
-        if (animator != null)
-            animator.enabled = true;
-
-        // Re-enable main collider
-        Collider mainCollider = transform.parent.GetComponent<Collider>();
-        var mainRB = transform.parent.GetComponent<Rigidbody>();
-        if (mainCollider != null)
+        foreach (var animator in animators)
         {
-            mainCollider.enabled = true; 
-            mainRB.isKinematic = true;
+            animator.enabled = true;
         }
-
+        
         // Disable ragdoll triggers and isKinetic
         // Disable ragdoll rigidbodies & set colliders to trigger
         SetEnabledAll(false);
         SetTriggerAll(true);
+        
+        // Re-enable main collider
+        if (mainCollider != null)
+        {
+            mainCollider.enabled = true; 
+            mainRigidbody.isKinematic = false;
+        }
+        
+        // Deactivate weapon ragdolls
+        foreach (var rb in rigidbodiesAdditional)
+        {
+            rb.velocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+        
+        foreach (var col in boxCollidersAdditional)
+        {
+            col.isTrigger = true;
+        }
+        
     }
     
     // Set pelvis upper side

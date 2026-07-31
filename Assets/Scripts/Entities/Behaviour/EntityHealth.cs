@@ -37,7 +37,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     public event Action<float> OnHealed;
     
     //Animation activation
-    public Action<string, string, bool, float> OnAnimateCommand { get; set; }
+    public Action<string, bool, float> OnAnimateCommand { get; set; }
     [SerializeField] private ComplexColliderHandle complexColliderHandle;
 
     private void Awake() {
@@ -69,7 +69,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
         currentHealth = Mathf.Max(currentHealth, 0);
 
         OnTakeDamage?.Invoke(finalDamage);
-        string anim = UnityEngine.Random.Range(0, 1) == 0 ? "E_Robot_Boxer_GetDamage1" : "E_Robot_Boxer_GetDamage2";
+        string anim = Vector3.Dot( transform.forward, damagePacket.forceApplied.normalized) > 0 ? "hit_front" : "hit_back";
         Animate(anim, speed: 2);
 
         // Death sequence
@@ -126,9 +126,9 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     }
     
     //Animate entity if needed
-    void Animate(string anim,  string part = "", bool loop = false, float speed = 1)
+    void Animate(string anim, bool loop = false, float speed = 1)
     {
-        OnAnimateCommand?.Invoke(anim, part, loop, speed);
+        OnAnimateCommand?.Invoke(anim, loop, speed);
     }
 
     public float GetHealth() => currentHealth;

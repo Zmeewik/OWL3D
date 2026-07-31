@@ -24,7 +24,7 @@ public class EntityAttackAnimation : MonoBehaviour
     }
 
     [Header("All animations")]
-    [SerializeField] WeaponBase weaponBase;
+    [SerializeField] GameObject[] animationSenders;
     [SerializeField] BodyPartToAnimate[] bodyPartToAnimates;
     [SerializeField] BodyPartToAnimate[] weaponsToAnimate;
 
@@ -69,19 +69,25 @@ public class EntityAttackAnimation : MonoBehaviour
     private void Start()
     {
         //Subscribe to events
-        if(weaponBase != null)
-            weaponBase.OnAnimation += HandleAnimations;
+        foreach (var objectSender in animationSenders)
+        {
+            var animSender = objectSender.GetComponent<IAnimationSender>();
+            animSender.OnAnimateCommand += HandleAnimations;
+        }
     }
 
     private void OnDisable()
     {
-        if(weaponBase != null)
-            weaponBase.OnAnimation -= HandleAnimations;
+        foreach (var objectSender in animationSenders)
+        {
+            var animSender = objectSender.GetComponent<IAnimationSender>();
+            animSender.OnAnimateCommand -= HandleAnimations;
+        }
     }
 
     // Main animation handle
     // Main animation handle
-    private void HandleAnimations(string animName)
+    private void HandleAnimations(string animName, bool loop = false, float time = 0)
     {
         
         // Check for animation availability
