@@ -4840,7 +4840,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   entity: {fileID: 734937600}
-  offset: {x: 0, y: 4.5, z: 0}
+  offset: {x: 0, y: 2.25, z: 0}
   barSize: {x: 1, y: 0.1}
 --- !u!136 &734937603
 CapsuleCollider:
@@ -4902,7 +4902,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -6.6, y: -0.34, z: 3.47}
-  m_LocalScale: {x: 2.3, y: 2.3, z: 2.3}
+  m_LocalScale: {x: 2.4, y: 2.4, z: 2.4}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 195070270}
@@ -6016,8 +6016,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2320299458671480077, guid: f972d09395a99ef49a0ca59eed4d2770,
         type: 3}
+      propertyPath: m_Height
+      value: 1.8167433
+      objectReference: {fileID: 0}
+    - target: {fileID: 2320299458671480077, guid: f972d09395a99ef49a0ca59eed4d2770,
+        type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2320299458671480077, guid: f972d09395a99ef49a0ca59eed4d2770,
+        type: 3}
+      propertyPath: m_Center.x
+      value: -7.775096e-10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2320299458671480077, guid: f972d09395a99ef49a0ca59eed4d2770,
+        type: 3}
+      propertyPath: m_Center.y
+      value: -0.29827875
       objectReference: {fileID: 0}
     - target: {fileID: 2329877343976410484, guid: f972d09395a99ef49a0ca59eed4d2770,
         type: 3}
@@ -11221,7 +11236,7 @@ Rigidbody:
   m_GameObject: {fileID: 1714496549}
   serializedVersion: 4
   m_Mass: 5
-  m_Drag: 0
+  m_Drag: 1
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
