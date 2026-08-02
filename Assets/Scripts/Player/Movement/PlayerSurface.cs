@@ -276,8 +276,22 @@ public class PlayerSurface: MonoBehaviour
 
     void HandleSlope(Vector3 normal, string tag)
     {
-
         groundNormal = normal;
+
+        // Once already sliding, don't let a per-frame surface-normal fluctuation (physics
+        // jitter, a slightly uneven slope mesh) interrupt it: skip the velocity-zero-on-
+        // change and the entry debounce below entirely. Previously ANY normal change while
+        // already in BodyState.Sliding would zero rb.velocity (the "consistent slope" check
+        // below didn't check current state) and reset counterNormal, which could drop the
+        // player back out of Sliding almost immediately after entering it. PlayerSlide.Slide()
+        // (ticked every FixedUpdate while Sliding) keeps pushing slope-direction speed back up
+        // to max, so the slide just continues instead of stopping.
+        if (playerMovement.CurrentState == PlayerMovement.BodyState.Sliding)
+        {
+            savedSlideNormal = groundNormal;
+            return;
+        }
+
         //Check for consistent slope
         if (savedSlideNormal != groundNormal && tag == "Slope")
         {
@@ -292,14 +306,11 @@ public class PlayerSurface: MonoBehaviour
         if (counterNormal > 3)
         {
             playerMovement.BuildSpeed("slide");
-            if (playerMovement.CurrentState != PlayerMovement.BodyState.Sliding)
-            {
-                counterNormal = 0;
-                playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
-                playerMovement.rb.useGravity = true;
-            }
+            counterNormal = 0;
+            playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
+            playerMovement.rb.useGravity = true;
         }
-        
+
         savedSlideNormal = groundNormal;
     }
 

@@ -23,10 +23,16 @@ public class PlayerSlide: MonoBehaviour
         Vector3 slopeDir = Vector3.ProjectOnPlane(Vector3.down, playerMovement.playerSurface.groundNormal).normalized;
         //Get current slope velocity
         float currentSpeedOnSlope = Vector3.Dot(playerMovement.rb.velocity, slopeDir);
-        //Add force until max
+        // Keep the slide going at max speed rather than gradually re-accelerating via
+        // AddForce: a momentary surface-normal hiccup used to reset velocity to zero
+        // mid-slide (see PlayerSurface.HandleSlope), and ramping back up slowly made that
+        // read as "the slide stopped". Snapping the slope-direction speed straight to
+        // maxSlideSpeed each tick (while preserving whatever lateral/other-axis velocity
+        // the player already has) means a hiccup is never visible as a slowdown.
         if (currentSpeedOnSlope < playerMovement.playerMovementConfig.maxSlideSpeed)
         {
-            playerMovement.rb.AddForce(slopeDir * -Physics.gravity.y * playerMovement.playerMovementConfig.slideSpeed, ForceMode.Acceleration);
+            Vector3 lateralVelocity = playerMovement.rb.velocity - slopeDir * currentSpeedOnSlope;
+            playerMovement.rb.velocity = lateralVelocity + slopeDir * playerMovement.playerMovementConfig.maxSlideSpeed;
         }
         //Sticking player to ground while sloping
         playerMovement.rb.AddForce(-playerMovement.playerSurface.groundNormal.normalized * 30, ForceMode.Acceleration);
