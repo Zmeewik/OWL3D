@@ -83,7 +83,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public static Action<string, bool> OnPlayAnimationRArm;
     public static Action<string, bool> OnPlayAnimationRLeg;
     public static Action<string, float[]> OnArmsMove;
-    public Action<string> OnWeaponCommand {get; set;}
+    public Action<WeaponCommand> OnWeaponCommand {get; set;}
     [HideInInspector] public bool animatingArmsPutAway = false;
 
     

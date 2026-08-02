@@ -130,9 +130,9 @@ public class PlayerWallRun: MonoBehaviour
             currentWallState = WallState.Climbing;
             runnedAlready = true;
 
-            playerMovement.OnWeaponCommand?.Invoke("block_end");
-            playerMovement.OnWeaponCommand?.Invoke("left_attack_cancel");
-            playerMovement.OnWeaponCommand?.Invoke("right_attack_cancel");
+            playerMovement.OnWeaponCommand?.Invoke(WeaponCommand.BlockEnd);
+            playerMovement.OnWeaponCommand?.Invoke(WeaponCommand.LeftAttackCancel);
+            playerMovement.OnWeaponCommand?.Invoke(WeaponCommand.RightAttackCancel);
 
             // Start animations
             if (playerMovement.features.enableLifeCamera)

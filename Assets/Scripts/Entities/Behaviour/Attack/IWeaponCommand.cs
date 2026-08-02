@@ -2,5 +2,5 @@ using System;
 
 public interface IWeaponCommand
 {
-    public Action<string> OnWeaponCommand {get; set;}
+    public Action<WeaponCommand> OnWeaponCommand {get; set;}
 }
