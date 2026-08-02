@@ -47,19 +47,19 @@ public class PlayerWallRun: MonoBehaviour
             {
                 case WallState.Climbing:
                     if (playerMovement.features.enableWallClimb)
-                        playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
+                        playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
                     else
-                        playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
+                        playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
                     break;
                 case WallState.Running:
                     if (playerMovement.features.enableWallRun)
-                        playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 0, dotRight });
+                        playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 0, dotRight });
                     else
-                        playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
+                        playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
                     break;
                 case WallState.Sliding:
                     if (playerMovement.features.enableWallSlide)
-                        playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
+                        playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
                     break;
             }
         }
@@ -136,7 +136,7 @@ public class PlayerWallRun: MonoBehaviour
 
             // Start animations
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
+                playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 1, dotRight });
             if (Physics.Raycast(playerMovement.cameraFront.position, -playerMovement.playerSurface.wallNormal, out RaycastHit wallHit, 1f, playerMovement.groundLayer))
             {
                 playerMovement.OnAnimating("PutAwayAnimation", "l_arm", false);
@@ -167,12 +167,12 @@ public class PlayerWallRun: MonoBehaviour
             playerMovement.BuildSpeed("wallrun");
             runnedAlready = true;
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 0, dotRight });
+                playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 0, dotRight });
         }
         else
         {
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("wallrun", new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
+                playerMovement.OnLifeCamera(LifeCameraCue.Wallrun, new float[3] { dotRight > 0 ? 1 : 0, 2, dotRight });
             currentWallState = WallState.Sliding;
         }
 

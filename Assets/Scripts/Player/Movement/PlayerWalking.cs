@@ -15,21 +15,25 @@ public class PlayerWalking : MonoBehaviour
             var horizontalVel = new Vector3(playerMovement.rb.velocity.x, 0f, playerMovement.rb.velocity.z);
             var state = playerMovement.GetCurrentLifeCameraState();
             if (playerMovement.features.enableLifeCamera && playerMovement.playerCrouch.IsPlayerCrouching() && moveVector != Vector2.zero)
-                playerMovement.OnLifeCamera("movement", new float[1] { 0 });
+                playerMovement.OnLifeCamera(LifeCameraCue.Movement, new float[1] { 0 });
             else if (playerMovement.features.enableLifeCamera && moveVector != Vector2.zero && horizontalVel.magnitude > 0.5f * playerMovement.currentMaxSpeed)
-                playerMovement.OnLifeCamera("movement", new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
+                playerMovement.OnLifeCamera(LifeCameraCue.Movement, new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
             else if (playerMovement.features.enableLifeCamera && moveVector != Vector2.zero)
-                playerMovement.OnLifeCamera("none", new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
-            else if (playerMovement.features.enableLifeCamera && moveVector == Vector2.zero && state != "jump" && state != "land" && state != "hangUp" && state != "dash")
+                playerMovement.OnLifeCamera(LifeCameraCue.None, new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
+            // NOTE: this used to compare against the string "hangUp" (capital U), which never
+            // matched the actual state name "hangup" — so that branch of the guard was always
+            // vacuous. Converting to the LifeCameraCue enum fixes it as a side effect: the
+            // guard now genuinely excludes HangUp, not just Jump/Land/Dash.
+            else if (playerMovement.features.enableLifeCamera && moveVector == Vector2.zero && state != LifeCameraCue.Jump && state != LifeCameraCue.Land && state != LifeCameraCue.HangUp && state != LifeCameraCue.Dash)
             {
-                playerMovement.OnLifeCamera("none", new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
+                playerMovement.OnLifeCamera(LifeCameraCue.None, new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
             }
         }
         else
         {
             var y_force = Mathf.Abs(playerMovement.rb.velocity.y);
             if (y_force >= playerMovement.playerMovementConfig.minFallForce && playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("fall", new float[1] { y_force });
+                playerMovement.OnLifeCamera(LifeCameraCue.Fall, new float[1] { y_force });
         }
 
         if (playerMovement.features.enableMovement && moveVector != Vector2.zero)

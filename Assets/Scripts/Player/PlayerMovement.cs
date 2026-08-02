@@ -39,7 +39,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public CollisionCheck collisionScr;
     public SurfaceHandler surfaceHandler;
     public PlayerMovementConfig playerMovementConfig;
-    public static Action<string, float[]> OnLifeCameraAction;
+    public static Action<LifeCameraCue, float[]> OnLifeCameraAction;
     
     // move
     public Vector2 moveVector => playerWalking.moveVector;
@@ -322,13 +322,13 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     }
     
     //Send command to life camera
-    public void OnLifeCamera(string type, float[] parameters = null)
+    public void OnLifeCamera(LifeCameraCue cue, float[] parameters = null)
     {
         if (!features.enableLifeCamera)
             return;
         if (parameters == null)
             parameters = new float[0];
-        OnLifeCameraAction?.Invoke(type, parameters);
+        OnLifeCameraAction?.Invoke(cue, parameters);
     }
 
     //Send command to animation
@@ -355,11 +355,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             features.cameraScrReference.ChangeFOV(num);
     }
 
-    public string GetCurrentLifeCameraState()
+    public LifeCameraCue GetCurrentLifeCameraState()
     {
         if (features.enableLifeCamera)
-            return features.cameraScrReference.GetCurrentState();
+            return features.cameraScrReference.GetCurrentCue();
         else
-            return "-1";
+            return LifeCameraCue.None;
     }
 }

@@ -42,7 +42,7 @@ public class PlayerDash : MonoBehaviour
         Invoke("EndDash", playerMovement.playerMovementConfig.dashTime);
         playerMovement.OnCrouch(false);
         if (playerMovement.features.enableLifeCamera)
-            playerMovement.OnLifeCamera("dash");
+            playerMovement.OnLifeCamera(LifeCameraCue.Dash);
     }
     
     //End dash state

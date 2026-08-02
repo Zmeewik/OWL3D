@@ -35,10 +35,10 @@ public class PlayerFly : MonoBehaviour
         playerMovement.justLanded = true;
         if (playerMovement.lastState == PlayerMovement.BodyState.WallRunning)
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("fall", new float[1] { 0 });
+                playerMovement.OnLifeCamera(LifeCameraCue.Fall, new float[1] { 0 });
         if (playerMovement.lastState == PlayerMovement.BodyState.Moving)
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("fallcliff", new float[1] { 0 });
+                playerMovement.OnLifeCamera(LifeCameraCue.FallCliff, new float[1] { 0 });
     }
 
 
@@ -64,8 +64,8 @@ public class PlayerFly : MonoBehaviour
         //Start animation
         var y_force = Mathf.Abs(playerMovement.rb.velocity.y);
         if (y_force >= playerMovement.playerMovementConfig.minFallForce)
-            playerMovement.OnLifeCamera("land", new float[1] { y_force - playerMovement.playerMovementConfig.minFallForce });
+            playerMovement.OnLifeCamera(LifeCameraCue.Land, new float[1] { y_force - playerMovement.playerMovementConfig.minFallForce });
         else
-            playerMovement.OnLifeCamera("none", new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
+            playerMovement.OnLifeCamera(LifeCameraCue.None, new float[1] { (playerMovement.currentMaxSpeed - playerMovement.playerMovementConfig.maxLowSpeed) / playerMovement.maxSpeedDifference });
     }
 }

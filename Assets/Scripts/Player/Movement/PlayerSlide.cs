@@ -35,7 +35,7 @@ public class PlayerSlide: MonoBehaviour
         if (playerMovement.features.enableLifeCamera)
         {
             //slopeSlideTimer += Time.deltaTime;
-            playerMovement.OnLifeCamera("slide", new float[1] { 0, /*slopeSlideTimer*/ });
+            playerMovement.OnLifeCamera(LifeCameraCue.Slide, new float[1] { 0, /*slopeSlideTimer*/ });
         }
     }
 
@@ -73,7 +73,7 @@ public class PlayerSlide: MonoBehaviour
         
         //Start animation
         if (playerMovement.features.enableLifeCamera)
-            playerMovement.OnLifeCamera("slide", new float[1] { 0/*1 - time*/ });
+            playerMovement.OnLifeCamera(LifeCameraCue.Slide, new float[1] { 0/*1 - time*/ });
 
         // End slide
         if (currentSlideTimer <= 0)
@@ -81,7 +81,7 @@ public class PlayerSlide: MonoBehaviour
             currentSlideTimer = 0;
             playerMovement.CurrentState = PlayerMovement.BodyState.Moving;
             playerMovement.OnCrouch(playerMovement.playerCrouch.savedCrouch);
-            playerMovement.OnLifeCamera("jump", new float[1] { time });
+            playerMovement.OnLifeCamera(LifeCameraCue.Jump, new float[1] { time });
             playerMovement.playerMomentum.BuildSpeed("slide_ground");
         }
     }
