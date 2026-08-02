@@ -74,7 +74,10 @@ public static class RangedAttackResolver
         if (!Physics.Raycast(weaponTransform.position, weaponTransform.forward, out var hit, attack.rayDistance))
             return;
 
-        var health = hit.collider.GetComponent<EntityHealth>();
+        // EntityHealth lives on the character root, not on the named hitbox bone the ray may
+        // actually strike (see ComplexColliderHandle) -- GetComponentInParent (not GetComponent)
+        // is required or any hit on a limb collider silently resolves no EntityHealth at all.
+        var health = hit.collider.GetComponentInParent<EntityHealth>();
         var rb = hit.collider.attachedRigidbody;
         if (!health)
             return;
@@ -83,7 +86,9 @@ public static class RangedAttackResolver
         float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
         Vector3 kbDir = (hit.transform.position - weaponTransform.position).normalized;
         bool isCharged = charged != -1;
-        DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, kbDir * force, hit.point, isCharged);
+        // Passing the hit collider's rigidbody through as bodyPart lets EntityHealth.ApplyDamage
+        // auto-map it (by name) to a per-body-part damage multiplier.
+        DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, kbDir * force, hit.point, isCharged, rb);
         health.ApplyDamage(packet);
 
         if (attack.knockbackForce > 0 && rb != null)

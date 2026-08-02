@@ -28,23 +28,42 @@ public static class MeleeAttackResolver
         foreach (var hit in hits)
             hitColliders.Add(hit.collider);
 
+        // A single swing's overlap can now include several colliders belonging to the same
+        // entity (its main collision volume plus any of its named hitbox colliders -- see
+        // ComplexColliderHandle). GetComponentInParent (needed since hitbox colliders live on
+        // child bones, not the same GameObject as EntityHealth) would otherwise resolve the same
+        // EntityHealth multiple times and apply damage once per overlapping collider. Dedupe by
+        // entity, keeping whichever overlapping collider is closest to the swing origin to decide
+        // which body part multiplier applies.
+        Dictionary<EntityHealth, Collider> closestPerEntity = new();
         foreach (var collider in hitColliders)
         {
-            var health = collider.GetComponent<EntityHealth>();
+            var health = collider.GetComponentInParent<EntityHealth>();
+            if (health == null)
+                continue;
+
+            if (!closestPerEntity.TryGetValue(health, out var existing) ||
+                Vector3.SqrMagnitude(collider.ClosestPoint(origin) - origin) < Vector3.SqrMagnitude(existing.ClosestPoint(origin) - origin))
+            {
+                closestPerEntity[health] = collider;
+            }
+        }
+
+        foreach (var kvp in closestPerEntity)
+        {
+            var health = kvp.Key;
+            var collider = kvp.Value;
             var rb = collider.attachedRigidbody;
 
-            if (health)
-            {
-                float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);
-                float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
-                Vector3 kbDir = dir.normalized;
-                bool isCharged = charged != -1;
-                DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged);
-                health.ApplyDamage(packet);
+            float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);
+            float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
+            Vector3 kbDir = dir.normalized;
+            bool isCharged = charged != -1;
+            DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged, rb);
+            health.ApplyDamage(packet);
 
-                if (attack.knockbackForce > 0 && rb != null)
-                    rb.AddForce(kbDir * force, ForceMode.Impulse);
-            }
+            if (attack.knockbackForce > 0 && rb != null)
+                rb.AddForce(kbDir * force, ForceMode.Impulse);
         }
 
         if (Physics.Raycast(origin, dir, out RaycastHit hit1, attack.range + attack.radius, appliedMask))

@@ -59,7 +59,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
             }
         }
 
-        float finalDamage = damagePacket.damage;
+        float finalDamage = damagePacket.damage * GetBodyPartMultiplier(damagePacket.bodyPart);
 
         // Applying effects and damage
         foreach (var effect in damagePacket.effects)
@@ -133,6 +133,34 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 
     public float GetHealth() => currentHealth;
     public float GetMaxHealth() => maxHealth;
+
+    // Auto-maps the hit rigidbody (ComplexColliderHandle names its hitbox bones e.g.
+    // "Head", "Left_Shoulder", "Right_Thigh" -- see ComplexColliderHandle.CreateStandardHumanoid)
+    // to one of the configured `bodyparts` multipliers by keyword, so no per-entity Inspector
+    // wiring is needed. Falls back to "body" for the main collider or any unrecognized name.
+    private float GetBodyPartMultiplier(Rigidbody bodyPart)
+    {
+        string category = "body";
+        if (bodyPart != null)
+        {
+            string name = bodyPart.transform.name.ToLowerInvariant();
+            bool isLeft = name.Contains("left");
+            bool isRight = name.Contains("right");
+
+            if (name.Contains("head"))
+                category = "head";
+            else if (name.Contains("shoulder") || name.Contains("forearm") || name.Contains("hand") || name.Contains("arm"))
+                category = isRight ? "right_arm" : isLeft ? "left_arm" : "body";
+            else if (name.Contains("thigh") || name.Contains("shin") || name.Contains("foot") || name.Contains("leg"))
+                category = isRight ? "right_leg" : isLeft ? "left_leg" : "body";
+        }
+
+        foreach (var part in bodyparts)
+            if (string.Equals(part.name, category, StringComparison.OrdinalIgnoreCase))
+                return part.damageMultiplyer;
+
+        return 1f;
+    }
 }
 
 [System.Serializable]
