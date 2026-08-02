@@ -6,6 +6,8 @@ public class AnimationHide : MonoBehaviour
 {
     [SerializeField] MeshRenderer[] meshRenderers;
 
+    private Coroutine hideCoroutine;
+
     public void EnableMesh()
     {
         foreach (var mesh in meshRenderers)
@@ -20,5 +22,28 @@ public class AnimationHide : MonoBehaviour
         {
             mesh.enabled = false;
         }
+    }
+
+    /// <summary>
+    /// Hides the mesh immediately and re-enables it after `duration` seconds via a coroutine.
+    /// Replaces the old two-Animation-Event setup (a DisableMesh event followed by a separate
+    /// EnableMesh event later in the same clip, e.g. the Kunai throw animations) with a single
+    /// Animation Event call -- point the event's functionName at HideMeshFor and set its
+    /// floatParameter to the desired duration in seconds.
+    /// </summary>
+    public void HideMeshFor(float duration)
+    {
+        if (hideCoroutine != null)
+            StopCoroutine(hideCoroutine);
+
+        DisableMesh();
+        hideCoroutine = StartCoroutine(EnableMeshAfter(duration));
+    }
+
+    private IEnumerator EnableMeshAfter(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        EnableMesh();
+        hideCoroutine = null;
     }
 }

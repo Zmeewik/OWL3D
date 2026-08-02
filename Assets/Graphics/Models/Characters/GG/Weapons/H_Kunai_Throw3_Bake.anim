@@ -2752,16 +2752,9 @@ AnimationClip:
   m_HasMotionFloatCurves: 0
   m_Events:
   - time: 0.083333336
-    functionName: DisableMesh
-    data: 
+    functionName: HideMeshFor
+    data:
     objectReferenceParameter: {fileID: 0}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
-  - time: 0.375
-    functionName: EnableMesh
-    data: 
-    objectReferenceParameter: {fileID: 0}
-    floatParameter: 0
+    floatParameter: 0.29166667
     intParameter: 0
     messageOptions: 0
