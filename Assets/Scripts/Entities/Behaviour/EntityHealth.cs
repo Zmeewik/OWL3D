@@ -69,7 +69,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
         currentHealth = Mathf.Max(currentHealth, 0);
 
         OnTakeDamage?.Invoke(finalDamage);
-        string anim = Vector3.Dot( transform.forward, damagePacket.forceApplied.normalized) > 0 ? "hit_front" : "hit_back";
+        string anim = Vector3.Dot( transform.forward, damagePacket.forceApplied.normalized) > 0 ? AnimateCommand.HitFront : AnimateCommand.HitBack;
         Animate(anim, speed: 2);
 
         // Death sequence
