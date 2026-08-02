@@ -81,27 +81,11 @@ public class Projectile : MonoBehaviour
             var rootObject = hit.transform.root;
 
             var health = rootObject.transform.GetComponent<EntityHealth>();
-            var receiver = rootObject.transform.GetComponent<EntityHealth>();
 
             if (health)
             {
-                float dmg;
-
-                if (chargeFactor == -1 || chargeFactor >= 1)
-                {
-                    dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
-                }
-                else
-                {
-                    dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
-
-                    float baseAttack = dmg / attack.maxChargeMultyplier;
-                    dmg = Mathf.Lerp(baseAttack, attack.damage.baseDamage, chargeFactor);
-                }
-
-                float force = attack.knockbackForce;
-                if (chargeFactor != -1)
-                    force = Mathf.Lerp(0, attack.knockbackForce, chargeFactor);
+                float dmg = DamageCalculator.CalculateChargedDamage(attack, health, chargeFactor);
+                float force = DamageCalculator.CalculateChargedKnockback(attack, chargeFactor);
 
                 bool isCharged = chargeFactor != -1;
                 var bodypartRB = hit.transform.GetComponent<Rigidbody>();
