@@ -91,7 +91,16 @@ public static class RangedAttackResolver
         DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, kbDir * force, hit.point, isCharged, rb);
         health.ApplyDamage(packet);
 
-        if (attack.knockbackForce > 0 && rb != null)
-            rb.AddForce(kbDir * force, ForceMode.Impulse);
+        // Same fix as MeleeAttackResolver: the hit collider's own rigidbody (a named limb bone)
+        // is kinematic while the entity is alive and ignores AddForce, so knockback needs the
+        // entity's main/root rigidbody instead.
+        if (attack.knockbackForce > 0)
+        {
+            var mainRb = health.GetComponent<Rigidbody>();
+            if (mainRb != null)
+                mainRb.AddForce(kbDir * force, ForceMode.Impulse);
+            else if (rb != null)
+                rb.AddForce(kbDir * force, ForceMode.Impulse);
+        }
     }
 }

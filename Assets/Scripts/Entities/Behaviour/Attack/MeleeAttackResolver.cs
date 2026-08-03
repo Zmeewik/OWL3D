@@ -89,8 +89,19 @@ public static class MeleeAttackResolver
             DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged, rb);
             health.ApplyDamage(packet);
 
-            if (attack.knockbackForce > 0 && rb != null)
-                rb.AddForce(kbDir * force, ForceMode.Impulse);
+            // The hit collider's own rigidbody (a named limb bone) is kinematic while the entity
+            // is alive (ComplexColliderHandle.InitializePart) and silently ignores AddForce, so
+            // knockback needs to land on the entity's main/root rigidbody instead - matching
+            // Projectile.cs's existing (working) ranged-knockback pattern. Falls back to the hit
+            // collider's own rigidbody if the entity has no root rigidbody for some reason.
+            if (attack.knockbackForce > 0)
+            {
+                var mainRb = health.GetComponent<Rigidbody>();
+                if (mainRb != null)
+                    mainRb.AddForce(kbDir * force, ForceMode.Impulse);
+                else if (rb != null)
+                    rb.AddForce(kbDir * force, ForceMode.Impulse);
+            }
         }
 
         if (Physics.Raycast(origin, dir, out RaycastHit hit1, attack.range + attack.radius, appliedMask))
