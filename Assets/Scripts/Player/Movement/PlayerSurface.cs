@@ -313,6 +313,19 @@ public class PlayerSurface: MonoBehaviour
             return;
         }
 
+        // A ground slide running onto a slope is the same continuation in reverse: hand it over
+        // to the slope slide rather than letting it fall through to the entry debounce below,
+        // which would zero the player's velocity outright on the surface-normal change and kill
+        // a slide that was already up to speed.
+        if (playerMovement.CurrentState == PlayerMovement.BodyState.SlidingGround)
+        {
+            savedSlideNormal = groundNormal;
+            counterNormal = 0;
+            playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
+            playerMovement.rb.useGravity = true;
+            return;
+        }
+
         //Check for consistent slope
         if (savedSlideNormal != groundNormal && tag == "Slope")
         {
