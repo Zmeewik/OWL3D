@@ -23,10 +23,16 @@ public class PlayerSlide: MonoBehaviour
         Vector3 slopeDir = Vector3.ProjectOnPlane(Vector3.down, playerMovement.playerSurface.groundNormal).normalized;
         //Get current slope velocity
         float currentSpeedOnSlope = Vector3.Dot(playerMovement.rb.velocity, slopeDir);
-        //Add force until max
+        // Keep the slide going at max speed rather than gradually re-accelerating via
+        // AddForce: a momentary surface-normal hiccup used to reset velocity to zero
+        // mid-slide (see PlayerSurface.HandleSlope), and ramping back up slowly made that
+        // read as "the slide stopped". Snapping the slope-direction speed straight to
+        // maxSlideSpeed each tick (while preserving whatever lateral/other-axis velocity
+        // the player already has) means a hiccup is never visible as a slowdown.
         if (currentSpeedOnSlope < playerMovement.playerMovementConfig.maxSlideSpeed)
         {
-            playerMovement.rb.AddForce(slopeDir * -Physics.gravity.y * playerMovement.playerMovementConfig.slideSpeed, ForceMode.Acceleration);
+            Vector3 lateralVelocity = playerMovement.rb.velocity - slopeDir * currentSpeedOnSlope;
+            playerMovement.rb.velocity = lateralVelocity + slopeDir * playerMovement.playerMovementConfig.maxSlideSpeed;
         }
         //Sticking player to ground while sloping
         playerMovement.rb.AddForce(-playerMovement.playerSurface.groundNormal.normalized * 30, ForceMode.Acceleration);
@@ -35,7 +41,7 @@ public class PlayerSlide: MonoBehaviour
         if (playerMovement.features.enableLifeCamera)
         {
             //slopeSlideTimer += Time.deltaTime;
-            playerMovement.OnLifeCamera("slide", new float[1] { 0, /*slopeSlideTimer*/ });
+            playerMovement.OnLifeCamera(LifeCameraCue.Slide, new float[1] { 0, /*slopeSlideTimer*/ });
         }
     }
 
@@ -52,6 +58,30 @@ public class PlayerSlide: MonoBehaviour
         slideSpeed = Mathf.Lerp(playerMovement.playerMovementConfig.minSlideGroundSpeed, playerMovement.playerMovementConfig.maxSlideGroundSpeed, speed);
         playerMovement.CurrentState = PlayerMovement.BodyState.SlidingGround;
         
+        //Save crouch state
+        playerMovement.playerCrouch.savedCrouch = true;
+    }
+
+    // Carry an in-progress slope slide straight on into a ground slide once the player reaches
+    // flat ground (called from PlayerSurface.HandleGround while the slide button is held).
+    // Unlike StartSlideGround, which lerps between min/max slide speed for a standing start,
+    // this always starts at full slide speed: the player already arrives carrying the slope's
+    // momentum, so scaling it down would read as the slide dying at the bottom of the hill.
+    public void ContinueSlideOnGround()
+    {
+        // Keep travelling the way the slope was already carrying the player. Falls back to the
+        // body's facing if horizontal velocity is ~zero, so the slide can never latch onto a
+        // zero vector and stall on the spot.
+        var horizontalVelocity = new Vector3(playerMovement.rb.velocity.x, 0, playerMovement.rb.velocity.z);
+        slideDirectionSaved = horizontalVelocity.sqrMagnitude > 0.01f
+            ? horizontalVelocity.normalized
+            : new Vector3(playerMovement.transform.forward.x, 0, playerMovement.transform.forward.z).normalized;
+
+        currentSlideTimer = playerMovement.playerMovementConfig.slideGroundTime;
+        slideSpeed = playerMovement.playerMovementConfig.maxSlideGroundSpeed;
+
+        playerMovement.CurrentState = PlayerMovement.BodyState.SlidingGround;
+
         //Save crouch state
         playerMovement.playerCrouch.savedCrouch = true;
     }
@@ -73,15 +103,19 @@ public class PlayerSlide: MonoBehaviour
         
         //Start animation
         if (playerMovement.features.enableLifeCamera)
-            playerMovement.OnLifeCamera("slide", new float[1] { 0/*1 - time*/ });
+            playerMovement.OnLifeCamera(LifeCameraCue.Slide, new float[1] { 0/*1 - time*/ });
 
         // End slide
         if (currentSlideTimer <= 0)
         {
+            Debug.Log("End slide!");
             currentSlideTimer = 0;
+            // The slope descent this slide may have come from is done with; don't let a later
+            // landing continue it (see PlayerSurface.slideContinuationArmed).
+            playerMovement.playerSurface.DisarmSlideContinuation();
             playerMovement.CurrentState = PlayerMovement.BodyState.Moving;
             playerMovement.OnCrouch(playerMovement.playerCrouch.savedCrouch);
-            playerMovement.OnLifeCamera("jump", new float[1] { time });
+            playerMovement.OnLifeCamera(LifeCameraCue.Jump, new float[1] { time });
             playerMovement.playerMomentum.BuildSpeed("slide_ground");
         }
     }

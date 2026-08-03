@@ -176,93 +176,11 @@ public class HeroAnimationController : IAnimation
                                 H_Arms_GetUp,
                                 H_Arms_ClimbUp
     }
-    static string[] animationNames = {
-                                //Boxing
-                                "H_Arms_Boxing_HitChargeContinue1",
-                                "H_Arms_Boxing_HitChargeContinue1_1",
-                                "H_Arms_Boxing_HitChargeContinue2",
-                                "H_Arms_Boxing_HitChargeContinue2_1",
-                                "H_Arms_Boxing_HitChargeStart1",
-                                "H_Arms_Boxing_HitChargeStart1_1",
-                                "H_Arms_Boxing_HitChargeStart2",
-                                "H_Arms_Boxing_HitChargeStart2_1",
-                                "H_Arms_Boxing_HitChargeEnd1",
-                                "H_Arms_Boxing_HitChargeEnd1_1",
-                                "H_Arms_Boxing_HitChargeEnd2",
-                                "H_Arms_Boxing_HitChargeEnd2_1",
-                                "H_Arms_Boxing_HitWrong1",
-        
-                                //Block boxing
-                                "H_Arms_Boxing_BlockAction1",
-                                "H_Arms_Boxing_BlockAction2",
-                                "H_Arms_Boxing_BlockActionStrong",
-                                "H_Arms_Boxing_BlockEnd",
-                                "H_Arms_Boxing_BlockIdle",
-                                "H_Arms_Boxing_BlockStart",
-
-                                //Boxing
-                                "H_Arms_Boxing_Idle",
-                                "H_Arms_Boxing_PutAway",
-                                "H_Arms_Boxing_PickUp",
-                                "H_Arms_Boxing_ShowOff",
-                                "H_Arms_Boxing_WeakHit1",
-                                "H_Arms_Boxing_WeakHit2",
-                                "H_Arms_Boxing_WeakHit3",
-                                "H_Arms_Boxing_LegHit1",
-                                "H_Arms_Boxing_LegHit2",
-                                "H_Arms_Hide",
-                                
-                                // Pistol
-                                "H_Arms_Pistol_Reload",
-                                "H_Arms_Pistol_ChargeContinue1",
-                                "H_Arms_Pistol_ChargeContinue2",
-                                "H_Arms_Pistol_ChargeStart1",
-                                "H_Arms_Pistol_ChargeStart2",
-                                "H_Arms_Pistol_ChargeEnd1",
-                                "H_Arms_Pistol_ChargeEnd2",
-                                "H_Arms_Pistol_BlockAction1",
-                                "H_Arms_Pistol_BlockAction2",
-                                "H_Arms_Pistol_BlockActionStrong",
-                                "H_Arms_Pistol_BlockEnd",
-                                "H_Arms_Pistol_BlockIdle",
-                                "H_Arms_Pistol_BlockStart",
-                                "H_Arms_Pistol_Idle",
-                                "H_Arms_Pistol_PickUp",
-                                "H_Arms_Pistol_PutAway",
-                                "H_Arms_Pistol_ShowOff",
-                                "H_Arms_Pistol_Attack1",
-                                "H_Arms_Pistol_Attack2",
-                                "H_Arms_Pistol_Attack3",
-
-                                // Kunai
-                                "H_Arms_Kunai_Reload",
-                                "H_Arms_Kunai_ChargeContinue1",
-                                "H_Arms_Kunai_ChargeContinue2",
-                                "H_Arms_Kunai_ChargeStart1",
-                                "H_Arms_Kunai_ChargeStart2",
-                                "H_Arms_Kunai_ChargeEnd1",
-                                "H_Arms_Kunai_ChargeEnd2",
-                                "H_Arms_Kunai_BlockAction1",
-                                "H_Arms_Kunai_BlockAction2",
-                                "H_Arms_Kunai_BlockActionStrong",
-                                "H_Arms_Kunai_BlockEnd",
-                                "H_Arms_Kunai_BlockIdle",
-                                "H_Arms_Kunai_BlockStart",
-                                "H_Arms_Kunai_Idle",
-                                "H_Arms_Kunai_PickUp",
-                                "H_Arms_Kunai_PutAway",
-                                "H_Arms_Kunai_ShowOff",
-                                "H_Arms_Kunai_Attack1",
-                                "H_Arms_Kunai_Attack2",
-                                "H_Arms_Kunai_Attack3",
-                                "H_Arms_Kunai_Throw1",
-                                "H_Arms_Kunai_Throw2",
-                                "H_Arms_Kunai_Throw3",
-
-                                //Parkour
-                                "H_Arms_GetUp",
-                                "H_Arms_ClimbUp"
-                                };
+    // NOTE: this used to be paired with a separate `static string[] animationNames` array that
+    // had to list the exact same names in the exact same order as the enum above -- inserting
+    // a member in one without the other silently desynced every subsequent animation, with no
+    // compile error. Since AnimationState's member names already *are* the clip names,
+    // `.ToString()` on the enum value replaces the array outright: there is now only one list.
     public enum BodyPart { left_hand, right_hand, right_leg, left_leg }
     private Vector2 rotationVector;
 
@@ -270,16 +188,14 @@ public class HeroAnimationController : IAnimation
     //Change animation clip of bodypart
     private void ChangeAnimation(AnimationState animationClip, BodyPart bodyPart)
     {
-        int index = (int)animationClip;
-        PlayAnimation(animationNames[index], bodyPart);
+        PlayAnimation(animationClip.ToString(), bodyPart);
         currentAnimStates[bodyPart] = animationClip;
     }
 
     public void ChangeAnimation(string animationName, BodyPart bodyPart)
     {
         AnimationState state = (AnimationState)Enum.Parse(typeof(AnimationState), animationName);
-        int index = (int)state;
-        PlayAnimation(animationNames[index], bodyPart);
+        PlayAnimation(state.ToString(), bodyPart);
         currentAnimStates[bodyPart] = state;
     }
 
@@ -287,8 +203,7 @@ public class HeroAnimationController : IAnimation
     {
         print(animationName);
         AnimationState state = (AnimationState)Enum.Parse(typeof(AnimationState), animationName);
-        int index = (int)state;
-        PlayAnimation(animationNames[index], bodyPart, loop);
+        PlayAnimation(state.ToString(), bodyPart, loop);
         currentAnimStates[bodyPart] = state;
     }
 

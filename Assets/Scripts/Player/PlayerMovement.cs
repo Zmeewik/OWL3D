@@ -39,7 +39,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public CollisionCheck collisionScr;
     public SurfaceHandler surfaceHandler;
     public PlayerMovementConfig playerMovementConfig;
-    public static Action<string, float[]> OnLifeCameraAction;
+    public static Action<LifeCameraCue, float[]> OnLifeCameraAction;
     
     // move
     public Vector2 moveVector => playerWalking.moveVector;
@@ -83,7 +83,7 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     public static Action<string, bool> OnPlayAnimationRArm;
     public static Action<string, bool> OnPlayAnimationRLeg;
     public static Action<string, float[]> OnArmsMove;
-    public Action<string> OnWeaponCommand {get; set;}
+    public Action<WeaponCommand> OnWeaponCommand {get; set;}
     [HideInInspector] public bool animatingArmsPutAway = false;
 
     
@@ -158,53 +158,12 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
         //Current states of movement
         switch (currentState)
         {
-            case BodyState.Moving:
-                if (features.enableMovement)
-                {
-                    playerWalking.Moving();
-                    playerWalking.RotateBody();
-                    playerWalking.Drag();
-                    playerWalking.CounterMovement();
-                }
-                break;
-            case BodyState.Dashing:
-                if (features.enableDash)
-                {
-
-                }
-                break;
-            case BodyState.WallRunning:
-                if (features.enableWallRun || features.enableWallClimb || features.enableWallSlide)
-                {
-                    playerWallRun.WallRun();
-                    playerWalking.RotateBody();
-                }
-                else
-                    currentState = BodyState.InAir;
-                break;
-            case BodyState.Sliding:
-                if (features.enableSlide)
-                {
-                    playerWalking.RotateBody();
-                    playerSlide.Slide();
-                }
-                break;
-            case BodyState.InAir:
-                //Counting fall time
-                playerFly.HandleFallTime();
-                if (features.enableMovement)
-                {
-                    playerWalking.Moving(playerMovementConfig.airControlMultiplier);
-                    playerWalking.RotateBody();
-                    playerWalking.CounterMovement();
-                }
-                break;
-            case BodyState.SlidingGround:
-                if (features.enableSlideGround)
-                {
-                    playerSlide.SlideGround();
-                }
-                break;
+            case BodyState.Moving: TickMoving(); break;
+            case BodyState.Dashing: TickDashing(); break;
+            case BodyState.WallRunning: TickWallRunning(); break;
+            case BodyState.Sliding: TickSliding(); break;
+            case BodyState.InAir: TickInAir(); break;
+            case BodyState.SlidingGround: TickSlidingGround(); break;
         }
         
         //UnityEngine.Debug.Log(currentState);
@@ -240,7 +199,78 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             }
         }
     }
-    
+
+    // Per-BodyState FixedUpdate logic, one method per case in the switch above.
+    //
+    // These are NOT a formal IMovementState lifecycle (Enter/Tick/Exit) -- states here don't
+    // map cleanly onto one: e.g. PlayerWalking.Moving() is called by both TickMoving() and
+    // TickInAir(), each with different arguments and different companion calls (TickInAir
+    // also runs playerFly.HandleFallTime() first and skips Drag()). Forcing a uniform
+    // interface over that many-to-many composition would mean either awkward per-state
+    // wrapper classes or actually changing which subsystem calls happen for which state --
+    // more risk than benefit for a behavior-preserving refactor. What actually made the old
+    // inline switch hard to maintain -- editing a giant switch statement's body in place to
+    // add or change a state -- is fixed by this: adding a BodyState now means adding one
+    // `case` line here and one small named method, not editing inline switch bodies.
+    private void TickMoving()
+    {
+        if (!features.enableMovement) return;
+        playerWalking.Moving();
+        playerWalking.RotateBody();
+        playerWalking.Drag();
+        playerWalking.CounterMovement();
+    }
+
+    private void TickDashing()
+    {
+        // Dashing is entirely driven by PlayerDash's Invoke-based EndDash callback; there is
+        // nothing to do here per-frame. Kept as an explicit (empty) case, matching the
+        // original inline switch, so every BodyState has a visible Tick method rather than
+        // silently falling through to no case at all.
+        if (features.enableDash)
+        {
+        }
+    }
+
+    private void TickWallRunning()
+    {
+        if (features.enableWallRun || features.enableWallClimb || features.enableWallSlide)
+        {
+            playerWallRun.WallRun();
+            playerWalking.RotateBody();
+        }
+        else
+            currentState = BodyState.InAir;
+    }
+
+    private void TickSliding()
+    {
+        if (features.enableSlide)
+        {
+            playerWalking.RotateBody();
+            playerSlide.Slide();
+        }
+    }
+
+    private void TickInAir()
+    {
+        //Counting fall time
+        playerFly.HandleFallTime();
+        if (features.enableMovement)
+        {
+            playerWalking.Moving(playerMovementConfig.airControlMultiplier);
+            playerWalking.RotateBody();
+            playerWalking.CounterMovement();
+        }
+    }
+
+    private void TickSlidingGround()
+    {
+        if (features.enableSlideGround)
+        {
+            playerSlide.SlideGround();
+        }
+    }
 
     //Input handle
     //Standard moving
@@ -322,13 +352,13 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
     }
     
     //Send command to life camera
-    public void OnLifeCamera(string type, float[] parameters = null)
+    public void OnLifeCamera(LifeCameraCue cue, float[] parameters = null)
     {
         if (!features.enableLifeCamera)
             return;
         if (parameters == null)
             parameters = new float[0];
-        OnLifeCameraAction?.Invoke(type, parameters);
+        OnLifeCameraAction?.Invoke(cue, parameters);
     }
 
     //Send command to animation
@@ -355,11 +385,11 @@ public class PlayerMovement : MonoBehaviour, IMovable, IWeaponCommand
             features.cameraScrReference.ChangeFOV(num);
     }
 
-    public string GetCurrentLifeCameraState()
+    public LifeCameraCue GetCurrentLifeCameraState()
     {
         if (features.enableLifeCamera)
-            return features.cameraScrReference.GetCurrentState();
+            return features.cameraScrReference.GetCurrentCue();
         else
-            return "-1";
+            return LifeCameraCue.None;
     }
 }

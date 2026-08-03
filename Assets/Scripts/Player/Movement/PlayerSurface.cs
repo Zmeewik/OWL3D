@@ -13,6 +13,15 @@ public class PlayerSurface: MonoBehaviour
     private Vector3 currentWallNormal;
     private Vector3 savedSlideNormal;
     private int counterNormal;
+
+    // Armed the moment a slope slide starts, and stays armed until the player either lands
+    // without the slide button held or the ground slide runs its course. This exists because
+    // lastState cannot survive the airborne phase a fast descent throws the player into at the
+    // foot of a hill: OnSurfaceCollide's no-contact branch overwrites lastState on every
+    // ground-exit, so slope -> air -> brief ground touch -> bounce -> land leaves it reading
+    // SlidingGround (or InAir) rather than Sliding, and the continuation stopped firing. Gentle
+    // slopes never leave the ground at all, which is why the continuation only worked there.
+    private bool slideContinuationArmed;
     
     //Handle collisions with surfaces
     public void OnSurfaceCollide(ContactPoint[] contacts)
@@ -262,6 +271,29 @@ public class PlayerSurface: MonoBehaviour
         if (playerMovement.CurrentState != PlayerMovement.BodyState.Moving)
         {
             playerMovement.rb.useGravity = false;
+
+            // Reaching ground off a slope slide with the slide button still held: carry straight
+            // on into a real ground slide at full speed instead of dropping back to Moving with
+            // a one-off shove. Driven by slideContinuationArmed rather than CurrentState /
+            // lastState so that it still fires after the airborne hop (and possible bounce) a
+            // fast descent produces at the foot of a hill -- see the field's declaration.
+            //
+            // The legacy impulse below is gated on lastState AND an exact
+            // groundNormal == Vector3.up match, so it almost never triggered; left in place
+            // untouched for whatever cases it does still cover.
+            if (slideContinuationArmed
+                && playerMovement.features.enableSlideGround
+                && playerMovement.playerCrouch.IsPlayerCrouching())
+            {
+                savedSlideNormal = Vector3.zero;
+                playerMovement.playerSlide.ContinueSlideOnGround();
+                return;
+            }
+
+            // Landed without the button held: the slide is over, don't let a later landing
+            // (e.g. after a jump) resurrect it.
+            slideContinuationArmed = false;
+
             //Impulse when touching the ground after slope
             if (savedSlideNormal != Vector3.zero && groundNormal == Vector3.up && playerMovement.lastState == PlayerMovement.BodyState.Sliding)
             {
@@ -276,8 +308,37 @@ public class PlayerSurface: MonoBehaviour
 
     void HandleSlope(Vector3 normal, string tag)
     {
-
         groundNormal = normal;
+
+        // Once already sliding, don't let a per-frame surface-normal fluctuation (physics
+        // jitter, a slightly uneven slope mesh) interrupt it: skip the velocity-zero-on-
+        // change and the entry debounce below entirely. Previously ANY normal change while
+        // already in BodyState.Sliding would zero rb.velocity (the "consistent slope" check
+        // below didn't check current state) and reset counterNormal, which could drop the
+        // player back out of Sliding almost immediately after entering it. PlayerSlide.Slide()
+        // (ticked every FixedUpdate while Sliding) keeps pushing slope-direction speed back up
+        // to max, so the slide just continues instead of stopping.
+        if (playerMovement.CurrentState == PlayerMovement.BodyState.Sliding)
+        {
+            savedSlideNormal = groundNormal;
+            slideContinuationArmed = true;
+            return;
+        }
+
+        // A ground slide running onto a slope is the same continuation in reverse: hand it over
+        // to the slope slide rather than letting it fall through to the entry debounce below,
+        // which would zero the player's velocity outright on the surface-normal change and kill
+        // a slide that was already up to speed.
+        if (playerMovement.CurrentState == PlayerMovement.BodyState.SlidingGround)
+        {
+            savedSlideNormal = groundNormal;
+            counterNormal = 0;
+            playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
+            playerMovement.rb.useGravity = true;
+            slideContinuationArmed = true;
+            return;
+        }
+
         //Check for consistent slope
         if (savedSlideNormal != groundNormal && tag == "Slope")
         {
@@ -292,15 +353,20 @@ public class PlayerSurface: MonoBehaviour
         if (counterNormal > 3)
         {
             playerMovement.BuildSpeed("slide");
-            if (playerMovement.CurrentState != PlayerMovement.BodyState.Sliding)
-            {
-                counterNormal = 0;
-                playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
-                playerMovement.rb.useGravity = true;
-            }
+            counterNormal = 0;
+            playerMovement.CurrentState = PlayerMovement.BodyState.Sliding;
+            playerMovement.rb.useGravity = true;
+            slideContinuationArmed = true;
         }
-        
+
         savedSlideNormal = groundNormal;
+    }
+
+    // Called by PlayerSlide when a ground slide runs its course, so the next landing doesn't
+    // start a fresh slide off the back of a slope descent that's already finished.
+    public void DisarmSlideContinuation()
+    {
+        slideContinuationArmed = false;
     }
 
     /*void HandleWall(Vector3 normal, ContactPoint contact)

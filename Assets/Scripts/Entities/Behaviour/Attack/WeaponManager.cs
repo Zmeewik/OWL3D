@@ -151,65 +151,65 @@ public class WeaponManager : MonoBehaviour, IAttackable, IDefender, IButtonClick
 
 
     //Handle action of major script
-    public void HandleCommand(string command)
+    public void HandleCommand(WeaponCommand command)
     {
         switch(command)
         {
-            case "left_attack":
+            case WeaponCommand.LeftAttack:
                 OnAttackPressed(0);
             break;
-            case "right_attack":
+            case WeaponCommand.RightAttack:
                 OnAttackPressed(1);
             break;
 
-            case "left_attack_start":
+            case WeaponCommand.LeftAttackStart:
                 OnAttackHeld(0);
             break;
-            case "right_attack_start":
+            case WeaponCommand.RightAttackStart:
                 OnAttackHeld(1);
             break;
-            case "left_attack_continue":
+            case WeaponCommand.LeftAttackContinue:
             break;
-            case "right_attack_continue":
+            case WeaponCommand.RightAttackContinue:
             break;
-            case "left_attack_end":
+            case WeaponCommand.LeftAttackEnd:
                 OnAttackReleased(0);
             break;
-            case "right_attack_end":
+            case WeaponCommand.RightAttackEnd:
                 OnAttackReleased(1);
             break;
-            case "left_attack_cancel":
+            case WeaponCommand.LeftAttackCancel:
                 OnAttackCancelled();
             break;
-            case "right_attack_cancel":
+            case WeaponCommand.RightAttackCancel:
                 OnAttackCancelled();
             break;
 
-            case "block_start":
+            case WeaponCommand.BlockStart:
                 OnBlockPressed();
             break;
-            case "block_continue":
+            case WeaponCommand.BlockContinue:
             break;
-            case "block_action":
+            case WeaponCommand.BlockAction:
                 OnBlockAction();
             break;
-            case "block_break":
+            case WeaponCommand.BlockBreak:
                 OnBlockBreak();
             break;
-            case "block_end":
+            case WeaponCommand.BlockEnd:
                 OnBlockReleased();
             break;
 
-            case "melee_hit":
+            case WeaponCommand.MeleeHit:
                 OnLegHit();
             break;
-            case "idle":
+            case WeaponCommand.Idle:
                 OnIdle();
             break;
-            case "put_away":
+            case WeaponCommand.PutAway:
                 OnPutAway();
             break;
-            case "show_off":
+            case WeaponCommand.ShowOff:
                 OnShowOff();
             break;
         }

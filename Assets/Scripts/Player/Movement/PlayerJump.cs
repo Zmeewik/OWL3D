@@ -15,7 +15,7 @@ public class PlayerJump: MonoBehaviour
             playerMovement.BuildSpeed("jump");
             playerMovement. OnCrouch(false);
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("jump");
+                playerMovement.OnLifeCamera(LifeCameraCue.Jump);
         }
         //If on the wall go a little forward 
         else if (playerMovement.CurrentState == PlayerMovement.BodyState.WallRunning && (playerMovement.features.enableWallRun || playerMovement.features.enableWallClimb || playerMovement.features.enableWallSlide))
@@ -42,7 +42,7 @@ public class PlayerJump: MonoBehaviour
             playerMovement.playerWallRun.wallJumpCounter++;
             playerMovement.BuildSpeed("jump");
             if (playerMovement.features.enableLifeCamera)
-                playerMovement.OnLifeCamera("jump");
+                playerMovement.OnLifeCamera(LifeCameraCue.Jump);
         }
     }
 }

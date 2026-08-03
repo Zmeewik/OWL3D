@@ -61,7 +61,14 @@ public class Projectile : MonoBehaviour
             direction.normalized,
             distance,
             hitMask);
-        
+
+        // RaycastAll does not guarantee hits are ordered by distance. A fast-moving bullet
+        // sweeping past several overlapping hitbox colliders in one tick (e.g. an arm collider
+        // and the head collider behind it) could otherwise register whichever collider happened
+        // to come first in Unity's internal (unordered) result instead of the surface the bullet
+        // actually reached first.
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
         foreach (var hit in hits)
         {
             if (hit.collider == projectileCollider)
@@ -81,27 +88,11 @@ public class Projectile : MonoBehaviour
             var rootObject = hit.transform.root;
 
             var health = rootObject.transform.GetComponent<EntityHealth>();
-            var receiver = rootObject.transform.GetComponent<EntityHealth>();
 
             if (health)
             {
-                float dmg;
-
-                if (chargeFactor == -1 || chargeFactor >= 1)
-                {
-                    dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
-                }
-                else
-                {
-                    dmg = DamageCalculator.CalculateDamage(attack.damage, receiver);
-
-                    float baseAttack = dmg / attack.maxChargeMultyplier;
-                    dmg = Mathf.Lerp(baseAttack, attack.damage.baseDamage, chargeFactor);
-                }
-
-                float force = attack.knockbackForce;
-                if (chargeFactor != -1)
-                    force = Mathf.Lerp(0, attack.knockbackForce, chargeFactor);
+                float dmg = DamageCalculator.CalculateChargedDamage(attack, health, chargeFactor);
+                float force = DamageCalculator.CalculateChargedKnockback(attack, chargeFactor);
 
                 bool isCharged = chargeFactor != -1;
                 var bodypartRB = hit.transform.GetComponent<Rigidbody>();

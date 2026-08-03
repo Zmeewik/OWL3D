@@ -84,13 +84,13 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
         switch (index - 3)
         {
             case 0:
-                animation = "left_attack_start";
+                animation = AnimateCommand.LeftAttackStart;
                 break;
             case 1:
-                animation = "right_attack_start";
+                animation = AnimateCommand.RightAttackStart;
                 break;
             case 2:
-                animation = "middle_attack_start";
+                animation = AnimateCommand.MiddleAttackStart;
                 break;
         }
 
@@ -111,13 +111,13 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
             switch (index - 3)
             {
                 case 0:
-                    animation = "left_attack_end";
+                    animation = AnimateCommand.LeftAttackEnd;
                     break;
                 case 1:
-                    animation = "right_attack_end";
+                    animation = AnimateCommand.RightAttackEnd;
                     break;
                 case 2:
-                    animation = "middle_attack_end";
+                    animation = AnimateCommand.MiddleAttackEnd;
                     break;
             }
 
@@ -145,13 +145,13 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
         switch (index)
         {
             case 0:
-                animation = "left_attack";
+                animation = AnimateCommand.LeftAttack;
                 break;
             case 1:
-                animation = "right_attack";
+                animation = AnimateCommand.RightAttack;
                 break;
             case 2:
-                animation = "middle_attack";
+                animation = AnimateCommand.MiddleAttack;
                 break;
         }
         OnAnimationCall(animation);
@@ -167,19 +167,19 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
             PickUp();
             return;
         }
-        OnAnimationCall("block_start");
+        OnAnimationCall(AnimateCommand.BlockStart);
     }
     public void OnBlockReleased()
     {
-        OnAnimationCall("block_end");
+        OnAnimationCall(AnimateCommand.BlockEnd);
     }
     public void OnBlockBreak()
     {
-        OnAnimationCall("block_break");
+        OnAnimationCall(AnimateCommand.BlockBreak);
     }
     public void OnBlockAction()
     {
-        OnAnimationCall("block_action");
+        OnAnimationCall(AnimateCommand.BlockAction);
     }
 
     public void ShowOff()
@@ -189,12 +189,12 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
             PickUp();
             return;
         }
-        OnAnimationCall("show_off");
+        OnAnimationCall(AnimateCommand.ShowOff);
     }
 
     public void Idle()
     {
-        OnAnimationCall("idle");
+        OnAnimationCall(AnimateCommand.Idle);
     }
 
     public void PutAway()
@@ -202,7 +202,7 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
         if (!isWeaponHided)
         {
             isWeaponHided = true;
-            OnAnimationCall("put_away");
+            OnAnimationCall(AnimateCommand.PutAway);
         }
     }
 
@@ -211,15 +211,15 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
         if (!isWeaponHided)
         {
             isWeaponHided = true;
-            OnAnimationCall("put_away");
+            OnAnimationCall(AnimateCommand.PutAway);
             foreach (var weapon in weaponAnimationController)
             {
                 weapon.ChangeVisibility(false);
             }
-            
+
         }
     }
-    
+
 
     public void PickUp()
     {
@@ -229,7 +229,7 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
             weapon.ChangeVisibility(true);
         }
 
-        OnAnimationCall("pick_up");
+        OnAnimationCall(AnimateCommand.PickUp);
     }
 
 

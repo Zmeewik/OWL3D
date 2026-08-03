@@ -46,11 +46,11 @@ public class PlayerHangUp : MonoBehaviour
             {
                 if (Physics.Raycast(transform.position, -playerMovement.playerSurface.wallNormal, out RaycastHit wallHit, 1f, playerMovement.groundLayer))
                 {
-                    playerMovement.OnLifeCamera("hangup", new float[2] { currentFinalHangUpTime, 1f });
+                    playerMovement.OnLifeCamera(LifeCameraCue.HangUp, new float[2] { currentFinalHangUpTime, 1f });
                 }
                 else
                 {
-                    playerMovement.OnLifeCamera("hangup", new float[2] { currentFinalHangUpTime, 0.3f });
+                    playerMovement.OnLifeCamera(LifeCameraCue.HangUp, new float[2] { currentFinalHangUpTime, 0.3f });
                 }
             }
 

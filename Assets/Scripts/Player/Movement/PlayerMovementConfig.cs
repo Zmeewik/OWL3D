@@ -8,8 +8,7 @@ public class PlayerMovementConfig : ScriptableObject
     [Header("Movement")]
     [SerializeField] public float acceleration;
     [SerializeField] public float decceleration;
-    [SerializeField] public float maxSpeed;
-    
+
     [Header("Jump")]
     [SerializeField] public float jumpForce;
     
