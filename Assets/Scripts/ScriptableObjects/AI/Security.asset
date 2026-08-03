@@ -26,5 +26,9 @@ MonoBehaviour:
   rangedRange: 18
   meleeRange: 2.2
   attackInterval: 1
+  weaponSpreadDegrees: 4
+  aimHeadWeight: 0.2
+  aimBodyWeight: 0.6
+  aimLegsWeight: 0.2
   alertRadius: 20
   interactRange: 2.5

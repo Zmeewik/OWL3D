@@ -63,9 +63,9 @@ public class ChaseAndAttackAction : EnemyAction
         if (rotation != null && !rotation.IsFacingAim())
             return ActionStatus.Running;
 
-        // Aim at the body centre rather than the transform origin, which on these rigs sits at the
-        // feet -- shooting at it would put every round into the ground.
-        if (attack != null && attack.TryAttack(target.GetAimPoint(TeamMember.AimPoint.Center)))
+        // The attack system picks which body part to aim at, so that choice stays with the thing
+        // that owns the weapons rather than being duplicated by every action that can attack.
+        if (attack != null && attack.TryAttack(target))
             enemy.Animation?.PlayAttack();
 
         return ActionStatus.Running;

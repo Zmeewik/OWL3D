@@ -37,6 +37,16 @@ public class EnemyConfig : ScriptableObject
     public float meleeRange = 2.2f;
     public float attackInterval = 1.1f;
 
+    [Tooltip("Spread cone in degrees pushed onto this class's weapons. Negative keeps whatever the " +
+             "weapon prefab was set to.")]
+    public float weaponSpreadDegrees = 3f;
+
+    [Header("Aim distribution")]
+    [Tooltip("Relative chance of aiming at each body part, rolled per shot.")]
+    [Min(0f)] public float aimHeadWeight = 0.2f;
+    [Min(0f)] public float aimBodyWeight = 0.6f;
+    [Min(0f)] public float aimLegsWeight = 0.2f;
+
     [Header("Communication")]
     [Tooltip("How far a spotted-target shout carries to nearby allies.")]
     public float alertRadius = 20f;

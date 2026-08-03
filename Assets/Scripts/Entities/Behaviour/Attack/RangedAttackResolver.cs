@@ -20,17 +20,34 @@ public static class RangedAttackResolver
         Transform owner,
         Transform muzzle,
         string muzzleEffect,
-        System.Random rnd)
+        System.Random rnd,
+        float spreadDegrees = 0f)
     {
         switch (attack.kind)
         {
             case AttackKind.Projectile:
-                ResolveProjectile(attack, charged, weaponTransform, owner, muzzle, muzzleEffect, rnd);
+                ResolveProjectile(attack, charged, weaponTransform, owner, muzzle, muzzleEffect, rnd, spreadDegrees);
                 break;
             case AttackKind.Ray:
-                ResolveRay(attack, charged, weaponTransform, owner);
+                ResolveRay(attack, charged, weaponTransform, owner, rnd, spreadDegrees);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Deflects a firing direction by a random amount inside a cone. Applied to the whole rotation
+    /// rather than just the direction vector so a projectile is *spawned* rotated -- Projectile
+    /// takes its velocity from its own transform.forward, so rotating the spawn is what actually
+    /// makes the shot travel off-axis.
+    /// </summary>
+    private static Quaternion ApplySpread(Quaternion rotation, float spreadDegrees, System.Random rnd)
+    {
+        if (spreadDegrees <= 0f)
+            return rotation;
+
+        float pitch = (float)(rnd.NextDouble() * 2d - 1d) * spreadDegrees;
+        float yaw = (float)(rnd.NextDouble() * 2d - 1d) * spreadDegrees;
+        return rotation * Quaternion.Euler(pitch, yaw, 0f);
     }
 
     private static void ResolveProjectile(
@@ -40,16 +57,21 @@ public static class RangedAttackResolver
         Transform owner,
         Transform muzzle,
         string muzzleEffect,
-        System.Random rnd)
+        System.Random rnd,
+        float spreadDegrees)
     {
         Projectile proj = null;
         if (attack.projectilePrefabs.Length > 0)
         {
             var indexProjectile = rnd.Next(0, attack.projectilePrefabs.Length);
+            var firingRotation = ApplySpread(weaponTransform.rotation, spreadDegrees, rnd);
+
+            // Offset along the deviated direction, not the weapon's, so the muzzle stays on the
+            // line the shot actually travels.
             proj = Object.Instantiate(
                 attack.projectilePrefabs[indexProjectile],
-                weaponTransform.position + weaponTransform.forward * 1f,
-                weaponTransform.rotation);
+                weaponTransform.position + firingRotation * Vector3.forward,
+                firingRotation);
         }
 
         HitObject hitObj = null;
@@ -69,9 +91,17 @@ public static class RangedAttackResolver
         proj?.Launch(attack, charged, hitObj, owner);
     }
 
-    private static void ResolveRay(AttackVariant attack, float charged, Transform weaponTransform, Transform owner)
+    private static void ResolveRay(
+        AttackVariant attack,
+        float charged,
+        Transform weaponTransform,
+        Transform owner,
+        System.Random rnd,
+        float spreadDegrees)
     {
-        if (!Physics.Raycast(weaponTransform.position, weaponTransform.forward, out var hit, attack.rayDistance))
+        Vector3 direction = ApplySpread(weaponTransform.rotation, spreadDegrees, rnd) * Vector3.forward;
+
+        if (!Physics.Raycast(weaponTransform.position, direction, out var hit, attack.rayDistance))
             return;
 
         // EntityHealth lives on the character root, not on the named hitbox bone the ray may

@@ -7,6 +7,18 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
     public AttackVariant[] attacks;
     public WeaponAnimationController[] weaponAnimationController;
     public Transform owner;
+
+    [Header("Accuracy")]
+    /// <summary>
+    /// Random cone applied to ranged shots, in degrees off the weapon's forward axis. Lives here
+    /// rather than on AttackVariant so two wielders of the same weapon class can differ -- a
+    /// twitchy guard and a marksman share a gun but not its accuracy.
+    ///
+    /// Defaults to 0 (perfectly accurate), which is exactly what every existing weapon did before
+    /// this field existed, so nothing changes until it's dialled up.
+    /// </summary>
+    [Tooltip("Random spread cone in degrees for ranged attacks. 0 = perfectly accurate.")]
+    [Min(0f)] public float spreadDegrees = 0f;
     
     // Weapon actions
     public Action<string, float[]> OnWeaponAction;

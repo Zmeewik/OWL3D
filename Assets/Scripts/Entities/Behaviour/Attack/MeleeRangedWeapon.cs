@@ -14,6 +14,6 @@ public class MeleeRangedWeapon : WeaponBase
         if (attack.kind == AttackKind.Melee)
             MeleeAttackResolver.ResolveMeleeAttack(transform, attack, charged, hitMask, appliedMask, rnd, owner);
         else if (attack.kind == AttackKind.Projectile || attack.kind == AttackKind.Ray)
-            RangedAttackResolver.ResolveRangedAttack(attack, charged, transform, owner, muzzle, muzzleEffect, rnd);
+            RangedAttackResolver.ResolveRangedAttack(attack, charged, transform, owner, muzzle, muzzleEffect, rnd, spreadDegrees);
     }
 }

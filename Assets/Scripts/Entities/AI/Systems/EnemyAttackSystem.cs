@@ -20,6 +20,16 @@ public class EnemyAttackSystem : EnemySystem
     [Tooltip("Minimum delay between AI attacks, on top of each AttackVariant's own cooldown.")]
     [SerializeField] private float attackInterval = 1.1f;
 
+    [Header("Aim")]
+    [Tooltip("Relative chance of aiming at each body part. Picked per shot; zero disables a part.")]
+    [SerializeField, Min(0f)] private float aimHeadWeight = 0.2f;
+    [SerializeField, Min(0f)] private float aimBodyWeight = 0.6f;
+    [SerializeField, Min(0f)] private float aimLegsWeight = 0.2f;
+
+    [Tooltip("Spread cone pushed onto this entity's weapons on initialization, overriding whatever " +
+             "the weapon prefab carried. Negative leaves the weapon's own value alone.")]
+    [SerializeField] private float weaponSpreadDegrees = -1f;
+
     private float cooldownRemaining;
 
     public bool HasRanged => rangedWeapon != null;
@@ -38,6 +48,10 @@ public class EnemyAttackSystem : EnemySystem
         rangedRange = config.rangedRange;
         meleeRange = config.meleeRange;
         attackInterval = config.attackInterval;
+        weaponSpreadDegrees = config.weaponSpreadDegrees;
+        aimHeadWeight = config.aimHeadWeight;
+        aimBodyWeight = config.aimBodyWeight;
+        aimLegsWeight = config.aimLegsWeight;
     }
 
     public override void Initialize(Enemy owner)
@@ -50,6 +64,54 @@ public class EnemyAttackSystem : EnemySystem
             rangedWeapon.owner = owner.transform;
         if (meleeWeapon != null && meleeWeapon.owner == null)
             meleeWeapon.owner = owner.transform;
+
+        if (weaponSpreadDegrees >= 0f && rangedWeapon != null)
+            rangedWeapon.spreadDegrees = weaponSpreadDegrees;
+    }
+
+    /// <summary>
+    /// Which part of a target this entity aims at for the next shot, drawn from the configured
+    /// weights. Chosen per shot rather than held for the whole engagement, so fire wanders over a
+    /// target the way spread alone can't -- and it feeds straight into the body-part damage
+    /// multipliers, so an AI weighted towards headshots genuinely hurts more.
+    /// </summary>
+    public TeamMember.AimPoint ChooseAimPoint()
+    {
+        float total = aimHeadWeight + aimBodyWeight + aimLegsWeight;
+        if (total <= 0f)
+            return TeamMember.AimPoint.Center;
+
+        float roll = Random.value * total;
+
+        if (roll < aimHeadWeight)
+            return TeamMember.AimPoint.Head;
+
+        return roll < aimHeadWeight + aimBodyWeight
+            ? TeamMember.AimPoint.Center
+            : TeamMember.AimPoint.Feet;
+    }
+
+    /// <summary>
+    /// Attacks a target, picking which body part to aim at itself. Range is still judged from the
+    /// target's own position, so aiming high or low never changes whether a shot is taken.
+    /// </summary>
+    public bool TryAttack(TeamMember target)
+    {
+        if (target == null)
+            return false;
+
+        if (!IsReady)
+            return false;
+
+        Vector3 targetPosition = target.transform.position;
+
+        if (HasMelee && InMeleeRange(targetPosition))
+            return Fire(meleeWeapon, target.GetAimPoint(TeamMember.AimPoint.Center));
+
+        if (HasRanged && InRangedRange(targetPosition))
+            return Fire(rangedWeapon, target.GetAimPoint(ChooseAimPoint()));
+
+        return false;
     }
 
     public override void TickSystem(float deltaTime)

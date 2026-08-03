@@ -9,6 +9,6 @@ public class RangedWeapon : WeaponBase
 
     protected override void ExecuteAttack(AttackVariant attack, float charged = -1)
     {
-        RangedAttackResolver.ResolveRangedAttack(attack, charged, transform, owner, muzzle, muzzleEffect, rnd);
+        RangedAttackResolver.ResolveRangedAttack(attack, charged, transform, owner, muzzle, muzzleEffect, rnd, spreadDegrees);
     }
 }
