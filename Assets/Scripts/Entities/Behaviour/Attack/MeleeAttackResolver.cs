@@ -76,6 +76,35 @@ public static class MeleeAttackResolver
                 closestPerEntity[health] = (collider, distance);
         }
 
+        // The sphere sweep decides *whether* a swing connects (forgiving, radius-based), but a
+        // zero-radius ray along the same direction decides *which* body part it lands on: the
+        // sweep's radius blurs the boundary between adjacent boxes (Head sits directly on
+        // Torso_Upper, so aiming at the neck kept resolving to the spine).
+        //
+        // The mask here is deliberately BodyParts-only rather than hitMask. hitMask also
+        // includes the Entity layer, whose main capsule collider encloses the whole body -- a
+        // thin ray always strikes that outer capsule surface *before* reaching any hitbox
+        // inside it, and Physics.Raycast returns only the closest hit, so a hitMask ray would
+        // resolve to the main collider every single time (this is what made the previous
+        // attempt at this worse rather than better). Restricting the mask makes the ray see
+        // only named body parts, so the nearest one along the aim direction wins.
+        //
+        // Only entities the sweep already found get refined -- the ray narrows down the body
+        // part, it never extends the swing's reach to something the sweep didn't hit.
+        int bodyPartsMask = bodyPartsLayer >= 0 ? 1 << bodyPartsLayer : 0;
+        if (bodyPartsMask != 0 && Physics.Raycast(
+                origin,
+                dir,
+                out RaycastHit preciseHit,
+                attack.range + attack.radius,
+                bodyPartsMask,
+                QueryTriggerInteraction.Collide))
+        {
+            var preciseHealth = preciseHit.collider.GetComponentInParent<EntityHealth>();
+            if (preciseHealth != null && closestPerEntity.ContainsKey(preciseHealth))
+                closestPerEntity[preciseHealth] = (preciseHit.collider, preciseHit.distance);
+        }
+
         foreach (var kvp in closestPerEntity)
         {
             var health = kvp.Key;
