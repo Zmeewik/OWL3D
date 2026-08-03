@@ -15,6 +15,7 @@ public class WeaponAnimationController : IAnimation
 
     //Animation states control
     Coroutine OnAnimationLoop;
+    Coroutine pendingHideCoroutine;
 
 
     //[Header("AnimationSettings")]
@@ -105,6 +106,7 @@ public class WeaponAnimationController : IAnimation
         yield return new WaitForSeconds(time);
         print("remove visibility " + weaponName);
         ChangeVisibility(false);
+        pendingHideCoroutine = null;
     }
 
     public void ChangeAnimation(string animationName, bool loop)
@@ -167,7 +169,7 @@ public class WeaponAnimationController : IAnimation
         else if (animationClip.Contains("PutAway"))
         {
             var time = GetClipLength(animationClip);
-            StartCoroutine(ChangeVisibilityAtTime(time));
+            pendingHideCoroutine = StartCoroutine(ChangeVisibilityAtTime(time));
         }
         print($"weapon animation {animationClip} started!");
         weapon.Play(animationClip, 0, 0f);
@@ -189,6 +191,19 @@ public class WeaponAnimationController : IAnimation
     //Bodyparts visualisation control
     public void ChangeVisibility(bool state)
     {
+        // HideWeapon() hides immediately AND fires the "PutAway" animation command, which
+        // (via PlayAnimationBasic above) separately schedules a delayed hide timed to the
+        // put-away clip's length. If the weapon gets shown again (PickUp, e.g. from mashing
+        // a wall-climb attempt then immediately attacking - see WeaponBase.HandleInput) before
+        // that delayed hide fires, the stale coroutine used to fire anyway and hide the
+        // weapon again with no further trigger to ever re-show it. Showing the weapon now
+        // always cancels any hide that's still pending.
+        if (state && pendingHideCoroutine != null)
+        {
+            StopCoroutine(pendingHideCoroutine);
+            pendingHideCoroutine = null;
+        }
+
         foreach (var meshRenderer in meshRenderers)
             meshRenderer.enabled = state;
     }

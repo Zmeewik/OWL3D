@@ -140,10 +140,12 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     // wiring is needed. Falls back to "body" for the main collider or any unrecognized name.
     private float GetBodyPartMultiplier(Rigidbody bodyPart)
     {
+        
         string category = "body";
         if (bodyPart != null)
         {
             string name = bodyPart.transform.name.ToLowerInvariant();
+            print(name);
             bool isLeft = name.Contains("left");
             bool isRight = name.Contains("right");
 
