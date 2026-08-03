@@ -33,8 +33,12 @@ public static class MeleeAttackResolver
         // ComplexColliderHandle). GetComponentInParent (needed since hitbox colliders live on
         // child bones, not the same GameObject as EntityHealth) would otherwise resolve the same
         // EntityHealth multiple times and apply damage once per overlapping collider. Dedupe by
-        // entity, keeping whichever overlapping collider is closest to the swing origin to decide
-        // which body part multiplier applies.
+        // entity, always preferring a named BodyParts-layer collider over the generic main
+        // collider (the main collider often geometrically encloses/overlaps the named hitboxes,
+        // e.g. hits from behind, and would otherwise "win" and collapse every hit to a flat
+        // body-multiplier); among colliders of the same priority, prefer whichever is closest to
+        // the swing origin.
+        int bodyPartsLayer = LayerMask.NameToLayer("BodyParts");
         Dictionary<EntityHealth, Collider> closestPerEntity = new();
         foreach (var collider in hitColliders)
         {
@@ -42,11 +46,19 @@ public static class MeleeAttackResolver
             if (health == null)
                 continue;
 
-            if (!closestPerEntity.TryGetValue(health, out var existing) ||
-                Vector3.SqrMagnitude(collider.ClosestPoint(origin) - origin) < Vector3.SqrMagnitude(existing.ClosestPoint(origin) - origin))
+            if (!closestPerEntity.TryGetValue(health, out var existing))
             {
                 closestPerEntity[health] = collider;
+                continue;
             }
+
+            bool isBodyPart = collider.gameObject.layer == bodyPartsLayer;
+            bool existingIsBodyPart = existing.gameObject.layer == bodyPartsLayer;
+            bool isCloser = Vector3.SqrMagnitude(collider.ClosestPoint(origin) - origin) <
+                             Vector3.SqrMagnitude(existing.ClosestPoint(origin) - origin);
+
+            if ((isBodyPart && !existingIsBodyPart) || (isBodyPart == existingIsBodyPart && isCloser))
+                closestPerEntity[health] = collider;
         }
 
         foreach (var kvp in closestPerEntity)
