@@ -108,7 +108,11 @@ public class PlayerSlide: MonoBehaviour
         // End slide
         if (currentSlideTimer <= 0)
         {
+            Debug.Log("End slide!");
             currentSlideTimer = 0;
+            // The slope descent this slide may have come from is done with; don't let a later
+            // landing continue it (see PlayerSurface.slideContinuationArmed).
+            playerMovement.playerSurface.DisarmSlideContinuation();
             playerMovement.CurrentState = PlayerMovement.BodyState.Moving;
             playerMovement.OnCrouch(playerMovement.playerCrouch.savedCrouch);
             playerMovement.OnLifeCamera(LifeCameraCue.Jump, new float[1] { time });
