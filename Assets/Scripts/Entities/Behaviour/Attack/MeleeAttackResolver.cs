@@ -22,11 +22,25 @@ public static class MeleeAttackResolver
         Collider[] overlaps = Physics.OverlapSphere(origin, attack.radius, hitMask);
         RaycastHit[] hits = Physics.SphereCastAll(origin, attack.radius, dir, attack.range, hitMask);
 
-        HashSet<Collider> hitColliders = new();
-        foreach (var col in overlaps)
-            hitColliders.Add(col);
+        // Rank colliders by how far along the swing's forward direction they were actually
+        // reached (SphereCastAll's hit.distance), not by raw distance to the weapon's position.
+        // The weapon/hand origin sits much closer to the torso/arms than to the head, so a plain
+        // closest-point comparison (what this used to do) picked whatever body part happened to
+        // be nearest the weapon almost regardless of aim, not what the swing was actually aimed
+        // at. OverlapSphere is omnidirectional and only used as a fallback distance for colliders
+        // the directional sweep didn't itself report (e.g. something already overlapping the
+        // weapon at the very start of the swing).
+        Dictionary<Collider, float> distanceByCollider = new();
         foreach (var hit in hits)
-            hitColliders.Add(hit.collider);
+        {
+            if (!distanceByCollider.TryGetValue(hit.collider, out var existingDist) || hit.distance < existingDist)
+                distanceByCollider[hit.collider] = hit.distance;
+        }
+        foreach (var col in overlaps)
+        {
+            if (!distanceByCollider.ContainsKey(col))
+                distanceByCollider[col] = Vector3.Distance(origin, col.ClosestPoint(origin));
+        }
 
         // A single swing's overlap can now include several colliders belonging to the same
         // entity (its main collision volume plus any of its named hitbox colliders -- see
@@ -36,35 +50,36 @@ public static class MeleeAttackResolver
         // entity, always preferring a named BodyParts-layer collider over the generic main
         // collider (the main collider often geometrically encloses/overlaps the named hitboxes,
         // e.g. hits from behind, and would otherwise "win" and collapse every hit to a flat
-        // body-multiplier); among colliders of the same priority, prefer whichever is closest to
-        // the swing origin.
+        // body-multiplier); among colliders of the same priority, prefer whichever the swing
+        // reached first.
         int bodyPartsLayer = LayerMask.NameToLayer("BodyParts");
-        Dictionary<EntityHealth, Collider> closestPerEntity = new();
-        foreach (var collider in hitColliders)
+        Dictionary<EntityHealth, (Collider collider, float distance)> closestPerEntity = new();
+        foreach (var kvp in distanceByCollider)
         {
+            var collider = kvp.Key;
+            var distance = kvp.Value;
             var health = collider.GetComponentInParent<EntityHealth>();
             if (health == null)
                 continue;
 
             if (!closestPerEntity.TryGetValue(health, out var existing))
             {
-                closestPerEntity[health] = collider;
+                closestPerEntity[health] = (collider, distance);
                 continue;
             }
 
             bool isBodyPart = collider.gameObject.layer == bodyPartsLayer;
-            bool existingIsBodyPart = existing.gameObject.layer == bodyPartsLayer;
-            bool isCloser = Vector3.SqrMagnitude(collider.ClosestPoint(origin) - origin) <
-                             Vector3.SqrMagnitude(existing.ClosestPoint(origin) - origin);
+            bool existingIsBodyPart = existing.collider.gameObject.layer == bodyPartsLayer;
+            bool isCloser = distance < existing.distance;
 
             if ((isBodyPart && !existingIsBodyPart) || (isBodyPart == existingIsBodyPart && isCloser))
-                closestPerEntity[health] = collider;
+                closestPerEntity[health] = (collider, distance);
         }
 
         foreach (var kvp in closestPerEntity)
         {
             var health = kvp.Key;
-            var collider = kvp.Value;
+            var collider = kvp.Value.collider;
             var rb = collider.attachedRigidbody;
 
             float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);
