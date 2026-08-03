@@ -28,7 +28,7 @@ public static class RangedAttackResolver
                 ResolveProjectile(attack, charged, weaponTransform, owner, muzzle, muzzleEffect, rnd);
                 break;
             case AttackKind.Ray:
-                ResolveRay(attack, charged, weaponTransform);
+                ResolveRay(attack, charged, weaponTransform, owner);
                 break;
         }
     }
@@ -69,7 +69,7 @@ public static class RangedAttackResolver
         proj?.Launch(attack, charged, hitObj, owner);
     }
 
-    private static void ResolveRay(AttackVariant attack, float charged, Transform weaponTransform)
+    private static void ResolveRay(AttackVariant attack, float charged, Transform weaponTransform, Transform owner)
     {
         if (!Physics.Raycast(weaponTransform.position, weaponTransform.forward, out var hit, attack.rayDistance))
             return;
@@ -80,6 +80,11 @@ public static class RangedAttackResolver
         var health = hit.collider.GetComponentInParent<EntityHealth>();
         var rb = hit.collider.attachedRigidbody;
         if (!health)
+            return;
+
+        // A hitscan fired from inside the shooter's own hitboxes would otherwise resolve straight
+        // back onto the shooter.
+        if (owner != null && health.transform == owner)
             return;
 
         float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);

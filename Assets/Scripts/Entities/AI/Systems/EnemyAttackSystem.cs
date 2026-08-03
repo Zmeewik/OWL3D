@@ -66,24 +66,34 @@ public class EnemyAttackSystem : EnemySystem
     /// Returns true if a swing/shot actually went out, so callers can drive an attack animation
     /// only when something happened.
     /// </summary>
-    public bool TryAttack(Vector3 targetPosition)
+    public bool TryAttack(Vector3 aimPoint)
     {
         if (!IsReady)
             return false;
 
-        if (HasMelee && InMeleeRange(targetPosition))
-            return Fire(meleeWeapon);
+        if (HasMelee && InMeleeRange(aimPoint))
+            return Fire(meleeWeapon, aimPoint);
 
-        if (HasRanged && InRangedRange(targetPosition))
-            return Fire(rangedWeapon);
+        if (HasRanged && InRangedRange(aimPoint))
+            return Fire(rangedWeapon, aimPoint);
 
         return false;
     }
 
-    private bool Fire(WeaponBase weapon)
+    private bool Fire(WeaponBase weapon, Vector3 aimPoint)
     {
         if (weapon == null || weapon.attacks == null || weapon.attacks.Length == 0 || weapon.attacks[0] == null)
             return false;
+
+        // Point the weapon itself at the target rather than relying on the body's facing. Two
+        // reasons this is required, not cosmetic: every resolver fires along the weapon's own
+        // forward axis, and the mount sits off to one side of the body -- so a mount left parallel
+        // to the body sends shots down a line offset sideways by the mount's own offset, which at
+        // this rig's scale is wide enough to miss a torso entirely. Body rotation is also yaw-only,
+        // so it can never account for a target above or below.
+        Vector3 toTarget = aimPoint - weapon.transform.position;
+        if (toTarget.sqrMagnitude > 0.0001f)
+            weapon.transform.rotation = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
 
         // Index 0 / Pressed is the uncharged primary attack -- the same path a player click takes.
         weapon.HandleInput(0, AttackInputType.Pressed);
