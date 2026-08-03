@@ -76,20 +76,6 @@ public static class MeleeAttackResolver
                 closestPerEntity[health] = (collider, distance);
         }
 
-        // The sphere sweep is forgiving about whether a swing lands at all, but its radius
-        // blurs precision between two adjacent boxes (e.g. Head sitting right on top of
-        // Torso_Upper/spine): the wider torso box can register as "reached" fractionally before
-        // the head even when the player is clearly aiming at the head/neck. A zero-radius
-        // raycast along the exact same swing direction has no such ambiguity, so wherever it
-        // directly lines up with an entity already in range, its precise hit collider overrides
-        // the sphere-based pick for that entity.
-        if (Physics.Raycast(origin, dir, out RaycastHit preciseHit, attack.range, hitMask))
-        {
-            var preciseHealth = preciseHit.collider.GetComponentInParent<EntityHealth>();
-            if (preciseHealth != null && closestPerEntity.ContainsKey(preciseHealth))
-                closestPerEntity[preciseHealth] = (preciseHit.collider, preciseHit.distance);
-        }
-
         foreach (var kvp in closestPerEntity)
         {
             var health = kvp.Key;
