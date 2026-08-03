@@ -13542,10 +13542,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cameraObj: {fileID: 2078209524}
-  cameraOffsetObject: {fileID: 617528314}
-  cameraPosition: {fileID: 941037584}
-  speedRotation: 0.05
-  sensitivity: 1
   isCameraOn: 0
   featureFlags:
     enableBreath: 1
@@ -13559,6 +13555,8 @@ MonoBehaviour:
     enableClimb: 1
     enableHangup: 1
     enableFall: 1
+    enableFallcliff: 1
+    enableLeghit: 1
   smoothSpeed: 10
   smoothRotationSpeed: 10
   breathYShake: 0.05
@@ -13585,7 +13583,6 @@ MonoBehaviour:
   slideSpeed: 2
   slideYAngle: 0
   slideZAngle: 5
-  slideTimeMaxSpeed: 1
   wallrunAngle: 10
   wallrunXShake: 0.1
   wallrunYShake: 0.1
@@ -13611,6 +13608,16 @@ MonoBehaviour:
   maxLandMultiplyer: 3
   minLandMultiplyer: 1
   maxSecondsToMaxLandForce: 3
+  fallCliffYShake: 0
+  fallCliffAngle: 0
+  fallCliffTime: 0
+  leghitYShake: 0
+  leghitAngle: 0
+  leghitTime: 0
+  cameraOffsetObject: {fileID: 617528314}
+  cameraPosition: {fileID: 941037584}
+  speedRotation: 0.05
+  sensitivity: 1
   FOVOffset: 3
   changeFOVTime: 2
 --- !u!114 &2078209527
@@ -13625,7 +13632,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d141eca866bd0741a4993f262659f22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  armsOffset: {fileID: 106846241}
   cameraObj: {fileID: 617528313}
   isCameraOn: 0
   featureFlags:
@@ -13644,8 +13650,6 @@ MonoBehaviour:
     enableLeghit: 1
   smoothSpeed: 5
   smoothRotationSpeed: 5
-  hangupAngle: 30
-  hangUpTime: 0.4
   breathYShake: 0.01
   maxBreathYShake: 0.02
   breathSpeed: 3
@@ -13677,6 +13681,8 @@ MonoBehaviour:
   wallclimbXShake: 0.2
   wallclimbYShake: 0.2
   wallclimbSpeed: 15
+  hangupAngle: 30
+  hangUpTime: 0.4
   minFallSpeed: 0
   fallSpeed: 4
   minFallXShake: 3
@@ -13696,10 +13702,11 @@ MonoBehaviour:
   fallCliffYShake: 0
   fallCliffAngle: -10
   fallCliffTime: 0.4
-  weaponBase: {fileID: 407313066}
   leghitYShake: 0
   leghitAngle: -60
   leghitTime: 0.35
+  armsOffset: {fileID: 106846241}
+  weaponBase: {fileID: 407313066}
 --- !u!1 &2096672662
 GameObject:
   m_ObjectHideFlags: 0
