@@ -62,6 +62,30 @@ public class PlayerSlide: MonoBehaviour
         playerMovement.playerCrouch.savedCrouch = true;
     }
 
+    // Carry an in-progress slope slide straight on into a ground slide once the player reaches
+    // flat ground (called from PlayerSurface.HandleGround while the slide button is held).
+    // Unlike StartSlideGround, which lerps between min/max slide speed for a standing start,
+    // this always starts at full slide speed: the player already arrives carrying the slope's
+    // momentum, so scaling it down would read as the slide dying at the bottom of the hill.
+    public void ContinueSlideOnGround()
+    {
+        // Keep travelling the way the slope was already carrying the player. Falls back to the
+        // body's facing if horizontal velocity is ~zero, so the slide can never latch onto a
+        // zero vector and stall on the spot.
+        var horizontalVelocity = new Vector3(playerMovement.rb.velocity.x, 0, playerMovement.rb.velocity.z);
+        slideDirectionSaved = horizontalVelocity.sqrMagnitude > 0.01f
+            ? horizontalVelocity.normalized
+            : new Vector3(playerMovement.transform.forward.x, 0, playerMovement.transform.forward.z).normalized;
+
+        currentSlideTimer = playerMovement.playerMovementConfig.slideGroundTime;
+        slideSpeed = playerMovement.playerMovementConfig.maxSlideGroundSpeed;
+
+        playerMovement.CurrentState = PlayerMovement.BodyState.SlidingGround;
+
+        //Save crouch state
+        playerMovement.playerCrouch.savedCrouch = true;
+    }
+
     public void SlideGround()
     {
         if (!playerMovement.features.enableSlideGround) return;

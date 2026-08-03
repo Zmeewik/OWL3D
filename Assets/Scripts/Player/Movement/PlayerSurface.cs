@@ -262,6 +262,27 @@ public class PlayerSurface: MonoBehaviour
         if (playerMovement.CurrentState != PlayerMovement.BodyState.Moving)
         {
             playerMovement.rb.useGravity = false;
+
+            // Reaching flat ground off a slope slide with the slide button still held: carry
+            // straight on into a real ground slide at full speed instead of dropping back to
+            // Moving with a one-off shove.
+            //
+            // Checking CurrentState (not only lastState) is what makes this fire at all in the
+            // common case: lastState is written solely by OnSurfaceCollide's no-contact branch,
+            // i.e. only when the player leaves the ground entirely, so a slope that runs
+            // smoothly into flat ground never updates it. That's also why the legacy impulse
+            // below (gated on lastState AND an exact groundNormal == Vector3.up match) almost
+            // never triggered. It's left in place for the airborne slope -> landing case.
+            if ((playerMovement.CurrentState == PlayerMovement.BodyState.Sliding
+                    || playerMovement.lastState == PlayerMovement.BodyState.Sliding)
+                && playerMovement.features.enableSlideGround
+                && playerMovement.playerCrouch.IsPlayerCrouching())
+            {
+                savedSlideNormal = Vector3.zero;
+                playerMovement.playerSlide.ContinueSlideOnGround();
+                return;
+            }
+
             //Impulse when touching the ground after slope
             if (savedSlideNormal != Vector3.zero && groundNormal == Vector3.up && playerMovement.lastState == PlayerMovement.BodyState.Sliding)
             {
