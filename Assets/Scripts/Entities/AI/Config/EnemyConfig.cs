@@ -1,0 +1,47 @@
+using UnityEngine;
+
+/// <summary>
+/// Per-class tuning for an enemy type (a guard, a bandit, ...). Held by <see cref="EnemyManager"/>
+/// and pushed into an entity's systems on initialization, so a whole class can be retuned in one
+/// asset instead of per scene instance.
+/// </summary>
+[CreateAssetMenu(fileName = "EnemyConfig", menuName = "OWL/AI/Enemy Config")]
+public class EnemyConfig : ScriptableObject
+{
+    [Header("Identity")]
+    public string className = "Security";
+
+    [Tooltip("Prefab spawned by EnemyManager.Spawn for this class.")]
+    public Enemy prefab;
+
+    public Team team = Team.Security;
+
+    [Tooltip("Radio channel members of this class listen on by default.")]
+    public int radioFrequency = 1;
+
+    [Header("Movement")]
+    public float moveSpeed = 4f;
+    public float acceleration = 25f;
+    public float stoppingDistance = 0.6f;
+
+    [Header("Vision")]
+    public float viewDistance = 25f;
+    [Range(1f, 360f)] public float viewAngle = 110f;
+    [Tooltip("How long a target must stay in view before this class reacts to it.")]
+    public float timeToSpot = 0.6f;
+    [Tooltip("How long a target may stay out of view before this class gives up on it.")]
+    public float timeToLose = 2.5f;
+
+    [Header("Combat")]
+    public float rangedRange = 18f;
+    public float meleeRange = 2.2f;
+    public float attackInterval = 1.1f;
+
+    [Header("Communication")]
+    [Tooltip("How far a spotted-target shout carries to nearby allies.")]
+    public float alertRadius = 20f;
+
+    [Header("Social")]
+    [Tooltip("How close this class walks to a friendly before interacting with them.")]
+    public float interactRange = 2.5f;
+}

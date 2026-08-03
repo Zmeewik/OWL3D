@@ -73,9 +73,16 @@ public class Projectile : MonoBehaviour
         {
             if (hit.collider == projectileCollider)
                 continue;
-            
-            if (hit.transform.name == owner.name)
-                return;
+
+            // Never let a shot collide with whoever fired it. The old check compared names, which
+            // only ever matched the shooter's root object -- every hitbox bone under it (layer
+            // BodyParts, which this mask includes) still counted as a hit, so a shot spawned inside
+            // the shooter's own rig died on the first frame. That never showed up with the player,
+            // whose muzzle sits ahead of their collider, but an AI firing from a mount inside its
+            // body killed every bullet instantly. It also used `return` rather than `continue`,
+            // abandoning the remaining hits for that frame instead of just skipping this one.
+            if (owner != null && (hit.transform == owner || hit.transform.IsChildOf(owner)))
+                continue;
 
             if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Bullet"))
             {
