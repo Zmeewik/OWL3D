@@ -1,5 +1,13 @@
 using UnityEngine;
 
+/// <summary>What an attack attempt actually produced, so callers can animate the matching action.</summary>
+public enum EnemyAttackResult
+{
+    None,
+    Melee,
+    Ranged,
+}
+
 /// <summary>
 /// Fires the entity's weapons. Doesn't reimplement any combat maths -- it drives the existing
 /// <see cref="WeaponBase"/> components through the same entry point player input uses
@@ -95,23 +103,33 @@ public class EnemyAttackSystem : EnemySystem
     /// Attacks a target, picking which body part to aim at itself. Range is still judged from the
     /// target's own position, so aiming high or low never changes whether a shot is taken.
     /// </summary>
-    public bool TryAttack(TeamMember target)
+    public EnemyAttackResult TryAttack(TeamMember target)
     {
-        if (target == null)
-            return false;
+        if (target == null || !IsReady)
+            return EnemyAttackResult.None;
 
-        if (!IsReady)
-            return false;
+        // Don't shoot mid-draw: the weapon is still travelling from the holster to the hand, so a
+        // shot fired now leaves the muzzle somewhere around the hip.
+        if (enemy != null && enemy.Animation != null && enemy.Animation.IsChangingWeapon)
+            return EnemyAttackResult.None;
 
         Vector3 targetPosition = target.transform.position;
 
         if (HasMelee && InMeleeRange(targetPosition))
-            return Fire(meleeWeapon, target.GetAimPoint(TeamMember.AimPoint.Center));
+        {
+            return Fire(meleeWeapon, target.GetAimPoint(TeamMember.AimPoint.Center))
+                ? EnemyAttackResult.Melee
+                : EnemyAttackResult.None;
+        }
 
         if (HasRanged && InRangedRange(targetPosition))
-            return Fire(rangedWeapon, target.GetAimPoint(ChooseAimPoint()));
+        {
+            return Fire(rangedWeapon, target.GetAimPoint(ChooseAimPoint()))
+                ? EnemyAttackResult.Ranged
+                : EnemyAttackResult.None;
+        }
 
-        return false;
+        return EnemyAttackResult.None;
     }
 
     public override void TickSystem(float deltaTime)
@@ -122,25 +140,6 @@ public class EnemyAttackSystem : EnemySystem
 
     public bool InMeleeRange(Vector3 targetPosition) => Flat(targetPosition - transform.position).magnitude <= meleeRange;
     public bool InRangedRange(Vector3 targetPosition) => Flat(targetPosition - transform.position).magnitude <= rangedRange;
-
-    /// <summary>
-    /// Attacks with whatever fits the distance -- melee when close enough, otherwise the gun.
-    /// Returns true if a swing/shot actually went out, so callers can drive an attack animation
-    /// only when something happened.
-    /// </summary>
-    public bool TryAttack(Vector3 aimPoint)
-    {
-        if (!IsReady)
-            return false;
-
-        if (HasMelee && InMeleeRange(aimPoint))
-            return Fire(meleeWeapon, aimPoint);
-
-        if (HasRanged && InRangedRange(aimPoint))
-            return Fire(rangedWeapon, aimPoint);
-
-        return false;
-    }
 
     private bool Fire(WeaponBase weapon, Vector3 aimPoint)
     {

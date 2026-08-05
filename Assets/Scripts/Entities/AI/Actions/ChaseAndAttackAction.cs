@@ -64,9 +64,15 @@ public class ChaseAndAttackAction : EnemyAction
             return ActionStatus.Running;
 
         // The attack system picks which body part to aim at, so that choice stays with the thing
-        // that owns the weapons rather than being duplicated by every action that can attack.
-        if (attack != null && attack.TryAttack(target))
-            enemy.Animation?.PlayAttack();
+        // that owns the weapons rather than being duplicated by every action that can attack. It
+        // also reports which weapon went off, so the body plays the matching animation instead of
+        // one generic attack for both.
+        if (attack == null)
+            return ActionStatus.Running;
+
+        var result = attack.TryAttack(target);
+        if (result != EnemyAttackResult.None)
+            enemy.Animation?.PlayAttack(ranged: result == EnemyAttackResult.Ranged);
 
         return ActionStatus.Running;
     }

@@ -78,6 +78,10 @@ public class SecurityStrategy : EnemyStrategy
         Debug.Log($"[AI] {enemy.name} lost {(target != null ? target.name : "target")}, standing down.", enemy);
         RemoveActions<ChaseAndAttackAction>();
 
+        // Standing down means stowing the weapon, which is what puts the entity back into its
+        // unweaponized idle/walk set rather than patrolling forever with the gun out.
+        enemy.Animation?.SetArmed(false);
+
         if (useRadio)
             EnemyManager.Broadcast(EnemyCommand.TargetLost(transform, target, enemy.RadioFrequency));
     }
@@ -126,6 +130,11 @@ public class SecurityStrategy : EnemyStrategy
     {
         if (target == null || !target.IsAlive)
             return;
+
+        // Drawing the weapon belongs here rather than in the action, so an entity ordered into a
+        // fight over the radio arms itself exactly like one that spotted the enemy on its own.
+        // SetArmed is a no-op when already armed, so re-engaging a new target doesn't re-draw.
+        enemy.Animation?.SetArmed(true);
 
         // Already fighting this one? Leave the running action alone rather than restarting it.
         if (CurrentAction is ChaseAndAttackAction chase && chase.Target == target)
