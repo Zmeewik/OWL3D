@@ -21,38 +21,26 @@ public static class RangedAttackResolver
         Transform muzzle,
         string muzzleEffect,
         System.Random rnd,
-        float spreadDegrees = 0f)
+        float spreadDegrees = 0f,
+        Transform aimSource = null)
     {
+        // The sight line is whatever actually represents aim: the view camera for the player, the
+        // weapon itself for an AI that points its weapon at the target on purpose.
+        var sight = aimSource != null ? aimSource : weaponTransform;
+
         switch (attack.kind)
         {
             case AttackKind.Projectile:
-                ResolveProjectile(attack, charged, weaponTransform, owner, muzzle, muzzleEffect, rnd, spreadDegrees);
+                ResolveProjectile(attack, charged, weaponTransform, sight, owner, muzzle, muzzleEffect, rnd, spreadDegrees);
                 break;
             case AttackKind.Ray:
-                ResolveRay(attack, charged, weaponTransform, owner, rnd, spreadDegrees);
+                ResolveRay(attack, charged, sight, owner, rnd, spreadDegrees);
                 break;
         }
     }
 
-    /// <summary>
-    /// Deflects a firing direction by a random amount inside a cone. Applied to the whole rotation
-    /// rather than just the direction vector so a projectile is *spawned* rotated -- Projectile
-    /// takes its velocity from its own transform.forward, so rotating the spawn is what actually
-    /// makes the shot travel off-axis.
-    /// </summary>
     /// <summary>How far down the sight line to look for what the shot is actually pointed at.</summary>
     private const float AimProbeDistance = 500f;
-
-    /// <summary>
-    /// Ceiling on how far converging on the aim point may bend a shot off the sight line.
-    ///
-    /// The correction is atan(muzzleOffset / aimDistance), so it stays under a couple of degrees at
-    /// normal engagement range but blows up as the target gets close -- the player's muzzle sits
-    /// 0.51 to the side, which is 5 degrees at 5 units and 24 degrees at 1. Uncapped, shooting an
-    /// enemy at point blank sent the bullet visibly sideways. Beyond a few units the cap never
-    /// engages, so ordinary shots still converge exactly.
-    /// </summary>
-    private const float MaxConvergenceDegrees = 5f;
 
     /// <summary>
     /// Where the sight line lands: the first thing under it that isn't the shooter, or a far point
@@ -90,6 +78,7 @@ public static class RangedAttackResolver
         AttackVariant attack,
         float charged,
         Transform weaponTransform,
+        Transform sight,
         Transform owner,
         Transform muzzle,
         string muzzleEffect,
@@ -101,11 +90,9 @@ public static class RangedAttackResolver
         {
             var indexProjectile = rnd.Next(0, attack.projectilePrefabs.Length);
 
-            // The sight line is the weapon's own forward -- for the player that is the crosshair,
-            // for an enemy it is the aim the attack system pointed the weapon along.
-            var sightRotation = ApplySpread(weaponTransform.rotation, spreadDegrees, rnd);
+            var sightRotation = ApplySpread(sight.rotation, spreadDegrees, rnd);
             Vector3 sightDirection = sightRotation * Vector3.forward;
-            Vector3 aimPoint = ResolveAimPoint(weaponTransform.position, sightDirection, owner);
+            Vector3 aimPoint = ResolveAimPoint(sight.position, sightDirection, owner);
 
             // Bullets leave the muzzle, but they must still travel to where the sights point.
             // Firing parallel to the sight line from an offset muzzle sends the shot wide by that
@@ -113,23 +100,22 @@ public static class RangedAttackResolver
             // point converges the two. With no muzzle assigned the shot starts at the weapon
             // centre, where the sight line already begins, so nothing changes for it.
             Vector3 spawnPosition = muzzle != null ? muzzle.position : weaponTransform.position;
+
+            // The aim point has to stay ahead of the muzzle. The sight line starts at the eye while
+            // the muzzle is a stride further forward, so anything the line clips close by -- a wall
+            // the player is up against, a doorframe -- lands *behind* the barrel, and converging on
+            // it would fire the shot backwards. Pushing the aim out to just past the muzzle turns
+            // those cases back into a straight shot along the sights.
+            float muzzleAlongSight = Vector3.Dot(spawnPosition - sight.position, sightDirection);
+            float minimumAimDistance = Mathf.Max(muzzleAlongSight + 1f, 2f);
+            if (Vector3.Dot(aimPoint - sight.position, sightDirection) < minimumAimDistance)
+                aimPoint = sight.position + sightDirection * minimumAimDistance;
+
             Vector3 fireDirection = aimPoint - spawnPosition;
 
-            Quaternion firingRotation;
-            if (fireDirection.sqrMagnitude > 1e-6f)
-            {
-                // Converge on the aim point, but never bend further off the sight line than the cap
-                // -- see MaxConvergenceDegrees for why close targets would otherwise throw the shot
-                // sideways.
-                Vector3 capped = Vector3.RotateTowards(
-                    sightDirection, fireDirection.normalized,
-                    MaxConvergenceDegrees * Mathf.Deg2Rad, 0f);
-                firingRotation = Quaternion.LookRotation(capped, Vector3.up);
-            }
-            else
-            {
-                firingRotation = sightRotation;
-            }
+            var firingRotation = fireDirection.sqrMagnitude > 1e-6f
+                ? Quaternion.LookRotation(fireDirection.normalized, Vector3.up)
+                : sightRotation;
 
             proj = Object.Instantiate(attack.projectilePrefabs[indexProjectile], spawnPosition, firingRotation);
         }
@@ -154,14 +140,14 @@ public static class RangedAttackResolver
     private static void ResolveRay(
         AttackVariant attack,
         float charged,
-        Transform weaponTransform,
+        Transform sight,
         Transform owner,
         System.Random rnd,
         float spreadDegrees)
     {
-        Vector3 direction = ApplySpread(weaponTransform.rotation, spreadDegrees, rnd) * Vector3.forward;
+        Vector3 direction = ApplySpread(sight.rotation, spreadDegrees, rnd) * Vector3.forward;
 
-        if (!Physics.Raycast(weaponTransform.position, direction, out var hit, attack.rayDistance))
+        if (!Physics.Raycast(sight.position, direction, out var hit, attack.rayDistance))
             return;
 
         // EntityHealth lives on the character root, not on the named hitbox bone the ray may
@@ -179,7 +165,7 @@ public static class RangedAttackResolver
 
         float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);
         float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
-        Vector3 kbDir = (hit.transform.position - weaponTransform.position).normalized;
+        Vector3 kbDir = (hit.transform.position - sight.position).normalized;
         bool isCharged = charged != -1;
         // Passing the hit collider's rigidbody through as bodyPart lets EntityHealth.ApplyDamage
         // auto-map it (by name) to a per-body-part damage multiplier.

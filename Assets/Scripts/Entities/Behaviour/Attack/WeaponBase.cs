@@ -19,6 +19,19 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
     /// </summary>
     [Tooltip("Random spread cone in degrees for ranged attacks. 0 = perfectly accurate.")]
     [Min(0f)] public float spreadDegrees = 0f;
+
+    /// <summary>
+    /// Where a ranged shot takes its aim from. Leave empty to aim along the weapon itself, which is
+    /// right for an AI that deliberately points its weapon at a target.
+    ///
+    /// The player's weapons must NOT aim along themselves: they hang off the object driven by
+    /// ArmsOffset while the view is rendered by a separate camera driven by PlayerCamera. Those are
+    /// two different procedural sways, so walking makes the weapon's forward drift away from the
+    /// crosshair and shots go wide. Pointing this at the view camera makes the shot follow the
+    /// crosshair while still leaving the muzzle.
+    /// </summary>
+    [Tooltip("Transform whose forward is the true aim (the view camera for the player). Empty = aim along the weapon.")]
+    public Transform aimSource;
     
     // Weapon actions
     public Action<string, float[]> OnWeaponAction;

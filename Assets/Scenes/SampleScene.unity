@@ -1682,7 +1682,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1714496550}
+    m_TransformParent: {fileID: 802557334}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: e675853a194cb1548a4f0b4f9ef4677b,
         type: 3}
@@ -1702,17 +1702,17 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: e675853a194cb1548a4f0b4f9ef4677b,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.0005478682
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e675853a194cb1548a4f0b4f9ef4677b,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.0011900039
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e675853a194cb1548a4f0b4f9ef4677b,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.0019088463
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e675853a194cb1548a4f0b4f9ef4677b,
         type: 3}
@@ -2079,7 +2079,8 @@ MonoBehaviour:
   - {fileID: 750012864}
   - {fileID: 1673298307}
   owner: {fileID: 322448626}
-  spreadDegrees: 0
+  spreadDegrees: 0.3
+  aimSource: {fileID: 330585546}
   muzzle: {fileID: 684871279}
   muzzleEffect: MuzzleFlashPistol
 --- !u!114 &265153125
@@ -2263,6 +2264,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.10000001, y: 0.10000001, z: 0.08839032}
   m_Center: {x: 0, y: 0, z: 0.005804846}
+--- !u!1 &282363415
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 282363416}
+  m_Layer: 11
+  m_Name: Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &282363416
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 282363415}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.9933873, y: -0.030678699, z: 0.08833638, w: 0.06661285}
+  m_LocalPosition: {x: 0.0026356431, y: 0.15950708, z: 0.3236247}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1429497010}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &306597867
 GameObject:
   m_ObjectHideFlags: 0
@@ -3630,6 +3662,7 @@ MonoBehaviour:
   weaponAnimationController: []
   owner: {fileID: 322448626}
   spreadDegrees: 0
+  aimSource: {fileID: 330585546}
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -5059,12 +5092,12 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 195070270}
-  - {fileID: 1714496550}
   - {fileID: 278305583}
   - {fileID: 1806328724}
   - {fileID: 2014782607}
   - {fileID: 2090595212}
   - {fileID: 1404265582}
+  - {fileID: 1714496550}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &734937606
@@ -5275,6 +5308,8 @@ MonoBehaviour:
   rangedRange: 18
   meleeRange: 2.2
   attackInterval: 1.1
+  attackDelayFrames: 10
+  animationFrameRate: 24
   aimHeadWeight: 0.2
   aimBodyWeight: 0.6
   aimLegsWeight: 0.2
@@ -5291,8 +5326,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 830db9b59557b384491c3d2b2142d527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveTurnSpeed: 480
-  aimTurnSpeed: 720
+  moveTurnSpeed: 15
+  aimTurnSpeed: 100
   body: {fileID: 734937605}
 --- !u!114 &734937613
 MonoBehaviour:
@@ -5912,6 +5947,38 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.30555364, y: 0.2702089, z: 0.20000002}
   m_Center: {x: -5.574574e-11, y: 0.16076738, z: -0.000000024962041}
+--- !u!1 &802557333
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 802557334}
+  m_Layer: 11
+  m_Name: Mag
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &802557334
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 802557333}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 206008768}
+  m_Father: {fileID: 1714496550}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -7145,7 +7212,7 @@ CharacterJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: -0.98629, y: 0.0000002682209, z: -0.16502237}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0, z: 0}
+  m_ConnectedAnchor: {x: -0.00000008940697, y: 0.26259667, z: -0.00000023841855}
   serializedVersion: 2
   m_SwingAxis: {x: -0.000000029802322, y: 1.0000001, z: 0.0000028014183}
   m_TwistLimitSpring:
@@ -7212,7 +7279,7 @@ CharacterJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: -0.99893963, y: 0.00000052154064, z: -0.046041906}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0, z: 0}
+  m_ConnectedAnchor: {x: 0.000000022351736, y: 0.27685902, z: 0.00000028312206}
   serializedVersion: 2
   m_SwingAxis: {x: 0.000000461936, y: 1.0000005, z: 0.0000010728836}
   m_TwistLimitSpring:
@@ -8355,6 +8422,7 @@ MonoBehaviour:
   weaponAnimationController: []
   owner: {fileID: 322448626}
   spreadDegrees: 0
+  aimSource: {fileID: 330585546}
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -8632,6 +8700,7 @@ MonoBehaviour:
   weaponAnimationController: []
   owner: {fileID: 322448626}
   spreadDegrees: 0
+  aimSource: {fileID: 330585546}
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -9032,7 +9101,8 @@ MonoBehaviour:
   weaponAnimationController:
   - {fileID: 392912919}
   owner: {fileID: 322448626}
-  spreadDegrees: 0
+  spreadDegrees: 0.3
+  aimSource: {fileID: 330585546}
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -9602,6 +9672,7 @@ MonoBehaviour:
   weaponAnimationController: []
   owner: {fileID: 734937605}
   spreadDegrees: 0
+  aimSource: {fileID: 0}
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
@@ -9664,7 +9735,8 @@ MonoBehaviour:
   - {fileID: 1777917432}
   - {fileID: 57697560}
   owner: {fileID: 322448626}
-  spreadDegrees: 3
+  spreadDegrees: 0.3
+  aimSource: {fileID: 330585546}
   muzzle: {fileID: 20224335}
   muzzleEffect: MuzzleFlashPistol
 --- !u!114 &1411702226
@@ -9795,6 +9867,12 @@ MonoBehaviour:
     - H_Arms_Pistol_ShowOff
     bodyPartsIntended: 0000000001000000
     weaponIntended: 0000000001000000
+--- !u!4 &1429497010 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 533193074659131909, guid: a9d54b8b63d9f1a43b98342a844cefcf,
+    type: 3}
+  m_PrefabInstance: {fileID: 1714496548}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1431805601
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11390,7 +11468,8 @@ MonoBehaviour:
   weaponAnimationController:
   - {fileID: 1889367479}
   owner: {fileID: 322448626}
-  spreadDegrees: 0
+  spreadDegrees: 0.3
+  aimSource: {fileID: 330585546}
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -11763,7 +11842,11 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: a9d54b8b63d9f1a43b98342a844cefcf,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 206008768}
+      addedObject: {fileID: 802557334}
+    - targetCorrespondingSourceObject: {fileID: 533193074659131909, guid: a9d54b8b63d9f1a43b98342a844cefcf,
+        type: 3}
+      insertIndex: 0
+      addedObject: {fileID: 282363416}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a9d54b8b63d9f1a43b98342a844cefcf,
         type: 3}
@@ -11857,8 +11940,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.07962805, y: 0.3752352, z: 0.20210536}
-  m_Center: {x: -0.2042387, y: 0.86626655, z: 0.04329262}
+  m_Size: {x: 0.080860056, y: 0.29235888, z: 0.4100001}
+  m_Center: {x: -0.20227352, y: -0.0038205895, z: 0.84}
 --- !u!1 &1735258472
 GameObject:
   m_ObjectHideFlags: 0
@@ -13113,18 +13196,18 @@ CharacterJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0.19077866, y: -0.000000037252903, z: 0.98163307}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0, z: 0}
+  m_ConnectedAnchor: {x: 0.00000007450612, y: 0.38593468, z: 0.000000052154228}
   serializedVersion: 2
   m_SwingAxis: {x: 0.0000009834766, y: 1.0000002, z: -0.00000012665987}
   m_TwistLimitSpring:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -7.723795
+    limit: -113.09
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 114.27621
+    limit: 5.6
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
@@ -13207,18 +13290,18 @@ CharacterJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: -0.80845, y: -0.000012636185, z: 0.5885652}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0, y: 0, z: 0}
+  m_ConnectedAnchor: {x: -0.000000035388585, y: 0.39608178, z: 0.00000005960209}
   serializedVersion: 2
   m_SwingAxis: {x: -0.000027790666, y: 1.0000004, z: -0.000016719103}
   m_TwistLimitSpring:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -4.187866
+    limit: -111.92
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 117.81213
+    limit: 4.23
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
@@ -13485,7 +13568,8 @@ MonoBehaviour:
   weaponAnimationController: []
   owner: {fileID: 734937605}
   spreadDegrees: 0
-  muzzle: {fileID: 2014782607}
+  aimSource: {fileID: 0}
+  muzzle: {fileID: 282363416}
   muzzleEffect: MuzzleFlashPistol
 --- !u!4 &2014782607
 Transform:
@@ -14407,6 +14491,7 @@ MonoBehaviour:
   weaponAnimationController: []
   owner: {fileID: 734937605}
   spreadDegrees: 0
+  aimSource: {fileID: 0}
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
