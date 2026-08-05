@@ -19,6 +19,7 @@ public class EnemyRotationSystem : EnemySystem
     private bool hasAimPoint;
 
     private EnemyMovementSystem movement;
+    private Rigidbody rb;
 
     public override void Initialize(Enemy owner)
     {
@@ -26,6 +27,7 @@ public class EnemyRotationSystem : EnemySystem
         if (body == null)
             body = owner.transform;
         movement = owner.Movement;
+        rb = owner.GetComponent<Rigidbody>();
     }
 
     /// <summary>Face this transform until cleared. Overrides movement-facing.</summary>
@@ -58,7 +60,14 @@ public class EnemyRotationSystem : EnemySystem
         return Vector3.Angle(Flat(body.forward), dir) <= toleranceDegrees;
     }
 
-    public override void TickSystem(float deltaTime)
+    /// <summary>
+    /// Turning happens on the physics step, not in Update. The body carries an interpolated
+    /// Rigidbody, and interpolation rewrites the transform every frame from the smoothed physics
+    /// pose -- so writing transform.rotation from Update meant our value and the interpolator's
+    /// were overwriting each other at different rates, which showed up as the body snapping round
+    /// in visible jerks instead of turning smoothly.
+    /// </summary>
+    public override void FixedTickSystem(float fixedDeltaTime)
     {
         if (body == null) return;
 
@@ -84,7 +93,14 @@ public class EnemyRotationSystem : EnemySystem
             return;
 
         var targetRotation = Quaternion.LookRotation(desired, Vector3.up);
-        body.rotation = Quaternion.RotateTowards(body.rotation, targetRotation, speed * deltaTime);
+        var next = Quaternion.RotateTowards(body.rotation, targetRotation, speed * fixedDeltaTime);
+
+        // Route it through the Rigidbody so the interpolator smooths between steps instead of
+        // fighting a transform written behind its back.
+        if (rb != null)
+            rb.MoveRotation(next);
+        else
+            body.rotation = next;
     }
 
     private bool TryGetAimDirection(out Vector3 direction)
