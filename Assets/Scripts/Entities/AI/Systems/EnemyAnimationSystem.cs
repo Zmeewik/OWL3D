@@ -152,6 +152,51 @@ public class EnemyAnimationSystem : EnemySystem
         }
 
         PlayMotion(movement != null && movement.IsMoving ? EnemyMotion.Walk : EnemyMotion.Idle);
+        RestartFinishedLoop();
+    }
+
+    /// <summary>
+    /// Motions that are a continuous state rather than a one-off event, and so must keep running
+    /// for as long as the enemy stays in them.
+    /// </summary>
+    private static bool IsLoopingMotion(EnemyMotion motion)
+    {
+        return motion == EnemyMotion.Idle
+            || motion == EnemyMotion.Walk
+            || motion == EnemyMotion.InAir
+            || motion == EnemyMotion.BlockContinue
+            || motion == EnemyMotion.Talk;
+    }
+
+    /// <summary>
+    /// Re-issues a continuous motion once its clip has run out.
+    ///
+    /// Every clip on this rig is imported with Loop Time off, so a state like idle or walk played
+    /// once and then froze on its final frame -- the animator kept advancing normalizedTime past 1
+    /// while the pose never changed again, which reads as "the animations fire once and then stop
+    /// working". PlayMotion alone can't recover from that: it skips re-issuing a motion that's
+    /// already current, so nothing ever restarted the clip.
+    ///
+    /// Done here rather than by flipping Loop Time on the importers so the behaviour holds no
+    /// matter how the FBXs are re-exported; a state the importer *does* loop is left alone.
+    /// </summary>
+    private void RestartFinishedLoop()
+    {
+        if (!hasCurrentMotion || oneShotRemaining > 0f || !IsLoopingMotion(currentMotion))
+            return;
+
+        foreach (var part in parts)
+        {
+            if (part.animator == null)
+                continue;
+
+            var state = part.animator.GetCurrentAnimatorStateInfo(0);
+            if (state.loop || state.normalizedTime < 1f)
+                continue;
+
+            PlayMotion(currentMotion, force: true);
+            return;
+        }
     }
 
     // ---- Public API ---------------------------------------------------------
