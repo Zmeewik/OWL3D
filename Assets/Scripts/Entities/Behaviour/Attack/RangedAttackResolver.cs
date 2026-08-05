@@ -42,6 +42,22 @@ public static class RangedAttackResolver
     /// <summary>How far down the sight line to look for what the shot is actually pointed at.</summary>
     private const float AimProbeDistance = 500f;
 
+    private static int aimProbeMask = -1;
+
+    /// <summary>
+    /// Layers the aim probe treats as something you can actually shoot at.
+    ///
+    /// Deliberately not every layer: entities carry a MainCollisionControl trigger on Default that
+    /// is several times wider than the body (4.5 units against a 1.4 capsule), so probing all
+    /// layers landed the aim point on that invisible box a metre or two in front of the target and
+    /// pulled the shot off to the side. Projectile's own hit mask already excludes Default for the
+    /// same reason -- this brings the probe in line with what a bullet can hit.
+    /// </summary>
+    private static int AimProbeMask =>
+        aimProbeMask >= 0
+            ? aimProbeMask
+            : aimProbeMask = LayerMask.GetMask("Ground", "ObjectGround", "Player", "Entity", "BodyParts");
+
     /// <summary>
     /// Where the sight line lands: the first thing under it that isn't the shooter, or a far point
     /// along it when the line hits nothing. Triggers count, so a body-part hitbox is a valid thing
@@ -49,7 +65,7 @@ public static class RangedAttackResolver
     /// </summary>
     private static Vector3 ResolveAimPoint(Vector3 sightOrigin, Vector3 sightDirection, Transform owner)
     {
-        var hits = Physics.RaycastAll(sightOrigin, sightDirection, AimProbeDistance, ~0,
+        var hits = Physics.RaycastAll(sightOrigin, sightDirection, AimProbeDistance, AimProbeMask,
                                       QueryTriggerInteraction.Collide);
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -147,7 +163,12 @@ public static class RangedAttackResolver
     {
         Vector3 direction = ApplySpread(sight.rotation, spreadDegrees, rnd) * Vector3.forward;
 
-        if (!Physics.Raycast(sight.position, direction, out var hit, attack.rayDistance))
+        // Same mask as the aim probe, and for the same reason: an unmasked ray struck the
+        // MainCollisionControl volume around a character well before the character, and since that
+        // volume is a child of the root, GetComponentInParent below happily resolved EntityHealth
+        // off it -- so a hitscan shot registered on an invisible box, occasionally on a bystander's.
+        if (!Physics.Raycast(sight.position, direction, out var hit, attack.rayDistance, AimProbeMask,
+                             QueryTriggerInteraction.Collide))
             return;
 
         // EntityHealth lives on the character root, not on the named hitbox bone the ray may
