@@ -44,6 +44,17 @@ public static class RangedAttackResolver
     private const float AimProbeDistance = 500f;
 
     /// <summary>
+    /// Ceiling on how far converging on the aim point may bend a shot off the sight line.
+    ///
+    /// The correction is atan(muzzleOffset / aimDistance), so it stays under a couple of degrees at
+    /// normal engagement range but blows up as the target gets close -- the player's muzzle sits
+    /// 0.51 to the side, which is 5 degrees at 5 units and 24 degrees at 1. Uncapped, shooting an
+    /// enemy at point blank sent the bullet visibly sideways. Beyond a few units the cap never
+    /// engages, so ordinary shots still converge exactly.
+    /// </summary>
+    private const float MaxConvergenceDegrees = 5f;
+
+    /// <summary>
     /// Where the sight line lands: the first thing under it that isn't the shooter, or a far point
     /// along it when the line hits nothing. Triggers count, so a body-part hitbox is a valid thing
     /// to be aiming at.
@@ -103,9 +114,22 @@ public static class RangedAttackResolver
             // centre, where the sight line already begins, so nothing changes for it.
             Vector3 spawnPosition = muzzle != null ? muzzle.position : weaponTransform.position;
             Vector3 fireDirection = aimPoint - spawnPosition;
-            var firingRotation = fireDirection.sqrMagnitude > 1e-6f
-                ? Quaternion.LookRotation(fireDirection.normalized, Vector3.up)
-                : sightRotation;
+
+            Quaternion firingRotation;
+            if (fireDirection.sqrMagnitude > 1e-6f)
+            {
+                // Converge on the aim point, but never bend further off the sight line than the cap
+                // -- see MaxConvergenceDegrees for why close targets would otherwise throw the shot
+                // sideways.
+                Vector3 capped = Vector3.RotateTowards(
+                    sightDirection, fireDirection.normalized,
+                    MaxConvergenceDegrees * Mathf.Deg2Rad, 0f);
+                firingRotation = Quaternion.LookRotation(capped, Vector3.up);
+            }
+            else
+            {
+                firingRotation = sightRotation;
+            }
 
             proj = Object.Instantiate(attack.projectilePrefabs[indexProjectile], spawnPosition, firingRotation);
         }
