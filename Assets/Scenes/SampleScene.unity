@@ -1481,8 +1481,9 @@ MonoBehaviour:
   - forearm
   - elbow
   hingeMaxFlexion: 140
-  hingeHyperextension: 0
+  hingeMinFlexion: 18
   hingeSideSlack: 3
+  ragdollSolverIterations: 40
   mainRigidbody: {fileID: 734937604}
   mainCollider: {fileID: 734937603}
   animators:
@@ -7155,7 +7156,7 @@ CharacterJoint:
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 32.033535
+    limit: 14.033535
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
@@ -7222,7 +7223,7 @@ CharacterJoint:
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
-    limit: 28.712711
+    limit: 10.712711
     bounciness: 0
     contactDistance: 0
   m_SwingLimitSpring:
@@ -13119,7 +13120,7 @@ CharacterJoint:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -25.723795
+    limit: -7.723795
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:
@@ -13213,7 +13214,7 @@ CharacterJoint:
     spring: 0
     damper: 0
   m_LowTwistLimit:
-    limit: -22.187866
+    limit: -4.187866
     bounciness: 0
     contactDistance: 0
   m_HighTwistLimit:

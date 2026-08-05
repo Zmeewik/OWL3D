@@ -31,12 +31,18 @@ public class ComplexColliderHandle : MonoBehaviour
     [Tooltip("How far the limb may bend, measured from fully straight. Anatomical range, not joint-relative.")]
     public float hingeMaxFlexion = 140f;
 
-    [Tooltip("How far past straight the limb may go the wrong way. Keep small -- this is what stops knees " +
-             "and elbows inverting.")]
-    public float hingeHyperextension = 3f;
+    [Tooltip("How bent the limb must stay -- it may not straighten past this many degrees from straight. " +
+             "This is the margin that keeps a joint from LOOKING inverted: PhysX enforces joint limits " +
+             "softly, and under load an elbow was measured overshooting its limit by ~20 degrees, so a " +
+             "limit set exactly at straight still ends up visibly hyperextended.")]
+    public float hingeMinFlexion = 18f;
 
     [Tooltip("Sideways/twisting slack left on a hinge. Small values keep it a hinge rather than a ball joint.")]
     public float hingeSideSlack = 3f;
+
+    [Tooltip("Solver iterations for ragdoll bodies. The stock 6 lets a 14-body chain with a 16:1 mass " +
+             "ratio push straight through its joint limits.")]
+    public int ragdollSolverIterations = 40;
 
     [SerializeField] private Rigidbody mainRigidbody;
     [SerializeField] private Collider mainCollider;
@@ -245,10 +251,12 @@ public class ComplexColliderHandle : MonoBehaviour
         hinge.axis = go.transform.InverseTransformDirection(axisWorld);
         hinge.swingAxis = go.transform.InverseTransformDirection(childSegment);
 
-        // Room to keep bending the way the limb already bends, and only a sliver the other way.
-        // Which of the two twist limits is the roomy one depends on which side of the canonical
-        // axis this limb flexes towards.
-        float toStraight = restBend + hingeHyperextension;
+        // Room to keep bending the way the limb already bends, and a deliberately short leash the
+        // other way: the limb is stopped hingeMinFlexion degrees before straight rather than at
+        // straight, so the overshoot PhysX allows under load lands at roughly straight instead of
+        // visibly past it. Which of the two twist limits gets the room depends on which side of the
+        // canonical axis this limb flexes towards.
+        float toStraight = Mathf.Max(0f, restBend - hingeMinFlexion);
         float toFlexed = Mathf.Max(0f, hingeMaxFlexion - restBend);
 
         var low = hinge.lowTwistLimit;
@@ -329,6 +337,14 @@ public class ComplexColliderHandle : MonoBehaviour
     // Ragdoll control
     public void ActivateRagdoll()
     {
+        // Stock solver iterations let this chain push straight through its joint limits, which is
+        // what let knees and elbows fold the wrong way even with the limits set correctly.
+        foreach (var rb in GetComponentsInChildren<Rigidbody>(true))
+        {
+            rb.solverIterations = ragdollSolverIterations;
+            rb.solverVelocityIterations = Mathf.Max(1, ragdollSolverIterations / 2);
+        }
+
         // Disable Animator
         foreach (var animator in animators)
         {
