@@ -40,6 +40,31 @@ public static class RangedAttackResolver
     /// takes its velocity from its own transform.forward, so rotating the spawn is what actually
     /// makes the shot travel off-axis.
     /// </summary>
+    /// <summary>How far down the sight line to look for what the shot is actually pointed at.</summary>
+    private const float AimProbeDistance = 500f;
+
+    /// <summary>
+    /// Where the sight line lands: the first thing under it that isn't the shooter, or a far point
+    /// along it when the line hits nothing. Triggers count, so a body-part hitbox is a valid thing
+    /// to be aiming at.
+    /// </summary>
+    private static Vector3 ResolveAimPoint(Vector3 sightOrigin, Vector3 sightDirection, Transform owner)
+    {
+        var hits = Physics.RaycastAll(sightOrigin, sightDirection, AimProbeDistance, ~0,
+                                      QueryTriggerInteraction.Collide);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var hit in hits)
+        {
+            if (owner != null && (hit.transform == owner || hit.transform.IsChildOf(owner)))
+                continue;
+
+            return hit.point;
+        }
+
+        return sightOrigin + sightDirection * AimProbeDistance;
+    }
+
     private static Quaternion ApplySpread(Quaternion rotation, float spreadDegrees, System.Random rnd)
     {
         if (spreadDegrees <= 0f)
@@ -64,14 +89,25 @@ public static class RangedAttackResolver
         if (attack.projectilePrefabs.Length > 0)
         {
             var indexProjectile = rnd.Next(0, attack.projectilePrefabs.Length);
-            var firingRotation = ApplySpread(weaponTransform.rotation, spreadDegrees, rnd);
 
-            // Offset along the deviated direction, not the weapon's, so the muzzle stays on the
-            // line the shot actually travels.
-            proj = Object.Instantiate(
-                attack.projectilePrefabs[indexProjectile],
-                weaponTransform.position + firingRotation * Vector3.forward,
-                firingRotation);
+            // The sight line is the weapon's own forward -- for the player that is the crosshair,
+            // for an enemy it is the aim the attack system pointed the weapon along.
+            var sightRotation = ApplySpread(weaponTransform.rotation, spreadDegrees, rnd);
+            Vector3 sightDirection = sightRotation * Vector3.forward;
+            Vector3 aimPoint = ResolveAimPoint(weaponTransform.position, sightDirection, owner);
+
+            // Bullets leave the muzzle, but they must still travel to where the sights point.
+            // Firing parallel to the sight line from an offset muzzle sends the shot wide by that
+            // offset, which is exactly what looked wrong; aiming the spawn at the sight's landing
+            // point converges the two. With no muzzle assigned the shot starts at the weapon
+            // centre, where the sight line already begins, so nothing changes for it.
+            Vector3 spawnPosition = muzzle != null ? muzzle.position : weaponTransform.position;
+            Vector3 fireDirection = aimPoint - spawnPosition;
+            var firingRotation = fireDirection.sqrMagnitude > 1e-6f
+                ? Quaternion.LookRotation(fireDirection.normalized, Vector3.up)
+                : sightRotation;
+
+            proj = Object.Instantiate(attack.projectilePrefabs[indexProjectile], spawnPosition, firingRotation);
         }
 
         HitObject hitObj = null;

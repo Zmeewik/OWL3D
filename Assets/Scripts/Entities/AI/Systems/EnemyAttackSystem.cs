@@ -125,7 +125,9 @@ public class EnemyAttackSystem : EnemySystem
     /// </summary>
     public EnemyAttackResult TryAttack(TeamMember target)
     {
-        if (target == null || !IsReady)
+        // Alive is checked here as well as at release: without it an attack could be committed at a
+        // corpse, reporting a swing the caller then animates while no shot ever goes out.
+        if (target == null || !target.IsAlive || !IsReady)
             return EnemyAttackResult.None;
 
         // Don't shoot mid-draw: the weapon is still travelling from the holster to the hand, so a
