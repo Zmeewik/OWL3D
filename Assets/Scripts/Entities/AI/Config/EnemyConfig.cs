@@ -37,6 +37,10 @@ public class EnemyConfig : ScriptableObject
     public float meleeRange = 2.2f;
     public float attackInterval = 1.1f;
 
+    [Tooltip("Frames of wind-up before a shot or strike actually goes out, so the hit lands on the " +
+             "animation's contact frame. Clips are authored at 24 fps.")]
+    [Min(0f)] public float attackDelayFrames = 10f;
+
     [Tooltip("Spread cone in degrees pushed onto this class's weapons. Negative keeps whatever the " +
              "weapon prefab was set to.")]
     public float weaponSpreadDegrees = 3f;

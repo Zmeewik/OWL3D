@@ -28,6 +28,25 @@ public class EnemyAttackSystem : EnemySystem
     [Tooltip("Minimum delay between AI attacks, on top of each AttackVariant's own cooldown.")]
     [SerializeField] private float attackInterval = 1.1f;
 
+    [Tooltip("Frames between the attack animation starting and the shot or strike actually going " +
+             "out, so the hit lands on the animation's contact frame instead of the instant the " +
+             "attack is decided.")]
+    [SerializeField, Min(0f)] private float attackDelayFrames = 10f;
+
+    [Tooltip("Frame rate the attack clips were authored at. The Runner's clips come out of Blender " +
+             "at 24 fps, which is what turns the frame count above into seconds.")]
+    [SerializeField, Min(1f)] private float animationFrameRate = 24f;
+
+    // A committed attack waiting for its contact frame.
+    private bool hasPendingAttack;
+    private float pendingDelay;
+    private WeaponBase pendingWeapon;
+    private TeamMember pendingTarget;
+    private TeamMember.AimPoint pendingAimPoint;
+
+    /// <summary>Seconds between the animation starting and the hit going out.</summary>
+    public float AttackDelay => animationFrameRate > 0f ? attackDelayFrames / animationFrameRate : 0f;
+
     [Header("Aim")]
     [Tooltip("Relative chance of aiming at each body part. Picked per shot; zero disables a part.")]
     [SerializeField, Min(0f)] private float aimHeadWeight = 0.2f;
@@ -56,6 +75,7 @@ public class EnemyAttackSystem : EnemySystem
         rangedRange = config.rangedRange;
         meleeRange = config.meleeRange;
         attackInterval = config.attackInterval;
+        attackDelayFrames = config.attackDelayFrames;
         weaponSpreadDegrees = config.weaponSpreadDegrees;
         aimHeadWeight = config.aimHeadWeight;
         aimBodyWeight = config.aimBodyWeight;
@@ -116,34 +136,82 @@ public class EnemyAttackSystem : EnemySystem
         Vector3 targetPosition = target.transform.position;
 
         if (HasMelee && InMeleeRange(targetPosition))
-        {
-            return Fire(meleeWeapon, target.GetAimPoint(TeamMember.AimPoint.Center))
-                ? EnemyAttackResult.Melee
-                : EnemyAttackResult.None;
-        }
+            return Commit(meleeWeapon, target, TeamMember.AimPoint.Center) ? EnemyAttackResult.Melee : EnemyAttackResult.None;
 
         if (HasRanged && InRangedRange(targetPosition))
-        {
-            return Fire(rangedWeapon, target.GetAimPoint(ChooseAimPoint()))
-                ? EnemyAttackResult.Ranged
-                : EnemyAttackResult.None;
-        }
+            return Commit(rangedWeapon, target, ChooseAimPoint()) ? EnemyAttackResult.Ranged : EnemyAttackResult.None;
 
         return EnemyAttackResult.None;
+    }
+
+    /// <summary>
+    /// Books an attack and starts its wind-up. The caller gets the result straight away so the
+    /// animation begins now; the weapon itself goes off once the delay elapses.
+    /// </summary>
+    private bool Commit(WeaponBase weapon, TeamMember target, TeamMember.AimPoint aimPoint)
+    {
+        if (!CanUse(weapon))
+            return false;
+
+        pendingWeapon = weapon;
+        pendingTarget = target;
+        pendingAimPoint = aimPoint;
+        pendingDelay = AttackDelay;
+        hasPendingAttack = true;
+
+        // Cooldown runs from the moment the attack starts, so the rhythm follows the animation
+        // rather than drifting by the wind-up each time.
+        cooldownRemaining = attackInterval;
+
+        if (pendingDelay <= 0f)
+            ReleasePendingAttack();
+
+        return true;
     }
 
     public override void TickSystem(float deltaTime)
     {
         if (cooldownRemaining > 0f)
             cooldownRemaining -= deltaTime;
+
+        if (!hasPendingAttack)
+            return;
+
+        pendingDelay -= deltaTime;
+        if (pendingDelay <= 0f)
+            ReleasePendingAttack();
     }
+
+    private void ReleasePendingAttack()
+    {
+        hasPendingAttack = false;
+
+        if (pendingWeapon == null)
+            return;
+
+        // Aim is resolved now, not when the attack was decided, so a target that moved during the
+        // wind-up is still tracked -- and a target that died in the meantime isn't shot at.
+        if (pendingTarget == null || !pendingTarget.IsAlive)
+        {
+            pendingWeapon = null;
+            pendingTarget = null;
+            return;
+        }
+
+        Fire(pendingWeapon, pendingTarget.GetAimPoint(pendingAimPoint));
+        pendingWeapon = null;
+        pendingTarget = null;
+    }
+
+    private static bool CanUse(WeaponBase weapon) =>
+        weapon != null && weapon.attacks != null && weapon.attacks.Length > 0 && weapon.attacks[0] != null;
 
     public bool InMeleeRange(Vector3 targetPosition) => Flat(targetPosition - transform.position).magnitude <= meleeRange;
     public bool InRangedRange(Vector3 targetPosition) => Flat(targetPosition - transform.position).magnitude <= rangedRange;
 
     private bool Fire(WeaponBase weapon, Vector3 aimPoint)
     {
-        if (weapon == null || weapon.attacks == null || weapon.attacks.Length == 0 || weapon.attacks[0] == null)
+        if (!CanUse(weapon))
             return false;
 
         // Point the weapon itself at the target rather than relying on the body's facing. Two
@@ -157,8 +225,9 @@ public class EnemyAttackSystem : EnemySystem
             weapon.transform.rotation = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
 
         // Index 0 / Pressed is the uncharged primary attack -- the same path a player click takes.
+        // The cooldown is not touched here: Commit already started it when the attack began, so the
+        // interval measures animation-to-animation rather than gaining the wind-up every cycle.
         weapon.HandleInput(0, AttackInputType.Pressed);
-        cooldownRemaining = attackInterval;
         return true;
     }
 
