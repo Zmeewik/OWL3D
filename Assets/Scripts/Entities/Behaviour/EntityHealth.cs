@@ -69,7 +69,14 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
         currentHealth = Mathf.Max(currentHealth, 0);
 
         OnTakeDamage?.Invoke(finalDamage);
-        string anim = Vector3.Dot( transform.forward, damagePacket.forceApplied.normalized) > 0 ? AnimateCommand.HitFront : AnimateCommand.HitBack;
+
+        // forceApplied points the way the hit travels -- from the attacker into the target -- so a
+        // blow to the face arrives pointing AGAINST this entity's forward, giving a negative dot.
+        // The test used to read that as a hit from behind, which is why being shot in the front
+        // played the back reaction and vice versa.
+        string anim = Vector3.Dot(transform.forward, damagePacket.forceApplied.normalized) < 0f
+            ? AnimateCommand.HitFront
+            : AnimateCommand.HitBack;
         Animate(anim, speed: 2);
 
         // Death sequence
