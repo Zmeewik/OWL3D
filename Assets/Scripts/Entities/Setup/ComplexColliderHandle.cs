@@ -143,11 +143,15 @@ public class ComplexColliderHandle : MonoBehaviour
         var joints = GetComponentsInChildren<CharacterJoint>(true);
         int configured = 0, skipped = 0;
 
+        // Snapshot the chain before touching anything: configuring a joint replaces the component,
+        // which would invalidate entries of a live array mid-iteration.
+        var hinges = new List<CharacterJoint>();
         foreach (var joint in joints)
-        {
-            if (!IsHingeBone(joint.gameObject.name))
-                continue;
+            if (IsHingeBone(joint.gameObject.name))
+                hinges.Add(joint);
 
+        foreach (var joint in hinges)
+        {
             if (!TryConfigureHinge(joint, joints))
                 skipped++;
             else
@@ -208,29 +212,67 @@ public class ComplexColliderHandle : MonoBehaviour
 
         axisWorld.Normalize();
 
-        // The twist limits are relative to the current pose, but the tuning values are stated
-        // relative to a straight limb -- so the existing pre-bend is subtracted out. Without this,
-        // "3 degrees of hyperextension" would forbid the limb from even straightening back out.
-        float restBend = Vector3.Angle(parentSegment, childSegment);
+        // Point every hinge axis the same way across the body, then let the SIGN of the rest bend
+        // about it decide which side flexion is on. Letting the axis itself flip per joint doesn't
+        // work: the cross product comes out near +right at the knees but near -right at the elbows
+        // (they bend opposite ways), and with the limits always written as "a little backwards, a
+        // lot forwards" that silently inverted every elbow. Canonicalising the axis moves that
+        // difference into the limits, where it is explicit.
+        if (Vector3.Dot(axisWorld, transform.right) < 0f)
+            axisWorld = -axisWorld;
 
-        joint.axis = joint.transform.InverseTransformDirection(axisWorld);
-        joint.swingAxis = joint.transform.InverseTransformDirection(childSegment);
+        // Signed, so a limb that flexes against the canonical axis reports a negative rest bend.
+        float signedRest = Vector3.SignedAngle(parentSegment, childSegment, axisWorld);
+        float restBend = Mathf.Abs(signedRest);
 
-        var low = joint.lowTwistLimit;
-        low.limit = -(restBend + hingeHyperextension);
-        joint.lowTwistLimit = low;
+        // A CharacterJoint freezes its zero-rotation reference when it is created, not when its
+        // limits are edited. These joints were built by InitializePart in whatever pose the rig
+        // happened to be in, so limits written against the *current* pose were being applied around
+        // some other zero -- which is why a knee that measured correct on one leg came out inverted
+        // on the other. Rebuilding the component here makes "zero == this pose" true by
+        // construction, so the numbers below mean what they say.
+        var go = joint.gameObject;
+        var connected = joint.connectedBody;
+        var anchor = joint.anchor;
+        bool projection = joint.enableProjection;
+        DestroyImmediate(joint);
 
-        var high = joint.highTwistLimit;
-        high.limit = Mathf.Max(0f, hingeMaxFlexion - restBend);
-        joint.highTwistLimit = high;
+        var hinge = go.AddComponent<CharacterJoint>();
+        hinge.connectedBody = connected;
+        hinge.anchor = anchor;
+        hinge.enableProjection = projection;
 
-        var swing1 = joint.swing1Limit;
+        hinge.axis = go.transform.InverseTransformDirection(axisWorld);
+        hinge.swingAxis = go.transform.InverseTransformDirection(childSegment);
+
+        // Room to keep bending the way the limb already bends, and only a sliver the other way.
+        // Which of the two twist limits is the roomy one depends on which side of the canonical
+        // axis this limb flexes towards.
+        float toStraight = restBend + hingeHyperextension;
+        float toFlexed = Mathf.Max(0f, hingeMaxFlexion - restBend);
+
+        var low = hinge.lowTwistLimit;
+        var high = hinge.highTwistLimit;
+        if (signedRest >= 0f)
+        {
+            low.limit = -toStraight;
+            high.limit = toFlexed;
+        }
+        else
+        {
+            low.limit = -toFlexed;
+            high.limit = toStraight;
+        }
+        hinge.lowTwistLimit = low;
+        hinge.highTwistLimit = high;
+
+        var swing1 = hinge.swing1Limit;
         swing1.limit = hingeSideSlack;
-        joint.swing1Limit = swing1;
+        hinge.swing1Limit = swing1;
 
-        var swing2 = joint.swing2Limit;
+        var swing2 = hinge.swing2Limit;
         swing2.limit = hingeSideSlack;
-        joint.swing2Limit = swing2;
+        hinge.swing2Limit = swing2;
 
         return true;
     }
