@@ -110,7 +110,8 @@ public class Projectile : MonoBehaviour
                     force * transform.forward,
                     transform.position,
                     isCharged,
-                    bodypartRB);
+                    bodypartRB,
+                    owner);
                 
                 print(rootObject.name + " is damaged at: " + packet.damage);
                 

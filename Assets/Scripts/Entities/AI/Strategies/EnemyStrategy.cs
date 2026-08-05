@@ -32,6 +32,9 @@ public abstract class EnemyStrategy : MonoBehaviour
             owner.Vision.OnTargetLost += HandleTargetLost;
         }
 
+        if (owner.Health != null)
+            owner.Health.OnDamaged += HandleDamaged;
+
         OnInitialized();
     }
 
@@ -39,11 +42,16 @@ public abstract class EnemyStrategy : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (enemy != null && enemy.Vision != null)
+        if (enemy == null) return;
+
+        if (enemy.Vision != null)
         {
             enemy.Vision.OnTargetSpotted -= HandleTargetSpotted;
             enemy.Vision.OnTargetLost -= HandleTargetLost;
         }
+
+        if (enemy.Health != null)
+            enemy.Health.OnDamaged -= HandleDamaged;
     }
 
     /// <summary>Runs the action at the head of the queue, advancing when it finishes.</summary>
@@ -155,7 +163,27 @@ public abstract class EnemyStrategy : MonoBehaviour
 
     private void HandleTargetSpotted(TeamMember target) => OnTargetSpotted(target);
     private void HandleTargetLost(TeamMember target) => OnTargetLost(target);
+    private void HandleDamaged(DamagePacket packet) => OnDamaged(packet);
 
     protected virtual void OnTargetSpotted(TeamMember target) { }
     protected virtual void OnTargetLost(TeamMember target) { }
+
+    /// <summary>
+    /// Reacts to taking a hit. Default just turns to face where it came from -- override to add
+    /// aggro on top (see <see cref="SecurityStrategy"/>) or something else entirely for a strategy
+    /// that shouldn't fight back.
+    /// </summary>
+    protected virtual void OnDamaged(DamagePacket packet)
+    {
+        if (enemy == null || enemy.Rotation == null)
+            return;
+
+        // forceApplied points from attacker into victim (EntityHealth.ApplyDamage relies on the
+        // same fact for its hit-reaction animation), so its reverse points back toward the source.
+        Vector3 towardSource = -packet.forceApplied;
+        if (towardSource.sqrMagnitude < 0.0001f)
+            return;
+
+        enemy.Rotation.AimAt(enemy.transform.position + towardSource.normalized * 5f);
+    }
 }

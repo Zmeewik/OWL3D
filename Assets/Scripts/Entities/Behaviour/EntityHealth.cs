@@ -35,6 +35,13 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     public event Action<float> OnTakeDamage;
     public event Action OnDeath;
     public event Action<float> OnHealed;
+
+    /// <summary>
+    /// Raised with the full hit info (direction, attacker) whenever real damage actually lands --
+    /// not on a blocked hit. AI reactions (aggro, turning to face the shot) need more than the bare
+    /// float OnTakeDamage carries, so this fires alongside it instead of replacing it.
+    /// </summary>
+    public event Action<DamagePacket> OnDamaged;
     
     //Animation activation
     public Action<string, bool, float> OnAnimateCommand { get; set; }
@@ -69,6 +76,7 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
         currentHealth = Mathf.Max(currentHealth, 0);
 
         OnTakeDamage?.Invoke(finalDamage);
+        OnDamaged?.Invoke(damagePacket);
 
         // forceApplied points the way the hit travels -- from the attacker into the target -- so a
         // blow to the face arrives pointing AGAINST this entity's forward, giving a negative dot.

@@ -190,7 +190,7 @@ public static class RangedAttackResolver
         bool isCharged = charged != -1;
         // Passing the hit collider's rigidbody through as bodyPart lets EntityHealth.ApplyDamage
         // auto-map it (by name) to a per-body-part damage multiplier.
-        DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, kbDir * force, hit.point, isCharged, rb);
+        DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, kbDir * force, hit.point, isCharged, rb, owner);
         health.ApplyDamage(packet);
 
         // Same fix as MeleeAttackResolver: the hit collider's own rigidbody (a named limb bone)
