@@ -169,13 +169,15 @@ public abstract class EnemyStrategy : MonoBehaviour
     protected virtual void OnTargetLost(TeamMember target) { }
 
     /// <summary>
-    /// Reacts to taking a hit. Default just turns to face where it came from -- override to add
-    /// aggro on top (see <see cref="SecurityStrategy"/>) or something else entirely for a strategy
-    /// that shouldn't fight back.
+    /// Reacts to taking a hit by turning to look where it came from -- not locking onto the
+    /// attacker, just facing the point. Vision keeps scanning while the turn runs, so a real target
+    /// caught in view during it gets engaged the normal way (OnTargetSpotted); if the turn finishes
+    /// and nothing's there, the queue falls back to idling on its own. Override for a strategy that
+    /// should react differently (or not at all).
     /// </summary>
     protected virtual void OnDamaged(DamagePacket packet)
     {
-        if (enemy == null || enemy.Rotation == null)
+        if (enemy == null)
             return;
 
         // forceApplied points from attacker into victim (EntityHealth.ApplyDamage relies on the
@@ -184,6 +186,6 @@ public abstract class EnemyStrategy : MonoBehaviour
         if (towardSource.sqrMagnitude < 0.0001f)
             return;
 
-        enemy.Rotation.AimAt(enemy.transform.position + towardSource.normalized * 5f);
+        Push(new FaceDirectionAction(enemy.transform.position + towardSource.normalized * 5f));
     }
 }

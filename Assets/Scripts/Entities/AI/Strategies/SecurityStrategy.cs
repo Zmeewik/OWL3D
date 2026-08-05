@@ -71,19 +71,17 @@ public class SecurityStrategy : EnemyStrategy
     }
 
     /// <summary>
-    /// Getting shot isn't something a guard waits to notice: on top of the base class turning to
-    /// face where the hit came from, this engages the attacker outright -- bypassing vision's
-    /// timeToSpot delay -- as long as they're a valid, living hostile. A hit from an untracked
-    /// source (e.g. no attacker reference on the packet) still turns the guard to look, it just
-    /// doesn't have anyone concrete to chase yet.
+    /// Already fighting? A stray hit doesn't need to interrupt that -- whoever's attacking gets
+    /// found the normal way (vision, or their next hit lands on an idle guard instead). Otherwise
+    /// falls to the base class, which just turns to look where the hit came from; vision does the
+    /// rest if there's actually something to see.
     /// </summary>
     protected override void OnDamaged(DamagePacket packet)
     {
-        base.OnDamaged(packet);
+        if (HasAction<ChaseAndAttackAction>())
+            return;
 
-        var attacker = packet.attacker != null ? packet.attacker.GetComponentInParent<TeamMember>() : null;
-        if (attacker != null && attacker.IsAlive && Teams.IsHostile(Team, attacker.team))
-            Engage(attacker);
+        base.OnDamaged(packet);
     }
 
     protected override void OnTargetLost(TeamMember target)
