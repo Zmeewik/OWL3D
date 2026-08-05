@@ -4961,7 +4961,6 @@ GameObject:
   - component: {fileID: 734937603}
   - component: {fileID: 734937601}
   - component: {fileID: 734937600}
-  - component: {fileID: 734937606}
   - component: {fileID: 734937614}
   - component: {fileID: 734937613}
   - component: {fileID: 734937612}
@@ -5100,118 +5099,6 @@ Transform:
   - {fileID: 1714496550}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &734937606
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 734937599}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f01d54c859914b541ae979e531749db0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  animationSenders: []
-  bodyPartToAnimates:
-  - name: Body
-    animator: {fileID: 2043020568}
-    entityAnimator: {fileID: 0}
-  weaponsToAnimate:
-  - name: 
-    animator: {fileID: 0}
-    entityAnimator: {fileID: 0}
-  - name: 
-    animator: {fileID: 0}
-    entityAnimator: {fileID: 0}
-  animationList:
-  - name: put_away
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: pick_up
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: idle
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: left_attack
-    animations:
-    - H_Arms_Boxing_LegHit1
-    - H_Arms_Boxing_LegHit2
-    bodyPartsIntended: 02000000
-    weaponIntended: 
-  - name: left_attack_start
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: left_attack_continue
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: left_attack_end
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: left_attack_false
-    animations:
-    - 
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: right_attack
-    animations: []
-    bodyPartsIntended: 
-    weaponIntended: 
-  - name: right_attack_start
-    animations: []
-    bodyPartsIntended: 
-    weaponIntended: 
-  - name: right_attack_continue
-    animations: []
-    bodyPartsIntended: 
-    weaponIntended: 
-  - name: right_attack_end
-    animations: []
-    bodyPartsIntended: 
-    weaponIntended: 
-  - name: melee_hit
-    animations: []
-    bodyPartsIntended: 02000000
-    weaponIntended: 
-  - name: block_start
-    animations:
-    - H_Arms_Boxing_BlockStart
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: block_continue
-    animations:
-    - H_Arms_Boxing_BlockIdle
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: block_end
-    animations:
-    - H_Arms_Boxing_BlockEnd
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: block_break
-    animations:
-    - H_Arms_Boxing_BlockActionStrong
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
-  - name: block_action
-    animations:
-    - H_Arms_Boxing_BlockAction1
-    - H_Arms_Boxing_BlockAction2
-    bodyPartsIntended: 0000000001000000
-    weaponIntended: 
 --- !u!114 &734937607
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5326,8 +5213,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 830db9b59557b384491c3d2b2142d527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveTurnSpeed: 15
-  aimTurnSpeed: 100
+  moveTurnSpeed: 150
+  aimTurnSpeed: 150
   body: {fileID: 734937605}
 --- !u!114 &734937613
 MonoBehaviour:
@@ -5342,8 +5229,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rb: {fileID: 734937604}
-  moveSpeed: 8
-  acceleration: 25
+  moveSpeed: 15
+  acceleration: 100
   stoppingDistance: 0.6
   repathInterval: 0.35
   cornerReachDistance: 0.6
@@ -11940,8 +11827,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.080860056, y: 0.29235888, z: 0.4100001}
-  m_Center: {x: -0.20227352, y: -0.0038205895, z: 0.84}
+  m_Size: {x: 0.1, y: 0.26718068, z: 0.37544}
+  m_Center: {x: -0.19, y: -0.01, z: 0.85}
 --- !u!1 &1735258472
 GameObject:
   m_ObjectHideFlags: 0
