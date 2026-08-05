@@ -24,6 +24,20 @@ public class ComplexColliderHandle : MonoBehaviour
     [Header("Body structure")]
     public List<HitboxPart> rootParts = new List<HitboxPart>();
 
+    [Header("Hinge joints (knees, elbows)")]
+    [Tooltip("Bones whose joint is a one-way hinge. Case-insensitive substring match on the bone name.")]
+    public string[] hingeBoneKeywords = { "leg", "shin", "knee", "forearm", "elbow" };
+
+    [Tooltip("How far the limb may bend, measured from fully straight. Anatomical range, not joint-relative.")]
+    public float hingeMaxFlexion = 140f;
+
+    [Tooltip("How far past straight the limb may go the wrong way. Keep small -- this is what stops knees " +
+             "and elbows inverting.")]
+    public float hingeHyperextension = 3f;
+
+    [Tooltip("Sideways/twisting slack left on a hinge. Small values keep it a hinge rather than a ball joint.")]
+    public float hingeSideSlack = 3f;
+
     [SerializeField] private Rigidbody mainRigidbody;
     [SerializeField] private Collider mainCollider;
     [SerializeField] private Animator[] animators;
@@ -108,6 +122,117 @@ public class ComplexColliderHandle : MonoBehaviour
         // Recursively initialize children
         foreach (var child in part.children)
             InitializePart(child, part, overrideSize);
+    }
+
+    /// <summary>
+    /// Turns knee and elbow joints into one-way hinges so a ragdoll can't invert them.
+    ///
+    /// The bend axis is measured from the rig's own rest pose rather than assumed to be a body axis:
+    /// these limbs are authored with a deliberate pre-bend (~25 deg at the knees, ~30 at the elbows),
+    /// and the cross product of the two bone segments gives both the exact hinge axis and its sign --
+    /// rotating positively about it continues the bend the animator intended. That makes this work
+    /// for left and right limbs, and for knees bending backwards while elbows bend forwards, without
+    /// any per-bone sign table.
+    ///
+    /// Run it from the context menu after building the rig, in the rest pose. A limb posed perfectly
+    /// straight is skipped: with no pre-bend there is nothing to tell the two directions apart.
+    /// </summary>
+    [ContextMenu("Setup Hinge Limits (knees/elbows)")]
+    public void SetupHingeLimits()
+    {
+        var joints = GetComponentsInChildren<CharacterJoint>(true);
+        int configured = 0, skipped = 0;
+
+        foreach (var joint in joints)
+        {
+            if (!IsHingeBone(joint.gameObject.name))
+                continue;
+
+            if (!TryConfigureHinge(joint, joints))
+                skipped++;
+            else
+                configured++;
+        }
+
+        Debug.Log($"[{name}] Hinge limits: {configured} configured, {skipped} skipped.", this);
+    }
+
+    private bool IsHingeBone(string boneName)
+    {
+        if (hingeBoneKeywords == null) return false;
+
+        string lower = boneName.ToLowerInvariant();
+        foreach (var keyword in hingeBoneKeywords)
+            if (!string.IsNullOrEmpty(keyword) && lower.Contains(keyword.ToLowerInvariant()))
+                return true;
+
+        return false;
+    }
+
+    private bool TryConfigureHinge(CharacterJoint joint, CharacterJoint[] allJoints)
+    {
+        if (joint.connectedBody == null)
+            return false;
+
+        // The next bone down the chain is found through the joint graph rather than the transform
+        // hierarchy, so an extra non-physics transform between bones can't break it.
+        var ownBody = joint.GetComponent<Rigidbody>();
+        Transform childBone = null;
+        foreach (var other in allJoints)
+        {
+            if (other != joint && other.connectedBody == ownBody)
+            {
+                childBone = other.transform;
+                break;
+            }
+        }
+
+        if (childBone == null)
+            return false;
+
+        Vector3 parentSegment = joint.transform.position - joint.connectedBody.transform.position;
+        Vector3 childSegment = childBone.position - joint.transform.position;
+        if (parentSegment.sqrMagnitude < 1e-8f || childSegment.sqrMagnitude < 1e-8f)
+            return false;
+
+        parentSegment.Normalize();
+        childSegment.Normalize();
+
+        Vector3 axisWorld = Vector3.Cross(parentSegment, childSegment);
+        if (axisWorld.sqrMagnitude < 1e-6f)
+        {
+            Debug.LogWarning($"[{name}] '{joint.gameObject.name}' is straight in the rest pose, so the " +
+                             "bend direction can't be derived. Pose it slightly bent and re-run.", this);
+            return false;
+        }
+
+        axisWorld.Normalize();
+
+        // The twist limits are relative to the current pose, but the tuning values are stated
+        // relative to a straight limb -- so the existing pre-bend is subtracted out. Without this,
+        // "3 degrees of hyperextension" would forbid the limb from even straightening back out.
+        float restBend = Vector3.Angle(parentSegment, childSegment);
+
+        joint.axis = joint.transform.InverseTransformDirection(axisWorld);
+        joint.swingAxis = joint.transform.InverseTransformDirection(childSegment);
+
+        var low = joint.lowTwistLimit;
+        low.limit = -(restBend + hingeHyperextension);
+        joint.lowTwistLimit = low;
+
+        var high = joint.highTwistLimit;
+        high.limit = Mathf.Max(0f, hingeMaxFlexion - restBend);
+        joint.highTwistLimit = high;
+
+        var swing1 = joint.swing1Limit;
+        swing1.limit = hingeSideSlack;
+        joint.swing1Limit = swing1;
+
+        var swing2 = joint.swing2Limit;
+        swing2.limit = hingeSideSlack;
+        joint.swing2Limit = swing2;
+
+        return true;
     }
 
     // Collider control
