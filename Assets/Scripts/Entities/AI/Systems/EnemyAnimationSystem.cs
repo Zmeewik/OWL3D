@@ -151,7 +151,14 @@ public class EnemyAnimationSystem : EnemySystem
             }
         }
 
-        PlayMotion(movement != null && movement.IsMoving ? EnemyMotion.Walk : EnemyMotion.Idle);
+        // Jumping overrides walk/idle -- IsMoving alone can't tell a jump apart from ordinary
+        // ground movement (MoveDirection stays nonzero for the whole arc), which used to leave the
+        // walk cycle looping while the rigidbody flew a parabola.
+        if (movement != null && movement.IsJumping)
+            PlayMotion(EnemyMotion.InAir);
+        else
+            PlayMotion(movement != null && movement.IsMoving ? EnemyMotion.Walk : EnemyMotion.Idle);
+
         RestartFinishedLoop();
     }
 

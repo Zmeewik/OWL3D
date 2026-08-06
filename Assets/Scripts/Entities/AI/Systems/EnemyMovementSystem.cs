@@ -83,6 +83,12 @@ public class EnemyMovementSystem : EnemySystem
 
     public bool IsMoving => HasDestination && MoveDirection.sqrMagnitude > 0.001f;
 
+    /// <summary>True for the whole flight of a jump arc. Read by <see cref="EnemyAnimationSystem"/> so
+    /// it plays an in-air pose instead of leaving the walk cycle looping while the rigidbody flies a
+    /// parabola -- without this the jump was physically correct but looked like sliding through the
+    /// air, because IsMoving (MoveDirection stays nonzero mid-arc) kept selecting Walk every tick.</summary>
+    public bool IsJumping => isJumping;
+
     public float DistanceToDestination =>
         HasDestination ? Vector3.Distance(Flat(transform.position), Flat(destination)) : 0f;
 
