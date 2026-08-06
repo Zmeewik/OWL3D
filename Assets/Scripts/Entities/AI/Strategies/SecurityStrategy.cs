@@ -18,9 +18,21 @@ public class SecurityStrategy : EnemyStrategy
     [Tooltip("Also relay spotted/lost over the radio frequency, reaching allies at any distance.")]
     [SerializeField] private bool useRadio = true;
 
+    [Tooltip("Seconds the radio call takes to get out. The spotting guard talks it in before the " +
+             "squad hears it, so an alert has a visible cause rather than the whole squad turning at once.")]
+    [SerializeField] private float radioDelay = 1.2f;
+
+    [Tooltip("Chance a hit taken mid-fight is dodged rather than simply absorbed.")]
+    [SerializeField, Range(0f, 1f)] private float dodgeChance = 0.45f;
+
+    [Tooltip("Minimum gap between dodges, so a burst of fire doesn't make the guard hop continuously.")]
+    [SerializeField] private float dodgeCooldown = 1.6f;
+
+    private float lastDodgeTime = -999f;
+
     protected override void OnInitialized()
     {
-        Enqueue(new IdleAction());
+        Enqueue(new AmbientIdleAction(AmbientWanderRadius, AmbientWalkSpeed, AmbientChatRange));
     }
 
     /// <summary>
@@ -82,8 +94,12 @@ public class SecurityStrategy : EnemyStrategy
     /// </summary>
     protected override void OnDamaged(DamagePacket packet)
     {
+        // Already fighting: don't restart the plan, but do try to get out of the way.
         if (HasAction<ChaseAndAttackAction>())
+        {
+            TryDodge(packet);
             return;
+        }
 
         // Being shot at is reason enough to have the gun out, even before anything is spotted.
         enemy.Animation?.SetArmed(true);
@@ -172,13 +188,62 @@ public class SecurityStrategy : EnemyStrategy
         Enqueue(new ChaseAndAttackAction(target));
     }
 
+    /// <summary>
+    /// Calls a sighting in to the rest of the squad. The call takes time and is visibly spoken --
+    /// the guard plays its talk animation while the message goes out -- so the squad reacting has an
+    /// observable cause instead of every guard on the map pivoting on the same frame.
+    /// </summary>
     private void Announce(TeamMember target)
     {
+        if (!alertNearbyAllies && !useRadio)
+            return;
+
+        enemy.Animation?.PlayOneShot(EnemyMotion.Talk);
+        StartCoroutine(SendAlert(target));
+    }
+
+    private System.Collections.IEnumerator SendAlert(TeamMember target)
+    {
+        if (radioDelay > 0f)
+            yield return new WaitForSeconds(radioDelay);
+
+        // The fight moves on while the call is going out, so re-check rather than alerting the squad
+        // onto someone already dead by the time the message lands.
+        if (target == null || !target.IsAlive || enemy == null || !enemy.IsAlive)
+            yield break;
+
         if (alertNearbyAllies)
             EnemyManager.Broadcast(EnemyCommand.TargetSpotted(transform, target, AlertRadius));
 
         if (useRadio)
             EnemyManager.Broadcast(EnemyCommand.TargetSpottedOnRadio(transform, target, enemy.RadioFrequency));
+    }
+
+    /// <summary>
+    /// Sidesteps an incoming shot, sometimes. Rolls per hit and rate-limits itself, so a guard under
+    /// sustained fire jinks occasionally rather than hopping on every bullet.
+    /// </summary>
+    private void TryDodge(DamagePacket packet)
+    {
+        if (enemy.Movement == null || Time.time - lastDodgeTime < dodgeCooldown)
+            return;
+
+        if (Random.value > dodgeChance)
+            return;
+
+        // Dodge across the line of fire, not along it -- stepping back down the bullet's path just
+        // keeps the guard in it.
+        Vector3 incoming = packet.forceApplied;
+        incoming.y = 0f;
+        if (incoming.sqrMagnitude < 0.0001f)
+            return;
+
+        bool left = Random.value < 0.5f;
+        Vector3 sideways = Vector3.Cross(Vector3.up, incoming.normalized) * (left ? 1f : -1f);
+
+        lastDodgeTime = Time.time;
+        enemy.Movement.Dodge(sideways);
+        enemy.Animation?.PlayOneShot(left ? EnemyMotion.DodgeLeft : EnemyMotion.DodgeRight);
     }
 
     private float AlertRadius => enemy != null && enemy.Config != null ? enemy.Config.alertRadius : 20f;

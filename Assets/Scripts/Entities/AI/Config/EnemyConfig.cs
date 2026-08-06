@@ -71,6 +71,16 @@ public class EnemyConfig : ScriptableObject
     [Tooltip("How far back along an incoming shot this class walks to look for whoever fired it.")]
     public float shotInvestigateDistance = 12f;
 
+    [Header("Ambient idle")]
+    [Tooltip("How far from its post this class strolls while idling.")]
+    public float ambientWanderRadius = 5f;
+
+    [Tooltip("Fraction of moveSpeed used while milling about -- idling is a saunter.")]
+    [Range(0.1f, 1f)] public float ambientWalkSpeed = 0.4f;
+
+    [Tooltip("How close an ally has to be for this class to strike up a conversation with them.")]
+    public float ambientChatRange = 6f;
+
     [Header("Communication")]
     [Tooltip("How far a spotted-target shout carries to nearby allies.")]
     public float alertRadius = 20f;

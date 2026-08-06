@@ -37,5 +37,8 @@ MonoBehaviour:
   searchWalkSpeed: 0.45
   searchSweepRadius: 4
   shotInvestigateDistance: 12
+  ambientWanderRadius: 5
+  ambientWalkSpeed: 0.4
+  ambientChatRange: 6
   alertRadius: 20
   interactRange: 2.5

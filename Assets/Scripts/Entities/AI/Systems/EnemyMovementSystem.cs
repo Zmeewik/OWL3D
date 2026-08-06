@@ -66,6 +66,18 @@ public class EnemyMovementSystem : EnemySystem
     [Tooltip("Quiet period after a jump-link attempt before another may be started, so an impossible climb isn't retried on loop.")]
     [SerializeField] private float linkRetryDelay = 1.5f;
 
+    [Header("Dodging")]
+    [Tooltip("How fast the sideways hop off an incoming shot is.")]
+    [SerializeField] private float dodgeSpeed = 9f;
+    [Tooltip("How long the dodge drives movement before normal steering resumes.")]
+    [SerializeField] private float dodgeDuration = 0.35f;
+
+    private float dodgeRemaining;
+    private Vector3 dodgeVelocity;
+
+    /// <summary>True while a dodge hop is driving movement. Read by the animation system.</summary>
+    public bool IsDodging => dodgeRemaining > 0f;
+
     private NavMeshPath path;
     private readonly System.Collections.Generic.List<Vector3> corners = new();
     private readonly System.Collections.Generic.List<bool> segmentIsJump = new();
@@ -173,6 +185,15 @@ public class EnemyMovementSystem : EnemySystem
             return;
         }
 
+        // A dodge likewise owns movement for its brief duration; steering back toward the target
+        // mid-hop would cancel out the sideways displacement that is the entire point.
+        if (dodgeRemaining > 0f)
+        {
+            dodgeRemaining -= fixedDeltaTime;
+            rb.velocity = new Vector3(dodgeVelocity.x, rb.velocity.y, dodgeVelocity.z);
+            return;
+        }
+
         if (!HasDestination || ReachedDestination)
         {
             MoveDirection = Vector3.zero;
@@ -247,6 +268,21 @@ public class EnemyMovementSystem : EnemySystem
 
         Vector3 flatDelta = Flat(target - origin);
         MoveDirection = flatDelta.sqrMagnitude > 0.0001f ? flatDelta.normalized : MoveDirection;
+    }
+
+    /// <summary>
+    /// Hops sideways, out of the line of an incoming shot. Kept here rather than in the strategy so
+    /// it goes through the same rigidbody the rest of movement drives, and so it can take priority
+    /// over steering for its duration.
+    /// </summary>
+    public void Dodge(Vector3 worldDirection)
+    {
+        Vector3 flat = Flat(worldDirection);
+        if (flat.sqrMagnitude < 0.0001f)
+            return;
+
+        dodgeVelocity = flat.normalized * dodgeSpeed;
+        dodgeRemaining = dodgeDuration;
     }
 
     private void TickJump(float fixedDeltaTime)

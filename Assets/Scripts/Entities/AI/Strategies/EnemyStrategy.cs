@@ -22,9 +22,17 @@ public abstract class EnemyStrategy : MonoBehaviour
     /// <summary>The side this strategy is acting for. Read from the entity so there's one source of truth.</summary>
     public Team Team => enemy != null ? enemy.Team : Team.Neutral;
 
+    /// <summary>
+    /// Where this entity belongs -- captured once, on initialization. Ambient idling wanders around
+    /// this rather than around wherever the entity happens to be standing, so a guard that has drifted
+    /// while milling about doesn't treat the drifted spot as its new post and slowly walk off the map.
+    /// </summary>
+    public Vector3 HomePosition { get; private set; }
+
     public virtual void Initialize(Enemy owner)
     {
         enemy = owner;
+        HomePosition = owner.transform.position;
 
         if (owner.Vision != null)
         {
@@ -81,11 +89,19 @@ public abstract class EnemyStrategy : MonoBehaviour
         frontBegun = false;
     }
 
-    /// <summary>Called when nothing is queued. Default keeps the entity idling rather than frozen mid-action.</summary>
+    /// <summary>
+    /// Called when nothing is queued. Falls into ambient idling -- milling about, glancing around,
+    /// talking to whoever is nearby -- rather than standing frozen, which reads as the entity being
+    /// switched off rather than merely uninterested.
+    /// </summary>
     protected virtual void OnQueueEmpty()
     {
-        Enqueue(new IdleAction());
+        Enqueue(new AmbientIdleAction(AmbientWanderRadius, AmbientWalkSpeed, AmbientChatRange));
     }
+
+    protected float AmbientWanderRadius => enemy != null && enemy.Config != null ? enemy.Config.ambientWanderRadius : 5f;
+    protected float AmbientWalkSpeed => enemy != null && enemy.Config != null ? enemy.Config.ambientWalkSpeed : 0.4f;
+    protected float AmbientChatRange => enemy != null && enemy.Config != null ? enemy.Config.ambientChatRange : 6f;
 
     // ---- Queue manipulation -------------------------------------------------
 
