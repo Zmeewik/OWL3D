@@ -30,7 +30,7 @@ public class EnemyMovementSystem : EnemySystem
     [Tooltip("Extra cushion on top of both entities' actual physical radii. The effective personal " +
              "space is PhysicalRadius + otherEntity.PhysicalRadius + this -- not a flat number -- so " +
              "it stays correct however an entity happens to be scaled.")]
-    [SerializeField] private float avoidanceMargin = 1f;
+    [SerializeField] private float avoidanceMargin = 1.5f;
     [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at the effective radius.")]
     [SerializeField] private float avoidanceStrength = 3f;
 
