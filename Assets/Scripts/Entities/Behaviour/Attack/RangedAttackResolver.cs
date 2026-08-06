@@ -184,6 +184,14 @@ public static class RangedAttackResolver
         if (owner != null && health.transform == owner)
             return;
 
+        // No friendly fire -- a teammate standing in the line of fire absorbs the shot rather than
+        // taking damage from it. (Unlike Projectile, a hitscan ray can't cheaply keep looking past
+        // the hit for a hostile target behind it, so this stops the shot rather than piercing through.)
+        var ownerTeam = owner != null ? owner.GetComponentInParent<TeamMember>() : null;
+        var targetTeam = health.GetComponent<TeamMember>();
+        if (ownerTeam != null && targetTeam != null && !Teams.IsHostile(ownerTeam.team, targetTeam.team))
+            return;
+
         float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);
         float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
         Vector3 kbDir = (hit.transform.position - sight.position).normalized;

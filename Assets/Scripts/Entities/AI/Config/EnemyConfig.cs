@@ -25,9 +25,10 @@ public class EnemyConfig : ScriptableObject
     public float stoppingDistance = 0.6f;
 
     [Header("Avoidance")]
-    [Tooltip("Personal space from other enemies. Closer than this, a push-away steer blends in on top of the path.")]
-    public float avoidanceRadius = 1.5f;
-    [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at avoidanceRadius.")]
+    [Tooltip("Extra cushion on top of both entities' actual physical radii (which scale with each " +
+             "entity's transform, so this stays correct at any size).")]
+    public float avoidanceMargin = 1f;
+    [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at the effective radius.")]
     public float avoidanceStrength = 3f;
 
     [Header("Vision")]

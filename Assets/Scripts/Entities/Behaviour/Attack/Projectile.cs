@@ -96,6 +96,12 @@ public class Projectile : MonoBehaviour
 
             var health = rootObject.transform.GetComponent<EntityHealth>();
 
+            // No friendly fire: a shot that reaches a non-hostile entity first (a teammate standing
+            // in the way) passes straight through instead of stopping on them, the same way it would
+            // pass through anything else that isn't a valid target.
+            if (health && IsFriendly(rootObject))
+                continue;
+
             if (health)
             {
                 float dmg = DamageCalculator.CalculateChargedDamage(attack, health, chargeFactor);
@@ -147,6 +153,18 @@ public class Projectile : MonoBehaviour
         }
 
         previousPosition = currentPosition;
+    }
+
+    /// <summary>True if the shooter and this potential target are on the same side (or either lacks
+    /// a team), so the shot should not treat them as hostile.</summary>
+    private bool IsFriendly(Transform target)
+    {
+        var ownerTeam = owner != null ? owner.GetComponentInParent<TeamMember>() : null;
+        var targetTeam = target.GetComponent<TeamMember>();
+        if (ownerTeam == null || targetTeam == null)
+            return false;
+
+        return !Teams.IsHostile(ownerTeam.team, targetTeam.team);
     }
 
     /*private void OnTriggerExit(Collider other)

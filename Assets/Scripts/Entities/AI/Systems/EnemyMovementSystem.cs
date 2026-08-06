@@ -27,10 +27,29 @@ public class EnemyMovementSystem : EnemySystem
     [SerializeField] private float navSampleDistance = 4f;
 
     [Header("Avoidance")]
-    [Tooltip("Personal space from other enemies. Closer than this, a push-away steer blends in on top of the path.")]
-    [SerializeField] private float avoidanceRadius = 1.5f;
-    [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at avoidanceRadius.")]
+    [Tooltip("Extra cushion on top of both entities' actual physical radii. The effective personal " +
+             "space is PhysicalRadius + otherEntity.PhysicalRadius + this -- not a flat number -- so " +
+             "it stays correct however an entity happens to be scaled.")]
+    [SerializeField] private float avoidanceMargin = 1f;
+    [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at the effective radius.")]
     [SerializeField] private float avoidanceStrength = 3f;
+
+    private CapsuleCollider capsule;
+
+    /// <summary>
+    /// This entity's actual world-space contact radius, honouring whatever scale it's placed at.
+    /// Avoidance is sized from this rather than a fixed constant so a 2.4x-scaled entity (which
+    /// physically touches another one at ~2.4x the "default" contact distance) still gets a real
+    /// cushion instead of slamming into contact before the steer has any room to react.
+    ///
+    /// Includes the capsule's own local X/Z centre offset, not just its radius: this rig's collider
+    /// is centred slightly off the character's vertical axis, and since the entity turns to face
+    /// whatever it's approaching, that offset rotates into extra real-world reach in whichever
+    /// direction it happens to be facing. Folding it into the radius (rather than assuming it's
+    /// always zero) is what makes two rotating, off-centre capsules actually stop clear of each
+    /// other instead of a hard collision only ~30cm before the number this used to predict.
+    /// </summary>
+    public float PhysicalRadius { get; private set; } = 0.5f;
 
     [Header("Jumping")]
     [Tooltip("How far a corner-to-corner segment's midpoint may be from real NavMesh surface and " +
@@ -71,6 +90,16 @@ public class EnemyMovementSystem : EnemySystem
         base.Initialize(owner);
         if (rb == null)
             rb = GetComponentInParent<Rigidbody>();
+        if (capsule == null)
+            capsule = GetComponentInParent<CapsuleCollider>();
+
+        if (capsule != null)
+        {
+            var scale = capsule.transform.lossyScale;
+            float centerOffset = new Vector2(capsule.center.x, capsule.center.z).magnitude;
+            PhysicalRadius = (capsule.radius + centerOffset) * Mathf.Max(scale.x, scale.z);
+        }
+
         path = new NavMeshPath();
     }
 
@@ -80,7 +109,7 @@ public class EnemyMovementSystem : EnemySystem
         moveSpeed = config.moveSpeed;
         acceleration = config.acceleration;
         stoppingDistance = config.stoppingDistance;
-        avoidanceRadius = config.avoidanceRadius;
+        avoidanceMargin = config.avoidanceMargin;
         avoidanceStrength = config.avoidanceStrength;
     }
 
@@ -203,14 +232,14 @@ public class EnemyMovementSystem : EnemySystem
     }
 
     /// <summary>
-    /// Push-away steer from every other live enemy within <see cref="avoidanceRadius"/>, strongest
-    /// at zero distance and fading to nothing at the radius. Not normalized to a unit vector -- its
-    /// magnitude relative to the path direction (always length 1) is what lets a near-collision
-    /// dominate the heading while a distant neighbour barely nudges it.
+    /// Push-away steer from every other live enemy within the pair's combined physical radius plus
+    /// margin, strongest at zero distance and fading to nothing at that effective radius. Not
+    /// normalized to a unit vector -- its magnitude relative to the path direction (always length 1)
+    /// is what lets a near-collision dominate the heading while a distant neighbour barely nudges it.
     /// </summary>
     private Vector3 ComputeSeparation()
     {
-        if (avoidanceStrength <= 0f || avoidanceRadius <= 0f)
+        if (avoidanceStrength <= 0f)
             return Vector3.zero;
 
         Vector3 push = Vector3.zero;
@@ -221,12 +250,20 @@ public class EnemyMovementSystem : EnemySystem
             if (other == null || other == enemy || !other.IsAlive)
                 continue;
 
-            Vector3 offset = Flat(transform.position - other.transform.position);
-            float distance = offset.magnitude;
-            if (distance >= avoidanceRadius || distance < 0.0001f)
+            var otherMovement = other.Movement;
+            if (otherMovement == null)
                 continue;
 
-            float weight = 1f - distance / avoidanceRadius;
+            float radius = PhysicalRadius + otherMovement.PhysicalRadius + avoidanceMargin;
+            if (radius <= 0f)
+                continue;
+
+            Vector3 offset = Flat(transform.position - other.transform.position);
+            float distance = offset.magnitude;
+            if (distance >= radius || distance < 0.0001f)
+                continue;
+
+            float weight = 1f - distance / radius;
             push += offset.normalized * weight;
         }
 
