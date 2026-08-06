@@ -63,6 +63,9 @@ public class EnemyMovementSystem : EnemySystem
     [Tooltip("Safety cap on a jump's flight time, in case the computed arc math ever degenerates.")]
     [SerializeField] private float jumpMaxDuration = 3f;
 
+    [Tooltip("Quiet period after a jump-link attempt before another may be started, so an impossible climb isn't retried on loop.")]
+    [SerializeField] private float linkRetryDelay = 1.5f;
+
     private NavMeshPath path;
     private readonly System.Collections.Generic.List<Vector3> corners = new();
     private readonly System.Collections.Generic.List<bool> segmentIsJump = new();
@@ -71,6 +74,16 @@ public class EnemyMovementSystem : EnemySystem
     private bool isJumping;
     private float jumpElapsed;
     private float jumpDuration;
+
+    private bool hasPendingLink;
+    private JumpLinkMap.JumpLink pendingLink;
+
+    /// <summary>
+    /// Stops a link whose jump doesn't actually land from being retried every repath. Geometry can
+    /// always produce a climb the arc can't really make, and without this the entity would stand at
+    /// the same ledge hurling itself at it several times a second.
+    /// </summary>
+    private float linkCooldownRemaining;
 
     private Vector3 destination;
     private float repathTimer;
@@ -138,6 +151,7 @@ public class EnemyMovementSystem : EnemySystem
         segmentIsJump.Clear();
         cornerIndex = 0;
         isJumping = false;
+        hasPendingLink = false;
     }
 
     public override void FixedTickSystem(float fixedDeltaTime)
@@ -159,6 +173,9 @@ public class EnemyMovementSystem : EnemySystem
             return;
         }
 
+        if (linkCooldownRemaining > 0f)
+            linkCooldownRemaining -= fixedDeltaTime;
+
         repathTimer -= fixedDeltaTime;
         if (repathTimer <= 0f)
         {
@@ -167,6 +184,16 @@ public class EnemyMovementSystem : EnemySystem
         }
 
         Vector3 steerTarget = NextSteerTarget();
+
+        // Standing on the takeoff of a climb the walk path can't express? Launch it. This is the
+        // only way onto a raised platform -- see JumpLinkMap for why the bake can't provide one.
+        if (hasPendingLink && Flat(pendingLink.takeoff - transform.position).magnitude <= cornerReachDistance)
+        {
+            hasPendingLink = false;
+            linkCooldownRemaining = linkRetryDelay;
+            BeginJump(pendingLink.landing);
+            return;
+        }
 
         // The segment leading to the corner we're now aimed at may not be walkable ground at all --
         // a ledge or a gap the NavMesh only connects via an (auto-generated) off-mesh link. Launch a
@@ -201,28 +228,17 @@ public class EnemyMovementSystem : EnemySystem
     /// </summary>
     private void BeginJump(Vector3 target)
     {
+        print("jump!!!");
         Vector3 origin = transform.position;
-        Vector3 flatDelta = Flat(target - origin);
-        float horizontalDistance = flatDelta.magnitude;
-        float heightDelta = target.y - origin.y;
 
-        float gravity = Mathf.Abs(Physics.gravity.y);
-        // The apex has to clear the higher of the two ends -- for a jump that lands above takeoff,
-        // jumpApexHeight alone (measured from takeoff) might not leave any clearance over the ledge.
-        float apex = Mathf.Max(jumpApexHeight, heightDelta + 0.3f);
-
-        float timeUp = Mathf.Sqrt(2f * apex / gravity);
-        float timeDown = Mathf.Sqrt(2f * Mathf.Max(0.05f, apex - heightDelta) / gravity);
-        jumpDuration = timeUp + timeDown;
+        // Same solver the link bake validated the arc with, so what gets flown is what was approved.
+        JumpArc.Solve(origin, target, out var velocity, out jumpDuration);
         jumpElapsed = 0f;
 
-        Vector3 horizontalVelocity = horizontalDistance > 0.0001f
-            ? flatDelta.normalized * (horizontalDistance / jumpDuration)
-            : Vector3.zero;
-        float verticalVelocity = gravity * timeUp;
-
-        rb.velocity = horizontalVelocity + Vector3.up * verticalVelocity;
+        rb.velocity = velocity;
         isJumping = true;
+
+        Vector3 flatDelta = Flat(target - origin);
         MoveDirection = flatDelta.sqrMagnitude > 0.0001f ? flatDelta.normalized : MoveDirection;
     }
 
@@ -307,6 +323,7 @@ public class EnemyMovementSystem : EnemySystem
         corners.Clear();
         segmentIsJump.Clear();
         cornerIndex = 0;
+        hasPendingLink = false;
 
         if (path == null)
             path = new NavMeshPath();
@@ -326,6 +343,25 @@ public class EnemyMovementSystem : EnemySystem
             path.corners.Length == 0)
         {
             return;
+        }
+
+        // PathPartial means walking gets us as close as the NavMesh allows and no further -- which is
+        // exactly what happens when the target has gone somewhere only a climb can reach, since the
+        // bake cannot generate an upward link (see JumpLinkMap). Re-route to the takeoff of the
+        // nearest link that makes progress, and jump from there.
+        if (path.status == NavMeshPathStatus.PathPartial && linkCooldownRemaining <= 0f &&
+            JumpLinkMap.Instance != null &&
+            JumpLinkMap.Instance.TryFindLink(transform.position, destination, out var link))
+        {
+            var linkPath = new NavMeshPath();
+            if (NavMesh.SamplePosition(link.takeoff, out var takeoffHit, navSampleDistance, NavMesh.AllAreas) &&
+                NavMesh.CalculatePath(fromHit.position, takeoffHit.position, NavMesh.AllAreas, linkPath) &&
+                linkPath.status == NavMeshPathStatus.PathComplete && linkPath.corners.Length > 0)
+            {
+                pendingLink = link;
+                hasPendingLink = true;
+                path = linkPath;
+            }
         }
 
         corners.AddRange(path.corners);
