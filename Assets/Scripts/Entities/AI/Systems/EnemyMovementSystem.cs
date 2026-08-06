@@ -30,7 +30,7 @@ public class EnemyMovementSystem : EnemySystem
     [Tooltip("Extra cushion on top of both entities' actual physical radii. The effective personal " +
              "space is PhysicalRadius + otherEntity.PhysicalRadius + this -- not a flat number -- so " +
              "it stays correct however an entity happens to be scaled.")]
-    [SerializeField] private float avoidanceMargin = 1.5f;
+    [SerializeField] private float avoidanceMargin = 2f;
     [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at the effective radius.")]
     [SerializeField] private float avoidanceStrength = 3f;
 
@@ -52,6 +52,12 @@ public class EnemyMovementSystem : EnemySystem
     public float PhysicalRadius { get; private set; } = 0.5f;
 
     [Header("Jumping")]
+    [Tooltip("Minimum height difference a NavMesh.Raycast-blocked segment needs before it counts as " +
+             "a jump instead of ordinary ground. Must clear the bake's own agentClimb (step height) " +
+             "with real margin -- otherwise every seam between two adjacent, not-quite-welded floor " +
+             "or wall pieces (same height, technically separate NavMesh islands) reads as a gap and " +
+             "gets a full jump arc for a difference an agent would just step over.")]
+    [SerializeField] private float minJumpHeight = 1f;
     [Tooltip("Minimum apex height above the takeoff point for a jump arc.")]
     [SerializeField] private float jumpApexHeight = 1.2f;
     [Tooltip("Safety cap on a jump's flight time, in case the computed arc math ever degenerates.")]
@@ -326,9 +332,18 @@ public class EnemyMovementSystem : EnemySystem
         // way sampling a single Lerp'd midpoint was: a long segment's linearly-interpolated Y very
         // often doesn't track the real terrain height beneath it, so a plain sloped path was
         // wrongly flagged as "over empty space" and turned into a phantom jump.
+        //
+        // A blocked raycast alone isn't sufficient, though: this level is built from many separate
+        // floor/wall pieces that sit at the same height but aren't quite welded together, so their
+        // shared edge bakes as two disconnected NavMesh islands bridged by a trivial auto-link --
+        // technically a "jump" by the same test, but a height difference the agent could just step
+        // over (minJumpHeight is set with real margin above the bake's own agentClimb). Requiring a
+        // real height difference is what tells an actual gap apart from a seam.
         for (int i = 0; i < corners.Count; i++)
         {
-            bool isJump = i > 0 && NavMesh.Raycast(corners[i - 1], corners[i], out _, NavMesh.AllAreas);
+            bool isJump = i > 0
+                && Mathf.Abs(corners[i].y - corners[i - 1].y) >= minJumpHeight
+                && NavMesh.Raycast(corners[i - 1], corners[i], out _, NavMesh.AllAreas);
             segmentIsJump.Add(isJump);
         }
 

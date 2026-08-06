@@ -27,7 +27,7 @@ public class EnemyConfig : ScriptableObject
     [Header("Avoidance")]
     [Tooltip("Extra cushion on top of both entities' actual physical radii (which scale with each " +
              "entity's transform, so this stays correct at any size).")]
-    public float avoidanceMargin = 1.5f;
+    public float avoidanceMargin = 2f;
     [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at the effective radius.")]
     public float avoidanceStrength = 3f;
 

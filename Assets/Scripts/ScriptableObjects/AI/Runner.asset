@@ -19,7 +19,7 @@ MonoBehaviour:
   moveSpeed: 7
   acceleration: 100
   stoppingDistance: 0.6
-  avoidanceMargin: 1.5
+  avoidanceMargin: 2
   avoidanceStrength: 3
   viewDistance: 60
   viewAngle: 120
