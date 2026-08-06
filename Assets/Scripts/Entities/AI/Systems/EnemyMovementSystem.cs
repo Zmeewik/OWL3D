@@ -96,6 +96,13 @@ public class EnemyMovementSystem : EnemySystem
 
     public bool IsMoving => HasDestination && MoveDirection.sqrMagnitude > 0.001f;
 
+    /// <summary>
+    /// Scales <see cref="moveSpeed"/> without overwriting it, so an action can move at a different
+    /// pace (a search walks rather than sprints) and hand the entity back at its normal speed
+    /// afterwards -- the configured speed stays the one source of truth.
+    /// </summary>
+    public float SpeedMultiplier { get; set; } = 1f;
+
     /// <summary>True for the whole flight of a jump arc. Read by <see cref="EnemyAnimationSystem"/> so
     /// it plays an in-air pose instead of leaving the walk cycle looping while the rigidbody flies a
     /// parabola -- without this the jump was physically correct but looked like sliding through the
@@ -213,7 +220,7 @@ public class EnemyMovementSystem : EnemySystem
         Vector3 steer = pathDirection + ComputeSeparation();
         MoveDirection = steer.sqrMagnitude > 0.0001f ? steer.normalized : pathDirection;
 
-        Vector3 desired = MoveDirection * moveSpeed;
+        Vector3 desired = MoveDirection * (moveSpeed * SpeedMultiplier);
         Vector3 horizontal = Flat(rb.velocity);
         Vector3 next = Vector3.MoveTowards(horizontal, desired, acceleration * fixedDeltaTime);
         rb.velocity = new Vector3(next.x, rb.velocity.y, next.z);

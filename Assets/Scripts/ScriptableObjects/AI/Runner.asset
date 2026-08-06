@@ -33,5 +33,9 @@ MonoBehaviour:
   aimHeadWeight: 0.2
   aimBodyWeight: 0.6
   aimLegsWeight: 0.2
+  searchDuration: 20
+  searchWalkSpeed: 0.45
+  searchSweepRadius: 4
+  shotInvestigateDistance: 12
   alertRadius: 20
   interactRange: 2.5

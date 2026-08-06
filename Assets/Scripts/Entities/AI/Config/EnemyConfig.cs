@@ -58,6 +58,19 @@ public class EnemyConfig : ScriptableObject
     [Min(0f)] public float aimBodyWeight = 0.6f;
     [Min(0f)] public float aimLegsWeight = 0.2f;
 
+    [Header("Searching")]
+    [Tooltip("How long this class hunts around a spot after losing contact before giving up and idling.")]
+    public float searchDuration = 20f;
+
+    [Tooltip("Fraction of moveSpeed used while searching -- searching is a walk, not a chase.")]
+    [Range(0.1f, 1f)] public float searchWalkSpeed = 0.45f;
+
+    [Tooltip("How wide the side-to-side pacing around the search point is.")]
+    public float searchSweepRadius = 4f;
+
+    [Tooltip("How far back along an incoming shot this class walks to look for whoever fired it.")]
+    public float shotInvestigateDistance = 12f;
+
     [Header("Communication")]
     [Tooltip("How far a spotted-target shout carries to nearby allies.")]
     public float alertRadius = 20f;

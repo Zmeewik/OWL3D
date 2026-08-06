@@ -169,11 +169,14 @@ public abstract class EnemyStrategy : MonoBehaviour
     protected virtual void OnTargetLost(TeamMember target) { }
 
     /// <summary>
-    /// Reacts to taking a hit by turning to look where it came from -- not locking onto the
-    /// attacker, just facing the point. Vision keeps scanning while the turn runs, so a real target
-    /// caught in view during it gets engaged the normal way (OnTargetSpotted); if the turn finishes
-    /// and nothing's there, the queue falls back to idling on its own. Override for a strategy that
-    /// should react differently (or not at all).
+    /// Reacts to taking a hit by going to look for whoever fired it, walking back up the line the
+    /// shot came down. Turning to face the shot isn't enough on its own: a shooter who never enters
+    /// the view cone is simply forgotten a moment later, which is how an entity ends up standing in
+    /// the open being shot at repeatedly without ever reacting.
+    ///
+    /// Vision keeps scanning throughout, so an attacker caught in view during the walk is engaged
+    /// the usual way; if the search runs its course and turns up nothing, the queue empties and the
+    /// entity idles. Override for a strategy that should react differently (or not at all).
     /// </summary>
     protected virtual void OnDamaged(DamagePacket packet)
     {
@@ -186,6 +189,28 @@ public abstract class EnemyStrategy : MonoBehaviour
         if (towardSource.sqrMagnitude < 0.0001f)
             return;
 
-        Push(new FaceDirectionAction(enemy.transform.position + towardSource.normalized * 5f));
+        SearchFor(enemy.transform.position + towardSource.normalized * ShotInvestigateDistance);
     }
+
+    /// <summary>
+    /// Sends the entity to hunt around a point. A search already under way is redirected rather than
+    /// replaced, so being shot at twice while investigating updates where it's looking instead of
+    /// restarting the whole hunt from scratch.
+    /// </summary>
+    protected void SearchFor(Vector3 point)
+    {
+        if (CurrentAction is SearchAction ongoing)
+        {
+            ongoing.Refocus(point);
+            return;
+        }
+
+        ClearActions();
+        Enqueue(new SearchAction(point, SearchDuration, SearchWalkSpeed, SearchSweepRadius));
+    }
+
+    protected float SearchDuration => enemy != null && enemy.Config != null ? enemy.Config.searchDuration : 20f;
+    protected float SearchWalkSpeed => enemy != null && enemy.Config != null ? enemy.Config.searchWalkSpeed : 0.45f;
+    protected float SearchSweepRadius => enemy != null && enemy.Config != null ? enemy.Config.searchSweepRadius : 4f;
+    protected float ShotInvestigateDistance => enemy != null && enemy.Config != null ? enemy.Config.shotInvestigateDistance : 12f;
 }

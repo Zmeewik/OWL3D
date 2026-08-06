@@ -40,6 +40,11 @@ public class SecurityStrategy : EnemyStrategy
             return;
         }
 
+        // Nothing left to fight or look for, so the weapon goes away. Doing it here rather than the
+        // moment a target is lost is what lets the guard keep it drawn for the whole search -- it's
+        // still hunting, and re-holstering while walking the area looks like it has forgotten.
+        enemy.Animation?.SetArmed(false);
+
         base.OnQueueEmpty();
     }
 
@@ -73,28 +78,37 @@ public class SecurityStrategy : EnemyStrategy
     /// <summary>
     /// Already fighting? A stray hit doesn't need to interrupt that -- whoever's attacking gets
     /// found the normal way (vision, or their next hit lands on an idle guard instead). Otherwise
-    /// falls to the base class, which just turns to look where the hit came from; vision does the
-    /// rest if there's actually something to see.
+    /// the guard draws its weapon and goes hunting up the line the shot came from.
     /// </summary>
     protected override void OnDamaged(DamagePacket packet)
     {
         if (HasAction<ChaseAndAttackAction>())
             return;
 
+        // Being shot at is reason enough to have the gun out, even before anything is spotted.
+        enemy.Animation?.SetArmed(true);
+
         base.OnDamaged(packet);
     }
 
+    /// <summary>
+    /// Losing sight of someone doesn't mean forgetting them. The guard drops the chase but walks on
+    /// to wherever it last actually saw them and searches around there, weapon still out, giving up
+    /// only when the search runs out of time (see <see cref="OnQueueEmpty"/>, which stows the weapon
+    /// once there's genuinely nothing left to do).
+    /// </summary>
     protected override void OnTargetLost(TeamMember target)
     {
         if (!HasAction<ChaseAndAttackAction>())
             return;
 
-        Debug.Log($"[AI] {enemy.name} lost {(target != null ? target.name : "target")}, standing down.", enemy);
-        RemoveActions<ChaseAndAttackAction>();
+        Vector3 lastKnown = enemy.Vision != null ? enemy.Vision.LastKnownPosition : transform.position;
 
-        // Standing down means stowing the weapon, which is what puts the entity back into its
-        // unweaponized idle/walk set rather than patrolling forever with the gun out.
-        enemy.Animation?.SetArmed(false);
+        Debug.Log($"[AI] {enemy.name} lost {(target != null ? target.name : "target")}, searching " +
+                  $"around {lastKnown}.", enemy);
+
+        RemoveActions<ChaseAndAttackAction>();
+        SearchFor(lastKnown);
 
         if (useRadio)
             EnemyManager.Broadcast(EnemyCommand.TargetLost(transform, target, enemy.RadioFrequency));
