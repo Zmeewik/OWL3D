@@ -52,9 +52,6 @@ public class EnemyMovementSystem : EnemySystem
     public float PhysicalRadius { get; private set; } = 0.5f;
 
     [Header("Jumping")]
-    [Tooltip("How far a corner-to-corner segment's midpoint may be from real NavMesh surface and " +
-             "still count as ground. Beyond this it's treated as a gap the path only crosses via a jump.")]
-    [SerializeField] private float jumpGapSampleRadius = 0.35f;
     [Tooltip("Minimum apex height above the takeoff point for a jump arc.")]
     [SerializeField] private float jumpApexHeight = 1.2f;
     [Tooltip("Safety cap on a jump's flight time, in case the computed arc math ever degenerates.")]
@@ -321,15 +318,17 @@ public class EnemyMovementSystem : EnemySystem
 
         corners.AddRange(path.corners);
 
-        // A real walkable stretch of ground is continuously on the NavMesh along its whole length;
-        // a corner-to-corner segment that crosses an off-mesh link (auto-generated at bake time for
-        // drops/gaps within the configured Drop Height / Jump Distance) is not -- its midpoint sits
-        // over empty space. That difference is the only signal available without a NavMeshAgent,
-        // which is what actually knows it's traversing a link.
+        // A corner-to-corner segment that crosses an off-mesh link (auto-generated at bake time for
+        // drops/gaps within the configured Drop Height / Jump Distance) can't actually be walked in
+        // a straight line -- NavMesh.Raycast is the tool built specifically to answer "can I walk
+        // straight from A to B on this mesh", and it operates on the mesh's own surface rather than
+        // Euclidean 3D distance, so it isn't fooled by a slope or an uneven stretch of ground the
+        // way sampling a single Lerp'd midpoint was: a long segment's linearly-interpolated Y very
+        // often doesn't track the real terrain height beneath it, so a plain sloped path was
+        // wrongly flagged as "over empty space" and turned into a phantom jump.
         for (int i = 0; i < corners.Count; i++)
         {
-            bool isJump = i > 0 && !NavMesh.SamplePosition(
-                (corners[i - 1] + corners[i]) * 0.5f, out _, jumpGapSampleRadius, NavMesh.AllAreas);
+            bool isJump = i > 0 && NavMesh.Raycast(corners[i - 1], corners[i], out _, NavMesh.AllAreas);
             segmentIsJump.Add(isJump);
         }
 
