@@ -24,6 +24,12 @@ public class EnemyConfig : ScriptableObject
     public float acceleration = 25f;
     public float stoppingDistance = 0.6f;
 
+    [Header("Avoidance")]
+    [Tooltip("Personal space from other enemies. Closer than this, a push-away steer blends in on top of the path.")]
+    public float avoidanceRadius = 1.5f;
+    [Tooltip("How hard the push-away steer is at zero distance between two entities, tapering to 0 at avoidanceRadius.")]
+    public float avoidanceStrength = 3f;
+
     [Header("Vision")]
     public float viewDistance = 25f;
     [Range(1f, 360f)] public float viewAngle = 110f;

@@ -35,6 +35,17 @@ public class ChaseAndAttackAction : EnemyAction
         var attack = enemy.Attack;
         var movement = enemy.Movement;
         var rotation = enemy.Rotation;
+        var vision = enemy.Vision;
+
+        // Can't see them right now -- go check out where they were last seen instead of chasing and
+        // firing at a position read straight off their transform through whatever's blocking sight.
+        // Vision keeps scanning every tick regardless of what this action does; the moment it
+        // re-spots the target this drops straight back into the live-chase branch below, and if
+        // instead its own timeToLose grace period runs out first, the strategy removes this action
+        // entirely (see SecurityStrategy.OnTargetLost) -- either way this action never has to decide
+        // to give up on its own.
+        if (vision != null && !vision.HasVisibleTarget)
+            return TickInvestigateLastKnown(movement, rotation, vision);
 
         Vector3 targetPosition = target.transform.position;
         float distance = Flat(targetPosition - enemy.transform.position).magnitude;
@@ -81,6 +92,28 @@ public class ChaseAndAttackAction : EnemyAction
     {
         enemy.Movement?.Stop();
         enemy.Rotation?.ClearAim();
+    }
+
+    /// <summary>
+    /// Walks to wherever the target was last actually seen and stops -- no aim-lock (there's nothing
+    /// to aim at), no attack. Just holds there once arrived; nothing left to decide until vision
+    /// either re-spots the target or times out for the strategy to act on.
+    /// </summary>
+    private ActionStatus TickInvestigateLastKnown(EnemyMovementSystem movement, EnemyRotationSystem rotation, EnemyVisionSystem vision)
+    {
+        rotation?.ClearAim();
+
+        Vector3 lastKnown = vision.LastKnownPosition;
+        if ((lastKnown - lastRequestedPosition).sqrMagnitude > 0.25f)
+        {
+            lastRequestedPosition = lastKnown;
+            movement?.SetDestination(lastKnown);
+        }
+
+        if (movement != null && movement.ReachedDestination)
+            movement.Stop();
+
+        return ActionStatus.Running;
     }
 
     private static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);

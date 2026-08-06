@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// Single owner of the AI population: it knows every live enemy and every enemy class asset, makes
@@ -48,9 +49,59 @@ public class EnemyManager : MonoBehaviour
             Instance = null;
     }
 
+    [Header("Navigation")]
+    [Tooltip("Layer whose colliders should carve live holes in the NavMesh instead of being baked " +
+             "in once -- crates, doors, anything that can move after the bake.")]
+    [SerializeField] private string dynamicObstacleLayer = "ObjectGround";
+
     private void Start()
     {
         InitializeSceneEnemies();
+        SetupDynamicObstacles();
+    }
+
+    /// <summary>
+    /// Gives every collider on <see cref="dynamicObstacleLayer"/> a carving NavMeshObstacle sized to
+    /// match it, so enemies path around these props live instead of only avoiding wherever they
+    /// happened to be sitting at bake time. Safe to call more than once -- an object that already
+    /// has one is left alone.
+    /// </summary>
+    public void SetupDynamicObstacles()
+    {
+        int layer = LayerMask.NameToLayer(dynamicObstacleLayer);
+        if (layer < 0)
+        {
+            Debug.LogWarning($"[{name}] No layer named '{dynamicObstacleLayer}' -- skipping dynamic obstacle setup.", this);
+            return;
+        }
+
+        var colliders = FindObjectsOfType<Collider>(false);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            var col = colliders[i];
+            if (col.gameObject.layer != layer || col.GetComponent<NavMeshObstacle>() != null)
+                continue;
+
+            var obstacle = col.gameObject.AddComponent<NavMeshObstacle>();
+            obstacle.shape = NavMeshObstacleShape.Box;
+
+            // A BoxCollider's own center/size are already the exact local-space box; anything else
+            // (capsule, mesh, ...) falls back to its world bounds converted to a local offset, which
+            // stops being exact once the object is rotated but is a reasonable box approximation.
+            if (col is BoxCollider box)
+            {
+                obstacle.center = box.center;
+                obstacle.size = box.size;
+            }
+            else
+            {
+                obstacle.center = col.transform.InverseTransformPoint(col.bounds.center);
+                obstacle.size = col.bounds.size;
+            }
+
+            obstacle.carving = true;
+            obstacle.carveOnlyStationary = false;
+        }
     }
 
     /// <summary>
