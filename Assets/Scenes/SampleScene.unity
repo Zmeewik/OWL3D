@@ -3199,9 +3199,11 @@ MonoBehaviour:
   useRadio: 1
   shoutDelay: 0.4
   radioDelay: 1.2
-  dodgeChance: 0.45
+  dodgeChance: 1
   dodgeCooldown: 1.6
   shotDodgeRadius: 2.5
+  returnHomeDistance: 3
+  returnHomeRetryDelay: 15
 --- !u!114 &282886836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6786,6 +6788,8 @@ MonoBehaviour:
   dodgeChance: 0.45
   dodgeCooldown: 1.6
   shotDodgeRadius: 2.5
+  returnHomeDistance: 3
+  returnHomeRetryDelay: 15
 --- !u!114 &688963560
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7370,6 +7374,8 @@ MonoBehaviour:
   dodgeChance: 0.45
   dodgeCooldown: 1.6
   shotDodgeRadius: 2.5
+  returnHomeDistance: 3
+  returnHomeRetryDelay: 15
 --- !u!114 &734937609
 MonoBehaviour:
   m_ObjectHideFlags: 0

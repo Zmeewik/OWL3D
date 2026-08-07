@@ -363,7 +363,10 @@ public class SecurityStrategy : EnemyStrategy, IEvader
 
         lastDodgeTime = Time.time;
         enemy.Movement.Dodge(sideways);
-        enemy.Animation?.PlayOneShot(left ? EnemyMotion.DodgeLeft : EnemyMotion.DodgeRight);
+        Debug.Log($"Dodged!!!!");
+        //enemy.Animation?.PlayOneShot(left ? EnemyMotion.DodgeLeft : EnemyMotion.DodgeRight);
+        bool played = enemy.Animation?.PlayOneShot(left ? EnemyMotion.DodgeLeft : EnemyMotion.DodgeRight) ?? false;
+        Debug.Log($"Dodge animation played: {played}");
         return true;
     }
 

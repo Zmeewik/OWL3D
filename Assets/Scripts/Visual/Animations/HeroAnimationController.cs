@@ -201,7 +201,7 @@ public class HeroAnimationController : IAnimation
 
     public void ChangeAnimation(string animationName, BodyPart bodyPart, bool loop)
     {
-        print(animationName);
+        //print(animationName);
         AnimationState state = (AnimationState)Enum.Parse(typeof(AnimationState), animationName);
         PlayAnimation(state.ToString(), bodyPart, loop);
         currentAnimStates[bodyPart] = state;

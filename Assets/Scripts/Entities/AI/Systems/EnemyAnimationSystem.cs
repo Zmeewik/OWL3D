@@ -316,10 +316,18 @@ public class EnemyAnimationSystem : EnemySystem
     /// <returns>Whether the motion actually started.</returns>
     public bool PlayOneShot(EnemyMotion motion)
     {
-        if (IsBusy && PriorityOf(motion) <= PriorityOf(currentMotion))
-            return false;
+        Debug.Log($"PlayOneShot request: {motion}, busy={IsBusy}, current={currentMotion}");
 
-        if (!PlayMotion(motion, force: true))
+        if (IsBusy && PriorityOf(motion) <= PriorityOf(currentMotion))
+        {
+            Debug.Log("Rejected by priority");
+            return false;
+        }
+    
+        bool played = PlayMotion(motion, force: true);
+        Debug.Log($"PlayMotion returned: {played}");
+
+        if (!played)
             return false;
 
         oneShotRemaining = GetMotionLength(motion);

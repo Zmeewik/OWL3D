@@ -242,7 +242,7 @@ public class EntityAttackAnimation : MonoBehaviour
     {
         // Find animation by name
         found = Array.Find(animationList, a => a.name == animName);
-        Debug.Log($"{gameObject.name}: {animName} -> {found?.name}");
+        //Debug.Log($"{gameObject.name}: {animName} -> {found?.name}");
         if (found == null)
         {
             Debug.LogWarning($"[EntityAttackAnimation] Animation '{animName}' not found.");
