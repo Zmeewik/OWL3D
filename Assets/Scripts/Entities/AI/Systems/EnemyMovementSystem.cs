@@ -204,6 +204,17 @@ public class EnemyMovementSystem : EnemySystem
             return;
         }
 
+        // Committed to an animation that owns the body -- firing, posturing, talking, drawing. The
+        // destination is kept, so walking resumes where it left off once the action finishes; only
+        // the steering stops. Depenetration still runs below via Decelerate's caller, so a locked
+        // body can still be pushed out of something it's stuck in.
+        if (enemy != null && enemy.Animation != null && enemy.Animation.MovementLocked)
+        {
+            MoveDirection = Vector3.zero;
+            Decelerate(fixedDeltaTime);
+            return;
+        }
+
         if (!HasDestination || ReachedDestination)
         {
             MoveDirection = Vector3.zero;
@@ -418,10 +429,16 @@ public class EnemyMovementSystem : EnemySystem
         return push * avoidanceStrength;
     }
 
+    /// <summary>
+    /// Comes to a stop, while still clearing any overlap. Standing still is exactly when a body most
+    /// needs pushing out of whatever it is inside -- with no steering to mask it, an entity wedged
+    /// into a wall or a squadmate would otherwise simply stay there.
+    /// </summary>
     private void Decelerate(float fixedDeltaTime)
     {
         Vector3 horizontal = Flat(rb.velocity);
         Vector3 next = Vector3.MoveTowards(horizontal, Vector3.zero, acceleration * fixedDeltaTime);
+        next += ComputeDepenetration(fixedDeltaTime);
         rb.velocity = new Vector3(next.x, rb.velocity.y, next.z);
     }
 

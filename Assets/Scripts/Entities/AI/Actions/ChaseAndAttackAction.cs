@@ -95,9 +95,13 @@ public class ChaseAndAttackAction : EnemyAction
             return ActionStatus.Running;
         }
 
-        // A rolled breather waits for the shot already in the pipe to go out, so resting never
-        // overlaps with firing.
-        if (breatherPending && (attack == null || !attack.HasPendingAttack))
+        // A rolled breather waits for both the shot to leave AND the attack animation to finish.
+        // Waiting only for the shot meant the rest began 0.42s into a 0.83s attack and its ShowOff
+        // replaced the attack animation halfway through -- which is why attacks looked like they
+        // switched to something else early.
+        if (breatherPending
+            && (attack == null || !attack.HasPendingAttack)
+            && (enemy.Animation == null || !enemy.Animation.IsBusy))
         {
             breatherPending = false;
             BeginBreather();

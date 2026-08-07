@@ -79,6 +79,71 @@ public class EnemyAnimationSystem : EnemySystem
     /// <summary>True while the draw/holster animation is still playing. Attacks wait this out.</summary>
     public bool IsChangingWeapon => changingWeapon;
 
+    /// <summary>True while a one-shot animation is still running.</summary>
+    public bool IsBusy => oneShotRemaining > 0f;
+
+    /// <summary>Which one-shot is running, meaningful only while <see cref="IsBusy"/>.</summary>
+    public EnemyMotion BusyMotion => currentMotion;
+
+    /// <summary>
+    /// True while the running animation is one the body is committed to and can't walk out of.
+    /// Movement reads this so an entity can't stroll away mid-shot, mid-posture or mid-sentence --
+    /// actions overlapping like that is what made everything look like it was sliding around.
+    ///
+    /// A dodge is deliberately absent: the dodge *is* a movement, and locking it would cancel the
+    /// very displacement it exists to produce.
+    /// </summary>
+    public bool MovementLocked => IsBusy && LocksMovement(currentMotion);
+
+    private static bool LocksMovement(EnemyMotion motion)
+    {
+        switch (motion)
+        {
+            case EnemyMotion.AttackRanged1:
+            case EnemyMotion.AttackRanged2:
+            case EnemyMotion.LegHit:
+            case EnemyMotion.ShowOff:
+            case EnemyMotion.Talk:
+            case EnemyMotion.Interaction:
+            case EnemyMotion.ChangeWeapon:
+            case EnemyMotion.Reload:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// How strongly a motion claims the body. A request never interrupts something more important
+    /// than itself, which is what keeps a cosmetic flourish from cutting an attack in half -- the
+    /// breather's ShowOff used to start 0.42s into a 0.83s attack animation and replace it, which is
+    /// why attacks looked like they changed to something else partway through.
+    /// </summary>
+    private static int PriorityOf(EnemyMotion motion)
+    {
+        switch (motion)
+        {
+            case EnemyMotion.HitFront:
+            case EnemyMotion.HitBack:
+            case EnemyMotion.Stagger:
+                return 4;
+
+            case EnemyMotion.DodgeLeft:
+            case EnemyMotion.DodgeRight:
+                return 3;
+
+            case EnemyMotion.AttackRanged1:
+            case EnemyMotion.AttackRanged2:
+            case EnemyMotion.LegHit:
+            case EnemyMotion.ChangeWeapon:
+            case EnemyMotion.Reload:
+                return 2;
+
+            default:
+                return 1;   // cosmetic: ShowOff, Talk, Interaction
+        }
+    }
+
     public override void Initialize(Enemy owner)
     {
         base.Initialize(owner);
@@ -244,12 +309,21 @@ public class EnemyAnimationSystem : EnemySystem
         PlayOneShot(EnemyMotion.ChangeWeapon);
     }
 
-    public void PlayOneShot(EnemyMotion motion)
+    /// <summary>
+    /// Plays a motion that owns the body until it finishes. Refused while something at least as
+    /// important is still playing, so actions queue up behind each other instead of overlapping.
+    /// </summary>
+    /// <returns>Whether the motion actually started.</returns>
+    public bool PlayOneShot(EnemyMotion motion)
     {
+        if (IsBusy && PriorityOf(motion) <= PriorityOf(currentMotion))
+            return false;
+
         if (!PlayMotion(motion, force: true))
-            return;
+            return false;
 
         oneShotRemaining = GetMotionLength(motion);
+        return true;
     }
 
     // ---- Playback -----------------------------------------------------------

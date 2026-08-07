@@ -34,7 +34,14 @@ public class SecurityStrategy : EnemyStrategy, IEvader
     [Tooltip("How close a shot has to pass to be worth diving away from.")]
     [SerializeField] private float shotDodgeRadius = 2.5f;
 
+    [Tooltip("How far from its post the guard may end up before it walks back rather than idling there.")]
+    [SerializeField] private float returnHomeDistance = 3f;
+
+    [Tooltip("Minimum gap between attempts to walk back to the post, so a blocked route isn't retried on loop.")]
+    [SerializeField] private float returnHomeRetryDelay = 15f;
+
     private float lastDodgeTime = -999f;
+    private float nextReturnHomeTime = -999f;
 
     protected override void OnInitialized()
     {
@@ -98,8 +105,25 @@ public class SecurityStrategy : EnemyStrategy, IEvader
         // still hunting, and re-holstering while walking the area looks like it has forgotten.
         enemy.Animation?.SetArmed(false);
 
+        // A hunt that turned up nothing ends where it started. Without this a guard simply idles
+        // wherever the search happened to leave it, so every alarm permanently relocates the squad a
+        // little further from the posts they are meant to be standing at.
+        //
+        // Rate-limited because the walk home can fail (it times out if the route is blocked), and
+        // re-queueing it the instant it fails would spin forever. Failing just means idling where it
+        // is and trying again later.
+        if (Time.time >= nextReturnHomeTime &&
+            Flat(transform.position - HomePosition).magnitude > returnHomeDistance)
+        {
+            nextReturnHomeTime = Time.time + returnHomeRetryDelay;
+            Enqueue(new MoveToPointAction(HomePosition, arriveDistance: 1.5f));
+            return;
+        }
+
         base.OnQueueEmpty();
     }
+
+    private static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
 
     /// <summary>
     /// Only hostiles are worth reacting to. Guards used to walk over to any ally they caught sight
@@ -317,6 +341,15 @@ public class SecurityStrategy : EnemyStrategy, IEvader
 
         if (enemy == null || enemy.Movement == null || Time.time - lastDodgeTime < dodgeCooldown)
             return false;
+
+        // Committed to a posture or a radio call: the guard is not in a position to throw itself
+        // aside, and letting it would cut the very animation that made it vulnerable.
+        var animation = enemy.Animation;
+        if (animation != null && animation.IsBusy &&
+            (animation.BusyMotion == EnemyMotion.ShowOff || animation.BusyMotion == EnemyMotion.Talk))
+        {
+            return false;
+        }
 
         if (Random.value > dodgeChance)
             return false;

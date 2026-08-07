@@ -27,7 +27,7 @@ MonoBehaviour:
   timeToLose: 3
   rangedRange: 40
   meleeRange: 5
-  attackInterval: 1
+  attackInterval: 1.4
   attackDelayFrames: 10
   weaponSpreadDegrees: 4
   attackChance: 0.7
