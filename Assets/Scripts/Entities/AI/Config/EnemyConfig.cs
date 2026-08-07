@@ -72,8 +72,9 @@ public class EnemyConfig : ScriptableObject
     public float shotInvestigateDistance = 12f;
 
     [Header("Ambient idle")]
-    [Tooltip("How far from its post this class strolls while idling.")]
-    public float ambientWanderRadius = 5f;
+    [Tooltip("How far from its post this class strolls while idling. Small on purpose -- a guard " +
+             "shifts its footing around a post, it doesn't patrol a circle.")]
+    public float ambientWanderRadius = 2.5f;
 
     [Tooltip("Fraction of moveSpeed used while milling about -- idling is a saunter.")]
     [Range(0.1f, 1f)] public float ambientWalkSpeed = 0.4f;
@@ -84,8 +85,4 @@ public class EnemyConfig : ScriptableObject
     [Header("Communication")]
     [Tooltip("How far a spotted-target shout carries to nearby allies.")]
     public float alertRadius = 20f;
-
-    [Header("Social")]
-    [Tooltip("How close this class walks to a friendly before interacting with them.")]
-    public float interactRange = 2.5f;
 }

@@ -32,7 +32,7 @@ public class AmbientIdleAction : EnemyAction
     /// <summary>Ally this entity is currently turned toward, so a conversation keeps facing the right way.</summary>
     private Transform chatPartner;
 
-    public AmbientIdleAction(float wanderRadius = 5f, float walkSpeed = 0.4f, float chatRange = 6f)
+    public AmbientIdleAction(float wanderRadius = 2.5f, float walkSpeed = 0.4f, float chatRange = 6f)
     {
         this.wanderRadius = wanderRadius;
         this.walkSpeed = walkSpeed;
@@ -114,12 +114,16 @@ public class AmbientIdleAction : EnemyAction
         // Chatting only comes up when there's actually someone to chat to, so a lone guard paces and
         // looks around instead of miming a conversation with nobody. Never twice running, either:
         // back-to-back conversations are what let a group talk itself into standing still forever.
+        //
+        // Weighted heavily toward simply standing about: a guard on duty is mostly still, glancing
+        // around, with the occasional few paces. Chatting and strolling both used to come up often
+        // enough that a group read as restless rather than posted.
         var ally = previousBeat == Beat.Chatting ? null : FindNearbyAlly();
         float roll = Random.value;
 
-        if (ally != null && roll < 0.4f)
+        if (ally != null && roll < 0.12f)
             BeginChat(ally);
-        else if (roll < 0.75f)
+        else if (roll < 0.42f)
             BeginStroll();
         else
             BeginStand();
@@ -128,7 +132,7 @@ public class AmbientIdleAction : EnemyAction
     private void BeginStand()
     {
         beat = Beat.Standing;
-        beatRemaining = Random.Range(2.5f, 5f);
+        beatRemaining = Random.Range(5f, 10f);
 
         enemy.Movement?.Stop();
 
@@ -141,8 +145,9 @@ public class AmbientIdleAction : EnemyAction
     private void BeginStroll()
     {
         beat = Beat.Strolling;
-        beatRemaining = Random.Range(4f, 8f);
+        beatRemaining = Random.Range(3f, 5f);
 
+        // Short paces around the post, not laps of it.
         Vector2 offset = Random.insideUnitCircle * wanderRadius;
         Vector3 spot = home + new Vector3(offset.x, 0f, offset.y);
 

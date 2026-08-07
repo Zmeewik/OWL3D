@@ -9,7 +9,7 @@ using UnityEngine;
 /// (team, ranges, reaction times), not the decision-making. Split it only when a class actually
 /// needs to decide something differently.
 /// </summary>
-public class SecurityStrategy : EnemyStrategy
+public class SecurityStrategy : EnemyStrategy, IEvader
 {
     [Header("Reactions")]
     [Tooltip("Shout a spotted hostile to nearby allies as well as over the radio.")]
@@ -60,31 +60,21 @@ public class SecurityStrategy : EnemyStrategy
         base.OnQueueEmpty();
     }
 
+    /// <summary>
+    /// Only hostiles are worth reacting to. Guards used to walk over to any ally they caught sight
+    /// of and greet them, which in a squad meant each one constantly abandoning its post to trail
+    /// whoever it had just noticed -- one turning to follow another, all three drifting off in
+    /// convoy. Socialising belongs to <see cref="AmbientIdleAction"/>, where guards chat from where
+    /// they already stand instead of walking each other around the map.
+    /// </summary>
     protected override void OnTargetSpotted(TeamMember target)
     {
-        if (target == null) return;
+        if (target == null || !Teams.IsHostile(Team, target.team))
+            return;
 
-        switch (Teams.Relation(Team, target.team))
-        {
-            case TeamRelation.Hostile:
-                Debug.Log($"[AI] {enemy.name} spotted hostile {target.name}.", enemy);
-                Announce(target);
-                Engage(target);
-                break;
-
-            case TeamRelation.Friendly:
-                // Don't break off a fight to say hello.
-                if (!HasAction<ChaseAndAttackAction>())
-                {
-                    ClearActions();
-                    Enqueue(new InteractWithFriendlyAction(target, InteractRange));
-                }
-                break;
-
-            case TeamRelation.Neutral:
-                // Deliberately nothing.
-                break;
-        }
+        Debug.Log($"[AI] {enemy.name} spotted hostile {target.name}.", enemy);
+        Announce(target);
+        Engage(target);
     }
 
     /// <summary>
@@ -94,12 +84,10 @@ public class SecurityStrategy : EnemyStrategy
     /// </summary>
     protected override void OnDamaged(DamagePacket packet)
     {
-        // Already fighting: don't restart the plan, but do try to get out of the way.
+        // Already fighting: don't restart the plan. Dodging is handled earlier, in TryEvade, which
+        // EntityHealth calls before the hit is applied rather than after it has landed.
         if (HasAction<ChaseAndAttackAction>())
-        {
-            TryDodge(packet);
             return;
-        }
 
         // Being shot at is reason enough to have the gun out, even before anything is spotted.
         enemy.Animation?.SetArmed(true);
@@ -220,23 +208,29 @@ public class SecurityStrategy : EnemyStrategy
     }
 
     /// <summary>
-    /// Sidesteps an incoming shot, sometimes. Rolls per hit and rate-limits itself, so a guard under
-    /// sustained fire jinks occasionally rather than hopping on every bullet.
+    /// Sidesteps an incoming hit, sometimes. Called by <see cref="EntityHealth"/> before any damage
+    /// is applied, so evading a swing cancels it outright. Rolls per hit and rate-limits itself, so
+    /// a guard under sustained fire jinks occasionally rather than hopping on every bullet.
     /// </summary>
-    private void TryDodge(DamagePacket packet)
+    public bool TryEvade(DamagePacket packet)
     {
-        if (enemy.Movement == null || Time.time - lastDodgeTime < dodgeCooldown)
-            return;
+        // Only a guard actually in a fight dodges. One that hasn't noticed anything yet has no
+        // reason to be evasive, and should react by going to look instead (see OnDamaged).
+        if (!HasAction<ChaseAndAttackAction>())
+            return false;
+
+        if (enemy == null || enemy.Movement == null || Time.time - lastDodgeTime < dodgeCooldown)
+            return false;
 
         if (Random.value > dodgeChance)
-            return;
+            return false;
 
         // Dodge across the line of fire, not along it -- stepping back down the bullet's path just
         // keeps the guard in it.
         Vector3 incoming = packet.forceApplied;
         incoming.y = 0f;
         if (incoming.sqrMagnitude < 0.0001f)
-            return;
+            return false;
 
         bool left = Random.value < 0.5f;
         Vector3 sideways = Vector3.Cross(Vector3.up, incoming.normalized) * (left ? 1f : -1f);
@@ -244,8 +238,8 @@ public class SecurityStrategy : EnemyStrategy
         lastDodgeTime = Time.time;
         enemy.Movement.Dodge(sideways);
         enemy.Animation?.PlayOneShot(left ? EnemyMotion.DodgeLeft : EnemyMotion.DodgeRight);
+        return true;
     }
 
     private float AlertRadius => enemy != null && enemy.Config != null ? enemy.Config.alertRadius : 20f;
-    private float InteractRange => enemy != null && enemy.Config != null ? enemy.Config.interactRange : 2.5f;
 }

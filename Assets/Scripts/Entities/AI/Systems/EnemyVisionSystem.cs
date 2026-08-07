@@ -164,39 +164,26 @@ public class EnemyVisionSystem : EnemySystem
                 }
             }
 
-            // A friendly is a perfectly valid thing to have "spotted" -- it's how greeting works --
-            // but it must never stop the entity noticing an enemy. Holding a friendly as the current
-            // target used to end the tick right here, so a guard chatting to a squadmate went
-            // completely blind: the player could walk up and shoot it and it would never look.
-            // Enemies outrank friendlies, so keep hunting for one even while tracking an ally.
-            if (CurrentTarget != null && !IsHostile(CurrentTarget))
-                ScanForNewTarget(deltaTime, hostileOnly: true);
-
             UpdateMarker();
             return;
         }
 
-        ScanForNewTarget(deltaTime, hostileOnly: false);
+        ScanForNewTarget(deltaTime);
         UpdateMarker();
     }
 
     private bool IsHostile(TeamMember member) =>
         member != null && Teams.Relation(SelfTeam, member.team) == TeamRelation.Hostile;
 
-    private void ScanForNewTarget(float deltaTime, bool hostileOnly)
+    private void ScanForNewTarget(float deltaTime)
     {
-        TeamMember best = FindClosestVisible(hostileOnly);
+        TeamMember best = FindClosestVisible();
 
         if (best == null)
         {
             candidate = null;
             candidateVisibleTime = 0f;
-
-            // Only a scan that owns the target may report nothing in view. A hostile sweep running
-            // alongside a tracked friendly must not wipe the flag that says the friendly is visible.
-            if (!hostileOnly)
-                HasVisibleTarget = false;
-
+            HasVisibleTarget = false;
             return;
         }
 
@@ -222,7 +209,7 @@ public class EnemyVisionSystem : EnemySystem
         OnTargetSpotted?.Invoke(CurrentTarget);
     }
 
-    private TeamMember FindClosestVisible(bool hostileOnly)
+    private TeamMember FindClosestVisible()
     {
         TeamMember best = null;
         float bestDistance = float.MaxValue;
@@ -234,12 +221,11 @@ public class EnemyVisionSystem : EnemySystem
             if (member == null || member == enemy.Self || !member.IsAlive)
                 continue;
 
-            // Neutrals are visible but uninteresting -- skipping them here keeps the AI from
-            // latching onto scenery-like entities and never noticing the hostile behind them.
-            if (Teams.Relation(SelfTeam, member.team) == TeamRelation.Neutral)
-                continue;
-
-            if (hostileOnly && !IsHostile(member))
+            // Only enemies are worth tracking. Allies used to qualify too, which is what let a
+            // friendly become CurrentTarget and blind the entity to everything else; nothing acts
+            // on seeing an ally any more, so they're filtered out at the source and that whole
+            // class of bug can't come back.
+            if (!IsHostile(member))
                 continue;
 
             float distance = Vector3.Distance(eye.position, member.transform.position);

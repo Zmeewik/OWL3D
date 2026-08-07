@@ -127,7 +127,7 @@ public static class MeleeAttackResolver
             float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
             Vector3 kbDir = dir.normalized;
             bool isCharged = charged != -1;
-            DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged, rb, owner);
+            DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged, rb, owner, melee: true);
             health.ApplyDamage(packet);
 
             // The hit collider's own rigidbody (a named limb bone) is kinematic while the entity

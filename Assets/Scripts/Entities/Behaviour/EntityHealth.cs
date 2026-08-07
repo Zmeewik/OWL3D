@@ -8,6 +8,8 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 {
     [Header("Health settings")]
     [SerializeField] private float maxHealth = 100f;
+
+    [SerializeField] private bool Unkillable;
     [Header("Body part control")]
     [SerializeField] private Bodypart[] bodyparts = new Bodypart[] {
         new Bodypart("head", 2f),
@@ -54,6 +56,9 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 
     public void ApplyDamage(DamagePacket damagePacket)
     {
+        if (Unkillable)
+            return;
+        
         if (currentHealth <= 0) return;
 
         // Check for the block
@@ -64,6 +69,17 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
                 OnTakeDamage?.Invoke(0);
                 return;
             }
+        }
+
+        // Asked before anything is applied, so a dodge prevents the hit instead of responding to
+        // having already taken it. Ducking a swing avoids it entirely; a bullet has already arrived
+        // by the time anyone moves, so that still lands -- but either way the dodge, not a flinch,
+        // is what plays.
+        bool evaded = TryGetComponent<IEvader>(out var evader) && evader.TryEvade(damagePacket);
+        if (evaded && damagePacket.melee)
+        {
+            OnTakeDamage?.Invoke(0);
+            return;
         }
 
         float finalDamage = damagePacket.damage * GetBodyPartMultiplier(damagePacket.bodyPart);
@@ -78,14 +94,20 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
         OnTakeDamage?.Invoke(finalDamage);
         OnDamaged?.Invoke(damagePacket);
 
-        // forceApplied points the way the hit travels -- from the attacker into the target -- so a
-        // blow to the face arrives pointing AGAINST this entity's forward, giving a negative dot.
-        // The test used to read that as a hit from behind, which is why being shot in the front
-        // played the back reaction and vice versa.
-        string anim = Vector3.Dot(transform.forward, damagePacket.forceApplied.normalized) < 0f
-            ? AnimateCommand.HitFront
-            : AnimateCommand.HitBack;
-        Animate(anim, speed: 2);
+        // A hit reaction would overwrite the dodge that just started -- both are one-shot animations
+        // on the same layer, and this one runs second, which is why dodging never appeared to play
+        // any animation at all. An entity that got out of the way shouldn't flinch anyway.
+        if (!evaded)
+        {
+            // forceApplied points the way the hit travels -- from the attacker into the target -- so a
+            // blow to the face arrives pointing AGAINST this entity's forward, giving a negative dot.
+            // The test used to read that as a hit from behind, which is why being shot in the front
+            // played the back reaction and vice versa.
+            string anim = Vector3.Dot(transform.forward, damagePacket.forceApplied.normalized) < 0f
+                ? AnimateCommand.HitFront
+                : AnimateCommand.HitBack;
+            Animate(anim, speed: 2);
+        }
 
         // Death sequence
         if (currentHealth <= 0)

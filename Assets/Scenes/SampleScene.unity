@@ -2834,6 +2834,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0.3
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   muzzle: {fileID: 684871279}
   muzzleEffect: MuzzleFlashPistol
 --- !u!114 &265153125
@@ -3195,6 +3197,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   alertNearbyAllies: 1
   useRadio: 1
+  radioDelay: 1.2
+  dodgeChance: 0.45
+  dodgeCooldown: 1.6
 --- !u!114 &282886836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3309,6 +3314,8 @@ MonoBehaviour:
   jumpApexHeight: 1.2
   jumpMaxDuration: 3
   linkRetryDelay: 1.5
+  dodgeSpeed: 9
+  dodgeDuration: 0.35
 --- !u!114 &282886841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3340,6 +3347,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  Unkillable: 0
   bodyparts:
   - name: head
     damageMultiplyer: 2
@@ -4003,6 +4011,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  Unkillable: 1
   bodyparts:
   - name: head
     damageMultiplyer: 2
@@ -4818,6 +4827,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -6763,6 +6774,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   alertNearbyAllies: 1
   useRadio: 1
+  radioDelay: 1.2
+  dodgeChance: 0.45
+  dodgeCooldown: 1.6
 --- !u!114 &688963560
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6877,6 +6891,8 @@ MonoBehaviour:
   jumpApexHeight: 5
   jumpMaxDuration: 3
   linkRetryDelay: 1.5
+  dodgeSpeed: 9
+  dodgeDuration: 0.35
 --- !u!114 &688963565
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6908,6 +6924,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  Unkillable: 0
   bodyparts:
   - name: head
     damageMultiplyer: 2
@@ -7193,6 +7210,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  Unkillable: 0
   bodyparts:
   - name: head
     damageMultiplyer: 2
@@ -7333,6 +7351,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   alertNearbyAllies: 1
   useRadio: 1
+  radioDelay: 1.2
+  dodgeChance: 0.45
+  dodgeCooldown: 1.6
 --- !u!114 &734937609
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7447,6 +7468,8 @@ MonoBehaviour:
   jumpApexHeight: 1.2
   jumpMaxDuration: 3
   linkRetryDelay: 1.5
+  dodgeSpeed: 9
+  dodgeDuration: 0.35
 --- !u!114 &734937614
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8516,11 +8539,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attacks:
-  - {fileID: 11400000, guid: 3b5395d5a645c694897ae430ffe143e9, type: 2}
+  - {fileID: 11400000, guid: 2a987b14ce684ff4392846aa3b84b2c7, type: 2}
   weaponAnimationController: []
   owner: {fileID: 282886846}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 3
+  burstInterval: 0.09
   muzzle: {fileID: 552527483}
   muzzleEffect: MuzzleFlashPistol
 --- !u!4 &802931979
@@ -9464,6 +9489,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  Unkillable: 0
   bodyparts:
   - name: head
     damageMultiplyer: 2
@@ -9585,6 +9611,8 @@ MonoBehaviour:
   owner: {fileID: 282886846}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
@@ -9715,11 +9743,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attacks:
-  - {fileID: 11400000, guid: 3b5395d5a645c694897ae430ffe143e9, type: 2}
+  - {fileID: 11400000, guid: 2a987b14ce684ff4392846aa3b84b2c7, type: 2}
   weaponAnimationController: []
   owner: {fileID: 688963570}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 3
+  burstInterval: 0.09
   muzzle: {fileID: 1486013508}
   muzzleEffect: MuzzleFlashPistol
 --- !u!4 &871327332
@@ -11965,6 +11995,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -13419,6 +13451,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -13915,6 +13949,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0.3
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -14516,6 +14552,8 @@ MonoBehaviour:
   owner: {fileID: 734937605}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
@@ -14580,6 +14618,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0.3
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   muzzle: {fileID: 20224335}
   muzzleEffect: MuzzleFlashPistol
 --- !u!114 &1411702226
@@ -15285,6 +15325,8 @@ MonoBehaviour:
   owner: {fileID: 688963570}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
@@ -16694,6 +16736,8 @@ MonoBehaviour:
   owner: {fileID: 322448626}
   spreadDegrees: 0.3
   aimSource: {fileID: 330585546}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3072
@@ -19450,11 +19494,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attacks:
-  - {fileID: 11400000, guid: 3b5395d5a645c694897ae430ffe143e9, type: 2}
+  - {fileID: 11400000, guid: 2a987b14ce684ff4392846aa3b84b2c7, type: 2}
   weaponAnimationController: []
   owner: {fileID: 734937605}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 3
+  burstInterval: 0.09
   muzzle: {fileID: 282363416}
   muzzleEffect: MuzzleFlashPistol
 --- !u!4 &2014782607
@@ -20282,6 +20328,8 @@ MonoBehaviour:
   owner: {fileID: 282886846}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
@@ -21397,6 +21445,8 @@ MonoBehaviour:
   owner: {fileID: 734937605}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
@@ -21589,6 +21639,8 @@ MonoBehaviour:
   owner: {fileID: 688963570}
   spreadDegrees: 0
   aimSource: {fileID: 0}
+  burstCount: 1
+  burstInterval: 0.08
   hitMask:
     serializedVersion: 2
     m_Bits: 3328
