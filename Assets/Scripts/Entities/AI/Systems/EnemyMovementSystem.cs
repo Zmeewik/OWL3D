@@ -72,6 +72,16 @@ public class EnemyMovementSystem : EnemySystem
     [Tooltip("How long the dodge drives movement before normal steering resumes.")]
     [SerializeField] private float dodgeDuration = 0.35f;
 
+    [Header("Depenetration")]
+    [Tooltip("What the body is pushed back out of when it ends up inside something: other entities " +
+             "and world geometry.")]
+    [SerializeField] private LayerMask depenetrationMask = ~0;
+
+    [Tooltip("Cap on how fast overlap is resolved, so a deep intersection doesn't fling the body.")]
+    [SerializeField] private float maxDepenetrationSpeed = 6f;
+
+    private readonly Collider[] overlapBuffer = new Collider[16];
+
     private float dodgeRemaining;
     private Vector3 dodgeVelocity;
 
@@ -244,7 +254,77 @@ public class EnemyMovementSystem : EnemySystem
         Vector3 desired = MoveDirection * (moveSpeed * SpeedMultiplier);
         Vector3 horizontal = Flat(rb.velocity);
         Vector3 next = Vector3.MoveTowards(horizontal, desired, acceleration * fixedDeltaTime);
+
+        // Added on top of the steering rather than blended into it, because it has to survive being
+        // overwritten -- see ComputeDepenetration.
+        next += ComputeDepenetration(fixedDeltaTime);
+
         rb.velocity = new Vector3(next.x, rb.velocity.y, next.z);
+    }
+
+    /// <summary>
+    /// Velocity that clears any overlap the body is currently in, against other entities and world
+    /// geometry alike.
+    ///
+    /// This is needed because movement assigns <c>rb.velocity</c> outright every physics step, which
+    /// silently throws away the separating velocity PhysX had just computed to push the body out of
+    /// whatever it was intersecting. That is what let two entities grind into one another and stand
+    /// there overlapping -- walking animation playing, visibly stuck inside each other -- and what
+    /// let a body wedge itself into a wall and stay there. Steering alone can't fix it: by the time
+    /// bodies are interpenetrating, the thing that resolves it is being cancelled every step.
+    ///
+    /// Measured from the real capsule via ComputePenetration rather than from centre distances, so
+    /// it accounts for this rig's laterally-offset collider and whichever way each body is facing.
+    /// </summary>
+    private Vector3 ComputeDepenetration(float fixedDeltaTime)
+    {
+        if (capsule == null || fixedDeltaTime <= 0f)
+            return Vector3.zero;
+
+        GetCapsuleEnds(out var point0, out var point1, out float worldRadius);
+
+        int count = Physics.OverlapCapsuleNonAlloc(point0, point1, worldRadius, overlapBuffer,
+                                                   depenetrationMask, QueryTriggerInteraction.Ignore);
+
+        Vector3 push = Vector3.zero;
+        for (int i = 0; i < count; i++)
+        {
+            var other = overlapBuffer[i];
+            if (other == null || other == capsule || other.transform.IsChildOf(transform))
+                continue;
+
+            if (!Physics.ComputePenetration(
+                    capsule, capsule.transform.position, capsule.transform.rotation,
+                    other, other.transform.position, other.transform.rotation,
+                    out var direction, out float distance))
+            {
+                continue;
+            }
+
+            // Horizontal only: vertical separation is the ground holding the body up, and cancelling
+            // gravity here would leave it hovering.
+            push += Flat(direction) * (distance / fixedDeltaTime);
+        }
+
+        return Vector3.ClampMagnitude(push, maxDepenetrationSpeed);
+    }
+
+    private void GetCapsuleEnds(out Vector3 point0, out Vector3 point1, out float worldRadius)
+    {
+        var scale = capsule.transform.lossyScale;
+        float radialScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+        worldRadius = capsule.radius * radialScale;
+
+        float height = Mathf.Max(capsule.height * Mathf.Abs(scale.y), worldRadius * 2f);
+        float halfSpan = Mathf.Max(0f, height * 0.5f - worldRadius);
+
+        Vector3 center = capsule.transform.TransformPoint(capsule.center);
+        Vector3 axis = capsule.direction == 0 ? capsule.transform.right
+                     : capsule.direction == 2 ? capsule.transform.forward
+                     : capsule.transform.up;
+
+        point0 = center + axis * halfSpan;
+        point1 = center - axis * halfSpan;
     }
 
     /// <summary>

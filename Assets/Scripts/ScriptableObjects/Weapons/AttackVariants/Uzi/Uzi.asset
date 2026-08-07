@@ -29,4 +29,4 @@ MonoBehaviour:
   - {fileID: 3202842531823663195, guid: 9219b44cdd036a24e9457ddaa673d3c4, type: 3}
   projectileSpeed: 40
   rayDistance: 50
-  knockbackForce: 400
+  knockbackForce: 50

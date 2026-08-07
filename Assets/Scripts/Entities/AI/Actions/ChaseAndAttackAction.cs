@@ -14,9 +14,25 @@ public class ChaseAndAttackAction : EnemyAction
 
     private Vector3 lastRequestedPosition;
 
-    public ChaseAndAttackAction(TeamMember target)
+    private readonly float attackChance;
+    private readonly float breatherDuration;
+    private readonly float repositionDistance;
+
+    private float breatherRemaining;
+    private bool repositioning;
+
+    /// <param name="attackChance">
+    /// Share of opportunities spent attacking rather than pausing. The remainder become breathers --
+    /// a short reposition or a bit of posturing -- so a fight has a rhythm instead of being a
+    /// continuous stream of fire.
+    /// </param>
+    public ChaseAndAttackAction(TeamMember target, float attackChance = 0.7f,
+                                float breatherDuration = 1.5f, float repositionDistance = 4f)
     {
         this.target = target;
+        this.attackChance = attackChance;
+        this.breatherDuration = breatherDuration;
+        this.repositionDistance = repositionDistance;
     }
 
     public TeamMember Target => target;
@@ -25,6 +41,8 @@ public class ChaseAndAttackAction : EnemyAction
     {
         base.Begin(owner);
         lastRequestedPosition = Vector3.positiveInfinity;
+        breatherRemaining = 0f;
+        repositioning = false;
     }
 
     public override ActionStatus Tick(float deltaTime)
@@ -68,6 +86,14 @@ public class ChaseAndAttackAction : EnemyAction
             return ActionStatus.Running;
         }
 
+        // In range: either press the attack or take the breather that was rolled for.
+        if (breatherRemaining > 0f)
+        {
+            breatherRemaining -= deltaTime;
+            TickBreather(movement, deltaTime);
+            return ActionStatus.Running;
+        }
+
         movement?.Stop();
         lastRequestedPosition = Vector3.positiveInfinity;
 
@@ -83,9 +109,59 @@ public class ChaseAndAttackAction : EnemyAction
 
         var result = attack.TryAttack(target);
         if (result != EnemyAttackResult.None)
+        {
             enemy.Animation?.PlayAttack(ranged: result == EnemyAttackResult.Ranged);
+            RollBreather();
+        }
 
         return ActionStatus.Running;
+    }
+
+    /// <summary>
+    /// Decides whether to pause after an attack instead of immediately lining up the next one.
+    /// Firing without a break reads as a turret rather than a person, so most attacks are followed
+    /// by more attacking and the rest by a moment of something else.
+    /// </summary>
+    private void RollBreather()
+    {
+        if (Random.value < attackChance)
+            return;
+
+        breatherRemaining = Random.Range(breatherDuration * 0.6f, breatherDuration * 1.4f);
+
+        // Half the breathers are spent relocating, the other half standing off and posturing --
+        // otherwise every pause looks identical.
+        repositioning = Random.value < 0.5f;
+
+        if (repositioning)
+        {
+            // Sidestep around the target rather than backing off, so the guard stays in the fight
+            // while giving the player a moving mark.
+            Vector3 toTarget = Flat(target.transform.position - enemy.transform.position);
+            if (toTarget.sqrMagnitude > 0.0001f)
+            {
+                Vector3 sideways = Vector3.Cross(Vector3.up, toTarget.normalized)
+                                   * (Random.value < 0.5f ? 1f : -1f);
+                enemy.Movement?.SetDestination(enemy.transform.position + sideways * repositionDistance);
+            }
+        }
+        else
+        {
+            enemy.Movement?.Stop();
+            enemy.Animation?.PlayOneShot(EnemyMotion.ShowOff);
+        }
+    }
+
+    private void TickBreather(EnemyMovementSystem movement, float deltaTime)
+    {
+        // Keep facing the target throughout: a breather is a pause in shooting, not in attention.
+        enemy.Rotation?.AimAt(target.transform);
+
+        if (!repositioning)
+            return;
+
+        if (movement != null && movement.ReachedDestination)
+            movement.Stop();
     }
 
     public override void End()

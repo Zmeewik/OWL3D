@@ -50,6 +50,8 @@ public abstract class EnemyStrategy : MonoBehaviour
 
     private void OnDestroy()
     {
+        OnDestroyed();
+
         if (enemy == null) return;
 
         if (enemy.Vision != null)
@@ -61,6 +63,13 @@ public abstract class EnemyStrategy : MonoBehaviour
         if (enemy.Health != null)
             enemy.Health.OnDamaged -= HandleDamaged;
     }
+
+    /// <summary>
+    /// Teardown hook for subclasses. They must not declare their own OnDestroy: Unity dispatches the
+    /// message to a single method, so a subclass one would shadow this and silently skip the base
+    /// class's own event unsubscriptions above.
+    /// </summary>
+    protected virtual void OnDestroyed() { }
 
     /// <summary>Runs the action at the head of the queue, advancing when it finishes.</summary>
     public void Tick(float deltaTime)
@@ -98,6 +107,10 @@ public abstract class EnemyStrategy : MonoBehaviour
     {
         Enqueue(new AmbientIdleAction(AmbientWanderRadius, AmbientWalkSpeed, AmbientChatRange));
     }
+
+    protected float AttackChance => enemy != null && enemy.Config != null ? enemy.Config.attackChance : 0.7f;
+    protected float BreatherDuration => enemy != null && enemy.Config != null ? enemy.Config.breatherDuration : 1.5f;
+    protected float RepositionDistance => enemy != null && enemy.Config != null ? enemy.Config.repositionDistance : 4f;
 
     protected float AmbientWanderRadius => enemy != null && enemy.Config != null ? enemy.Config.ambientWanderRadius : 5f;
     protected float AmbientWalkSpeed => enemy != null && enemy.Config != null ? enemy.Config.ambientWalkSpeed : 0.4f;

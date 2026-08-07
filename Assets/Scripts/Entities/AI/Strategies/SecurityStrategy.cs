@@ -18,8 +18,11 @@ public class SecurityStrategy : EnemyStrategy, IEvader
     [Tooltip("Also relay spotted/lost over the radio frequency, reaching allies at any distance.")]
     [SerializeField] private bool useRadio = true;
 
-    [Tooltip("Seconds the radio call takes to get out. The spotting guard talks it in before the " +
-             "squad hears it, so an alert has a visible cause rather than the whole squad turning at once.")]
+    [Tooltip("Seconds before the shout reaches allies within earshot. Short -- it's a yell.")]
+    [SerializeField] private float shoutDelay = 0.4f;
+
+    [Tooltip("Extra seconds to raise anyone out of earshot on the radio, on top of the shout. Only " +
+             "spent when a squadmate is actually too far away to have heard.")]
     [SerializeField] private float radioDelay = 1.2f;
 
     [Tooltip("Chance a hit taken mid-fight is dodged rather than simply absorbed.")]
@@ -28,11 +31,49 @@ public class SecurityStrategy : EnemyStrategy, IEvader
     [Tooltip("Minimum gap between dodges, so a burst of fire doesn't make the guard hop continuously.")]
     [SerializeField] private float dodgeCooldown = 1.6f;
 
+    [Tooltip("How close a shot has to pass to be worth diving away from.")]
+    [SerializeField] private float shotDodgeRadius = 2.5f;
+
     private float lastDodgeTime = -999f;
 
     protected override void OnInitialized()
     {
         Enqueue(new AmbientIdleAction(AmbientWanderRadius, AmbientWalkSpeed, AmbientChatRange));
+        CombatEvents.ShotFired += HandleShotFired;
+    }
+
+    protected override void OnDestroyed()
+    {
+        CombatEvents.ShotFired -= HandleShotFired;
+    }
+
+    /// <summary>
+    /// Reacts to a hostile shot as it is fired, not when it arrives. The guard has the projectile's
+    /// whole flight to get clear, so whether the dodge works is settled by the bullet physically
+    /// missing rather than by a flag -- which is the only way dodging a bullet can mean anything.
+    /// </summary>
+    private void HandleShotFired(Vector3 origin, Vector3 direction, Transform shooter)
+    {
+        if (enemy == null || !enemy.IsAlive || shooter == null)
+            return;
+
+        // Own squad's fire isn't something to dive away from.
+        var shooterTeam = shooter.GetComponentInParent<TeamMember>();
+        if (shooterTeam == null || !Teams.IsHostile(Team, shooterTeam.team))
+            return;
+
+        // Only if the round is actually coming this way: closest approach of the shot line to this
+        // entity, ignoring anything already behind the muzzle.
+        Vector3 toSelf = enemy.transform.position - origin;
+        float along = Vector3.Dot(toSelf, direction);
+        if (along <= 0f)
+            return;
+
+        float missDistance = Vector3.Distance(toSelf, direction * along);
+        if (missDistance > shotDodgeRadius)
+            return;
+
+        TryDodgeAway(direction);
     }
 
     /// <summary>
@@ -48,7 +89,7 @@ public class SecurityStrategy : EnemyStrategy, IEvader
 
         if (target != null && target.IsAlive && Teams.IsHostile(Team, target.team))
         {
-            Enqueue(new ChaseAndAttackAction(target));
+            Enqueue(new ChaseAndAttackAction(target, AttackChance, BreatherDuration, RepositionDistance));
             return;
         }
 
@@ -173,7 +214,7 @@ public class SecurityStrategy : EnemyStrategy, IEvader
             return;
 
         ClearActions();
-        Enqueue(new ChaseAndAttackAction(target));
+        Enqueue(new ChaseAndAttackAction(target, AttackChance, BreatherDuration, RepositionDistance));
     }
 
     /// <summary>
@@ -190,10 +231,16 @@ public class SecurityStrategy : EnemyStrategy, IEvader
         StartCoroutine(SendAlert(target));
     }
 
+    /// <summary>
+    /// Shout first, radio second. Allies close enough to hear are told directly and react almost at
+    /// once; the radio is only reached for when there are squadmates too far away to have heard the
+    /// shout, and costs the extra time of actually working the handset. So a squad standing together
+    /// reacts as one, and a scattered squad converges in a visible order rather than all at once.
+    /// </summary>
     private System.Collections.IEnumerator SendAlert(TeamMember target)
     {
-        if (radioDelay > 0f)
-            yield return new WaitForSeconds(radioDelay);
+        if (shoutDelay > 0f)
+            yield return new WaitForSeconds(shoutDelay);
 
         // The fight moves on while the call is going out, so re-check rather than alerting the squad
         // onto someone already dead by the time the message lands.
@@ -203,16 +250,65 @@ public class SecurityStrategy : EnemyStrategy, IEvader
         if (alertNearbyAllies)
             EnemyManager.Broadcast(EnemyCommand.TargetSpotted(transform, target, AlertRadius));
 
-        if (useRadio)
-            EnemyManager.Broadcast(EnemyCommand.TargetSpottedOnRadio(transform, target, enemy.RadioFrequency));
+        if (!useRadio || !HasAllyBeyondShoutRange())
+            yield break;
+
+        // Someone didn't hear it, so it goes over the air -- another beat of talking.
+        enemy.Animation?.PlayOneShot(EnemyMotion.Talk);
+
+        if (radioDelay > 0f)
+            yield return new WaitForSeconds(radioDelay);
+
+        if (target == null || !target.IsAlive || enemy == null || !enemy.IsAlive)
+            yield break;
+
+        EnemyManager.Broadcast(EnemyCommand.TargetSpottedOnRadio(transform, target, enemy.RadioFrequency));
+    }
+
+    /// <summary>Whether any living squadmate is out of earshot and so needs the radio.</summary>
+    private bool HasAllyBeyondShoutRange()
+    {
+        float shoutRadius = AlertRadius;
+        var active = EnemyManager.Active;
+
+        for (int i = 0; i < active.Count; i++)
+        {
+            var other = active[i];
+            if (other == null || other == enemy || !other.IsAlive)
+                continue;
+
+            if (Teams.Relation(Team, other.Team) != TeamRelation.Friendly)
+                continue;
+
+            if (Vector3.Distance(transform.position, other.transform.position) > shoutRadius)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
-    /// Sidesteps an incoming hit, sometimes. Called by <see cref="EntityHealth"/> before any damage
-    /// is applied, so evading a swing cancels it outright. Rolls per hit and rate-limits itself, so
-    /// a guard under sustained fire jinks occasionally rather than hopping on every bullet.
+    /// Evades a hit that is being applied right now. Only swings reach here: a bullet is dodged when
+    /// it is fired (see <see cref="HandleShotFired"/>), long before it arrives, so reacting to one
+    /// landing would be far too late to be a dodge. A swing is close-range and effectively instant,
+    /// so ducking it is decided at the moment of contact and cancels the blow outright.
     /// </summary>
     public bool TryEvade(DamagePacket packet)
+    {
+        if (!packet.melee)
+            return false;
+
+        Vector3 incoming = packet.forceApplied;
+        incoming.y = 0f;
+        return TryDodgeAway(incoming);
+    }
+
+    /// <summary>
+    /// Hops clear of something travelling along <paramref name="incoming"/>, if the roll and the
+    /// cooldown allow it. Sideways, never backwards: retreating down the attack's own line keeps the
+    /// guard in it.
+    /// </summary>
+    private bool TryDodgeAway(Vector3 incoming)
     {
         // Only a guard actually in a fight dodges. One that hasn't noticed anything yet has no
         // reason to be evasive, and should react by going to look instead (see OnDamaged).
@@ -225,9 +321,6 @@ public class SecurityStrategy : EnemyStrategy, IEvader
         if (Random.value > dodgeChance)
             return false;
 
-        // Dodge across the line of fire, not along it -- stepping back down the bullet's path just
-        // keeps the guard in it.
-        Vector3 incoming = packet.forceApplied;
         incoming.y = 0f;
         if (incoming.sqrMagnitude < 0.0001f)
             return false;

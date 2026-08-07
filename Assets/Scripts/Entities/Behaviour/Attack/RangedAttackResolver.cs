@@ -134,6 +134,10 @@ public static class RangedAttackResolver
                 : sightRotation;
 
             proj = Object.Instantiate(attack.projectilePrefabs[indexProjectile], spawnPosition, firingRotation);
+
+            // Announced as the round leaves the barrel, so anything in its path has the projectile's
+            // travel time to move -- which is what makes dodging a bullet mean something.
+            CombatEvents.RaiseShotFired(spawnPosition, firingRotation * Vector3.forward, owner);
         }
 
         HitObject hitObj = null;
@@ -182,14 +186,6 @@ public static class RangedAttackResolver
         // A hitscan fired from inside the shooter's own hitboxes would otherwise resolve straight
         // back onto the shooter.
         if (owner != null && health.transform == owner)
-            return;
-
-        // No friendly fire -- a teammate standing in the line of fire absorbs the shot rather than
-        // taking damage from it. (Unlike Projectile, a hitscan ray can't cheaply keep looking past
-        // the hit for a hostile target behind it, so this stops the shot rather than piercing through.)
-        var ownerTeam = owner != null ? owner.GetComponentInParent<TeamMember>() : null;
-        var targetTeam = health.GetComponent<TeamMember>();
-        if (ownerTeam != null && targetTeam != null && !Teams.IsHostile(ownerTeam.team, targetTeam.team))
             return;
 
         float dmg = DamageCalculator.CalculateChargedDamage(attack, health, charged);

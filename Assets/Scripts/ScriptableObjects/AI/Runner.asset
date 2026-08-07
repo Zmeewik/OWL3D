@@ -30,6 +30,9 @@ MonoBehaviour:
   attackInterval: 1
   attackDelayFrames: 10
   weaponSpreadDegrees: 4
+  attackChance: 0.7
+  breatherDuration: 1.5
+  repositionDistance: 4
   aimHeadWeight: 0.2
   aimBodyWeight: 0.6
   aimLegsWeight: 0.2

@@ -52,6 +52,17 @@ public class EnemyConfig : ScriptableObject
              "weapon prefab was set to.")]
     public float weaponSpreadDegrees = 3f;
 
+    [Header("Combat pacing")]
+    [Tooltip("Share of attack opportunities actually spent attacking. The rest become short " +
+             "breathers -- repositioning or posturing -- so a fight isn't one unbroken stream of fire.")]
+    [Range(0f, 1f)] public float attackChance = 0.7f;
+
+    [Tooltip("Roughly how long a breather lasts (randomised around this).")]
+    public float breatherDuration = 1.5f;
+
+    [Tooltip("How far a repositioning breather sidesteps around the target.")]
+    public float repositionDistance = 4f;
+
     [Header("Aim distribution")]
     [Tooltip("Relative chance of aiming at each body part, rolled per shot.")]
     [Min(0f)] public float aimHeadWeight = 0.2f;

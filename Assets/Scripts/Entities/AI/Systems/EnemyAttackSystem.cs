@@ -57,6 +57,10 @@ public class EnemyAttackSystem : EnemySystem
              "the weapon prefab carried. Negative leaves the weapon's own value alone.")]
     [SerializeField] private float weaponSpreadDegrees = -1f;
 
+    [Tooltip("How close an ally may be to the shot line before this entity holds fire rather than " +
+             "risk hitting them.")]
+    [SerializeField] private float friendlyFireClearance = 1.5f;
+
     private float cooldownRemaining;
 
     public bool HasRanged => rangedWeapon != null;
@@ -141,9 +145,62 @@ public class EnemyAttackSystem : EnemySystem
             return Commit(meleeWeapon, target, TeamMember.AimPoint.Center) ? EnemyAttackResult.Melee : EnemyAttackResult.None;
 
         if (HasRanged && InRangedRange(targetPosition))
+        {
+            // Bullets hit whoever is in the way, allies included, so checking the line is the
+            // shooter's responsibility. Holding fire here is what stops a squad in a firing line
+            // from shooting each other in the back.
+            if (AllyInLineOfFire(target))
+                return EnemyAttackResult.None;
+
             return Commit(rangedWeapon, target, ChooseAimPoint()) ? EnemyAttackResult.Ranged : EnemyAttackResult.None;
+        }
 
         return EnemyAttackResult.None;
+    }
+
+    /// <summary>
+    /// Whether a squadmate is standing between this entity and its target, close enough to the shot
+    /// line to catch the round.
+    ///
+    /// Deliberately geometric rather than a physics sweep: it's cheap, it runs every time an attack
+    /// is considered, and it only needs to answer "is somebody roughly in the way", which the
+    /// distance from an ally to the segment answers exactly.
+    /// </summary>
+    private bool AllyInLineOfFire(TeamMember target)
+    {
+        if (enemy == null || target == null)
+            return false;
+
+        Vector3 origin = enemy.transform.position;
+        Vector3 toTarget = target.transform.position - origin;
+        float distance = toTarget.magnitude;
+        if (distance < 0.01f)
+            return false;
+
+        Vector3 direction = toTarget / distance;
+
+        var active = EnemyManager.Active;
+        for (int i = 0; i < active.Count; i++)
+        {
+            var other = active[i];
+            if (other == null || other == enemy || !other.IsAlive)
+                continue;
+
+            if (Teams.Relation(enemy.Team, other.Team) != TeamRelation.Friendly)
+                continue;
+
+            Vector3 toAlly = other.transform.position - origin;
+            float along = Vector3.Dot(toAlly, direction);
+
+            // Behind the muzzle, or further off than the target itself, isn't in the way.
+            if (along <= 0f || along >= distance)
+                continue;
+
+            if (Vector3.Distance(toAlly, direction * along) <= friendlyFireClearance)
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
