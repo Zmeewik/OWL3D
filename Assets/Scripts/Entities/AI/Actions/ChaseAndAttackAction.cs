@@ -21,6 +21,14 @@ public class ChaseAndAttackAction : EnemyAction
     private float breatherRemaining;
     private bool repositioning;
 
+    /// <summary>
+    /// Set when a breather is rolled but the attack that triggered it is still winding up. Attacks
+    /// are booked with a delay and fire later, so starting the rest immediately meant the round went
+    /// off in the middle of it -- the entity was visibly standing there posturing while its gun
+    /// fired. The rest only actually begins once that shot has left.
+    /// </summary>
+    private bool breatherPending;
+
     /// <param name="attackChance">
     /// Share of opportunities spent attacking rather than pausing. The remainder become breathers --
     /// a short reposition or a bit of posturing -- so a fight has a rhythm instead of being a
@@ -43,6 +51,7 @@ public class ChaseAndAttackAction : EnemyAction
         lastRequestedPosition = Vector3.positiveInfinity;
         breatherRemaining = 0f;
         repositioning = false;
+        breatherPending = false;
     }
 
     public override ActionStatus Tick(float deltaTime)
@@ -86,6 +95,14 @@ public class ChaseAndAttackAction : EnemyAction
             return ActionStatus.Running;
         }
 
+        // A rolled breather waits for the shot already in the pipe to go out, so resting never
+        // overlaps with firing.
+        if (breatherPending && (attack == null || !attack.HasPendingAttack))
+        {
+            breatherPending = false;
+            BeginBreather();
+        }
+
         // In range: either press the attack or take the breather that was rolled for.
         if (breatherRemaining > 0f)
         {
@@ -127,6 +144,12 @@ public class ChaseAndAttackAction : EnemyAction
         if (Random.value < attackChance)
             return;
 
+        // Only booked here; it starts once the attack that just went off has actually fired.
+        breatherPending = true;
+    }
+
+    private void BeginBreather()
+    {
         breatherRemaining = Random.Range(breatherDuration * 0.6f, breatherDuration * 1.4f);
 
         // Half the breathers are spent relocating, the other half standing off and posturing --

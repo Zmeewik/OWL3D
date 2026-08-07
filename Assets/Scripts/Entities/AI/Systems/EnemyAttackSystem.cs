@@ -168,11 +168,23 @@ public class EnemyAttackSystem : EnemySystem
     /// </summary>
     private bool AllyInLineOfFire(TeamMember target)
     {
-        if (enemy == null || target == null)
+        if (target == null)
             return false;
 
-        Vector3 origin = enemy.transform.position;
-        Vector3 toTarget = target.transform.position - origin;
+        Vector3 origin = rangedWeapon != null ? rangedWeapon.transform.position : transform.position;
+        return AllyInLineOfFire(origin, target.GetAimPoint(TeamMember.AimPoint.Center));
+    }
+
+    private bool AllyInLineOfFire(Vector3 origin, Vector3 endPoint)
+    {
+        if (enemy == null)
+            return false;
+
+        // Measured on the ground plane, not in 3D. The muzzle sits at chest height and aims down at
+        // a target's centre, so a squadmate standing squarely in the path is nearly two metres from
+        // that sloped line while their body is plainly across it -- which is how allies kept getting
+        // shot despite the check. Bodies here are tall columns; where they stand is what matters.
+        Vector3 toTarget = Flat(endPoint - origin);
         float distance = toTarget.magnitude;
         if (distance < 0.01f)
             return false;
@@ -189,7 +201,7 @@ public class EnemyAttackSystem : EnemySystem
             if (Teams.Relation(enemy.Team, other.Team) != TeamRelation.Friendly)
                 continue;
 
-            Vector3 toAlly = other.transform.position - origin;
+            Vector3 toAlly = Flat(other.transform.position - origin);
             float along = Vector3.Dot(toAlly, direction);
 
             // Behind the muzzle, or further off than the target itself, isn't in the way.
@@ -257,10 +269,28 @@ public class EnemyAttackSystem : EnemySystem
             return;
         }
 
-        Fire(pendingWeapon, pendingTarget.GetAimPoint(pendingAimPoint));
+        Vector3 aimPoint = pendingTarget.GetAimPoint(pendingAimPoint);
+
+        // Checked again here, not just when the attack was booked. The wind-up gives a squadmate
+        // time to walk into the line that was clear when the trigger decision was made, and this is
+        // the moment the round actually leaves -- so this is the check that decides whether anyone
+        // gets shot in the back. Measured from the weapon to the aim point, which is the line the
+        // bullet really travels, rather than between entity origins.
+        if (pendingWeapon == rangedWeapon &&
+            AllyInLineOfFire(pendingWeapon.transform.position, aimPoint))
+        {
+            pendingWeapon = null;
+            pendingTarget = null;
+            return;
+        }
+
+        Fire(pendingWeapon, aimPoint);
         pendingWeapon = null;
         pendingTarget = null;
     }
+
+    /// <summary>True while an attack has been booked and is waiting out its wind-up.</summary>
+    public bool HasPendingAttack => hasPendingAttack;
 
     private static bool CanUse(WeaponBase weapon) =>
         weapon != null && weapon.attacks != null && weapon.attacks.Length > 0 && weapon.attacks[0] != null;
