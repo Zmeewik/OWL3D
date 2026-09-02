@@ -24,6 +24,26 @@ public class EnemyConfig : ScriptableObject
     public float acceleration = 25f;
     public float stoppingDistance = 0.6f;
 
+    [Header("Jumping")]
+    [Tooltip("How high this class can raise itself, which is also the tallest surface it can climb " +
+             "onto -- those are the same quantity. Everything else about a jump follows from this and " +
+             "the move speed above: the launch impulse is sqrt(2*g*h), the flight time falls out of " +
+             "it, and the horizontal reach is that time spent at running speed. There is deliberately " +
+             "no span, launch-speed or arc-shape setting, because each would be a second way of " +
+             "saying something already decided here, free to disagree with it.")]
+    public float maxJumpUpHeight = 3f;
+
+    [Tooltip("Furthest down this class is willing to leap. The only jump limit that is a choice " +
+             "rather than a consequence -- falling further is always physically possible, so where a " +
+             "class declines has to be stated. It is a jump either way; there is no separate " +
+             "stepping-off behaviour.")]
+    public float maxDropHeight = 5f;
+
+    [Tooltip("Dead time charged to a route for every touchdown, on top of the arc's flight time. " +
+             "Together with the momentum a landing costs, this is what stops the AI from picking a " +
+             "chain of little hops over an uninterrupted run of the same length.")]
+    public float landingRecovery = 0.25f;
+
     [Header("Avoidance")]
     [Tooltip("Extra cushion on top of both entities' actual physical radii (which scale with each " +
              "entity's transform, so this stays correct at any size).")]
@@ -96,4 +116,7 @@ public class EnemyConfig : ScriptableObject
     [Header("Communication")]
     [Tooltip("How far a spotted-target shout carries to nearby allies.")]
     public float alertRadius = 20f;
+
+    [Tooltip("How long this class stays combat-ready at an alarm post before standing down.")]
+    public float alarmHoldDuration = 15f;
 }

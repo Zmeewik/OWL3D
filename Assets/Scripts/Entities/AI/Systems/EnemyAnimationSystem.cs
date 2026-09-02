@@ -74,6 +74,8 @@ public class EnemyAnimationSystem : EnemySystem
     private bool changingWeapon;
     private EnemyArmedState pendingArmedState;
 
+    private bool wasJumping;
+
     public bool IsArmed => armedState == EnemyArmedState.Weponized;
 
     /// <summary>True while the draw/holster animation is still playing. Attacks wait this out.</summary>
@@ -107,6 +109,7 @@ public class EnemyAnimationSystem : EnemySystem
             case EnemyMotion.Interaction:
             case EnemyMotion.ChangeWeapon:
             case EnemyMotion.Reload:
+            case EnemyMotion.Land:
                 return true;
             default:
                 return false;
@@ -130,6 +133,7 @@ public class EnemyAnimationSystem : EnemySystem
 
             case EnemyMotion.DodgeLeft:
             case EnemyMotion.DodgeRight:
+            case EnemyMotion.Land:
                 return 3;
 
             case EnemyMotion.AttackRanged1:
@@ -200,6 +204,14 @@ public class EnemyAnimationSystem : EnemySystem
 
     public override void TickSystem(float deltaTime)
     {
+        bool isJumping = movement != null && movement.IsJumping;
+
+        // Edge-detected the moment the arc ends (IsJumping flips back to false), not sampled after
+        // the busy-check below -- otherwise a landing that happens to land mid one-shot would be
+        // missed entirely, since the tick would return early before ever looking at IsJumping.
+        bool justLanded = wasJumping && !isJumping;
+        wasJumping = isJumping;
+
         if (oneShotRemaining > 0f)
         {
             oneShotRemaining -= deltaTime;
@@ -219,8 +231,13 @@ public class EnemyAnimationSystem : EnemySystem
         // Jumping overrides walk/idle -- IsMoving alone can't tell a jump apart from ordinary
         // ground movement (MoveDirection stays nonzero for the whole arc), which used to leave the
         // walk cycle looping while the rigidbody flew a parabola.
-        if (movement != null && movement.IsJumping)
+        if (isJumping)
             PlayMotion(EnemyMotion.InAir);
+        else if (justLanded)
+            // A one-shot at Land's own priority: high enough that neither the walk/idle that would
+            // otherwise start this same tick nor any cosmetic/attack/reload action can cut it short,
+            // but still below hit reactions, so getting shot mid-landing still staggers the body.
+            PlayOneShot(EnemyMotion.Land);
         else
             PlayMotion(movement != null && movement.IsMoving ? EnemyMotion.Walk : EnemyMotion.Idle);
 

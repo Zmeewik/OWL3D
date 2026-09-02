@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>What an <see cref="EnemyCommand"/> is telling its recipients about.</summary>
@@ -20,6 +21,9 @@ public enum EnemyCommandType
 
     /// <summary>Drop everything and idle where you are.</summary>
     HoldPosition,
+
+    /// <summary>An alarm post was triggered. Rally to <see cref="EnemyCommand.position"/> combat-ready.</summary>
+    AlarmRaised,
 }
 
 /// <summary>How the manager decides who receives a command.</summary>
@@ -63,6 +67,9 @@ public readonly struct EnemyCommand
 
     public readonly int radioFrequency;
 
+    /// <summary>Which teams this command is meant for. Null means every recipient the scope selects.</summary>
+    public readonly IReadOnlyList<Team> affectedTeams;
+
     /// <summary>Point the command is measured from for <see cref="EnemyCommandScope.Radius"/> delivery.</summary>
     public Vector3 origin => source != null ? source.position : position;
 
@@ -73,7 +80,8 @@ public readonly struct EnemyCommand
         TeamMember target,
         Vector3 position,
         float radius,
-        int radioFrequency)
+        int radioFrequency,
+        IReadOnlyList<Team> affectedTeams = null)
     {
         this.type = type;
         this.scope = scope;
@@ -82,6 +90,7 @@ public readonly struct EnemyCommand
         this.position = position;
         this.radius = radius;
         this.radioFrequency = radioFrequency;
+        this.affectedTeams = affectedTeams;
     }
 
     /// <summary>"I see a hostile" -- shouted to whoever is close enough to hear it.</summary>
@@ -111,4 +120,11 @@ public readonly struct EnemyCommand
 
     public static EnemyCommand HoldPosition(int frequency)
         => new(EnemyCommandType.HoldPosition, EnemyCommandScope.RadioFrequency, null, null, Vector3.zero, 0f, frequency);
+
+    /// <summary>
+    /// "The alarm's up" -- level-wide, filtered to whichever teams the post that raised it affects.
+    /// <see cref="radius"/> doubles as how wide a ring recipients rally in around <see cref="position"/>.
+    /// </summary>
+    public static EnemyCommand AlarmRaised(Vector3 postPosition, IReadOnlyList<Team> affectedTeams, float rallyRadius)
+        => new(EnemyCommandType.AlarmRaised, EnemyCommandScope.All, null, null, postPosition, rallyRadius, 0, affectedTeams);
 }

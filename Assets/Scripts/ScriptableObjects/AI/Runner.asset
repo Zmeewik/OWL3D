@@ -13,19 +13,22 @@ MonoBehaviour:
   m_Name: Runner
   m_EditorClassIdentifier: 
   className: Runner
-  prefab: {fileID: 0}
+  prefab: {fileID: 5143416936220417568, guid: 1c2f206bfb225bb4d9d027e3e071602f, type: 3}
   team: 2
   radioFrequency: 1
   moveSpeed: 7
   acceleration: 100
   stoppingDistance: 0.6
+  maxJumpUpHeight: 8
+  maxDropHeight: 15
+  landingRecovery: 0.25
   avoidanceMargin: 2
   avoidanceStrength: 3
   viewDistance: 60
   viewAngle: 120
   timeToSpot: 0.5
   timeToLose: 3
-  rangedRange: 40
+  rangedRange: 10
   meleeRange: 5
   attackInterval: 1.4
   attackDelayFrames: 10
@@ -44,3 +47,4 @@ MonoBehaviour:
   ambientWalkSpeed: 0.4
   ambientChatRange: 6
   alertRadius: 20
+  alarmHoldDuration: 15

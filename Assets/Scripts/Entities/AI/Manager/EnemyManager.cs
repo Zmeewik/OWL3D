@@ -230,6 +230,9 @@ public class EnemyManager : MonoBehaviour
 
     private static bool Matches(Enemy enemy, EnemyCommand command)
     {
+        if (command.affectedTeams != null && !Contains(command.affectedTeams, enemy.Team))
+            return false;
+
         switch (command.scope)
         {
             case EnemyCommandScope.Radius:
@@ -241,5 +244,14 @@ public class EnemyManager : MonoBehaviour
             default:
                 return true;
         }
+    }
+
+    private static bool Contains(IReadOnlyList<Team> teams, Team team)
+    {
+        for (int i = 0; i < teams.Count; i++)
+            if (teams[i] == team)
+                return true;
+
+        return false;
     }
 }

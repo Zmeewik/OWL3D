@@ -189,12 +189,24 @@ public class SecurityStrategy : EnemyStrategy, IEvader
         {
             case EnemyCommandType.TargetSpotted:
                 // Only act on it if that target is actually our enemy -- a shared radio channel
-                // doesn't imply a shared enemy list.
+                // doesn't imply a shared enemy list. command.position is whoever raised the alert's
+                // actual sighting, so an ally who hasn't personally seen this target yet still has
+                // somewhere real to walk instead of falling back to nothing.
                 if (command.target != null && Teams.IsHostile(Team, command.target.team))
-                    Engage(command.target);
+                    Engage(command.target, command.position);
                 break;
 
             case EnemyCommandType.TargetLost:
+                // Not chasing the target that was reported lost -- a squadmate losing sight of
+                // someone else shouldn't touch an unrelated fight.
+                if (CurrentAction is not ChaseAndAttackAction chase || chase.Target != command.target)
+                    break;
+
+                // Our own vision still has them right now -- the report is stale for us, keep going.
+                if (enemy.Vision != null && enemy.Vision.HasVisibleTarget &&
+                    enemy.Vision.CurrentTarget == command.target)
+                    break;
+
                 RemoveActions<ChaseAndAttackAction>();
                 break;
 
@@ -220,10 +232,24 @@ public class SecurityStrategy : EnemyStrategy, IEvader
                 ClearActions();
                 Enqueue(new IdleAction());
                 break;
+
+            case EnemyCommandType.AlarmRaised:
+                // A guard already fighting stays on that fight -- the alarm doesn't get a say.
+                if (HasAction<ChaseAndAttackAction>())
+                    break;
+
+                ClearActions();
+                Enqueue(new AlarmResponseAction(command.position, command.radius, AlarmHoldDuration));
+                break;
         }
     }
 
-    private void Engage(TeamMember target)
+    /// <param name="knownPosition">
+    /// Where the target was actually seen, if known from something other than this entity's own
+    /// vision (an ally's radio call). Left null when this entity's own vision just confirmed the
+    /// target -- the action falls back to the target's live position in that case.
+    /// </param>
+    private void Engage(TeamMember target, Vector3? knownPosition = null)
     {
         if (target == null || !target.IsAlive)
             return;
@@ -238,7 +264,7 @@ public class SecurityStrategy : EnemyStrategy, IEvader
             return;
 
         ClearActions();
-        Enqueue(new ChaseAndAttackAction(target, AttackChance, BreatherDuration, RepositionDistance));
+        Enqueue(new ChaseAndAttackAction(target, AttackChance, BreatherDuration, RepositionDistance, knownPosition));
     }
 
     /// <summary>

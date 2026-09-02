@@ -14,9 +14,19 @@ public class ChaseAndAttackAction : EnemyAction
 
     private Vector3 lastRequestedPosition;
 
+    /// <summary>
+    /// Where the target was last actually seen, by whoever is relevant to this chase -- either this
+    /// entity's own vision, or, seeded through the constructor, an ally's sighting relayed over the
+    /// radio. Using a per-action value here rather than reading the entity's own EnemyVisionSystem
+    /// means an ally alerted to a target it hasn't personally seen yet has somewhere real to walk
+    /// instead of the vision system's unset default.
+    /// </summary>
+    private Vector3 lastKnownPosition;
+
     private readonly float attackChance;
     private readonly float breatherDuration;
     private readonly float repositionDistance;
+    private readonly Vector3? initialLastKnown;
 
     private float breatherRemaining;
     private bool repositioning;
@@ -35,12 +45,14 @@ public class ChaseAndAttackAction : EnemyAction
     /// continuous stream of fire.
     /// </param>
     public ChaseAndAttackAction(TeamMember target, float attackChance = 0.7f,
-                                float breatherDuration = 1.5f, float repositionDistance = 4f)
+                                float breatherDuration = 1.5f, float repositionDistance = 4f,
+                                Vector3? initialLastKnown = null)
     {
         this.target = target;
         this.attackChance = attackChance;
         this.breatherDuration = breatherDuration;
         this.repositionDistance = repositionDistance;
+        this.initialLastKnown = initialLastKnown;
     }
 
     public TeamMember Target => target;
@@ -49,6 +61,7 @@ public class ChaseAndAttackAction : EnemyAction
     {
         base.Begin(owner);
         lastRequestedPosition = Vector3.positiveInfinity;
+        lastKnownPosition = initialLastKnown ?? target.transform.position;
         breatherRemaining = 0f;
         repositioning = false;
         breatherPending = false;
@@ -72,9 +85,10 @@ public class ChaseAndAttackAction : EnemyAction
         // entirely (see SecurityStrategy.OnTargetLost) -- either way this action never has to decide
         // to give up on its own.
         if (vision != null && !vision.HasVisibleTarget)
-            return TickInvestigateLastKnown(movement, rotation, vision);
+            return TickInvestigateLastKnown(movement, rotation);
 
         Vector3 targetPosition = target.transform.position;
+        lastKnownPosition = targetPosition;
         float distance = Flat(targetPosition - enemy.transform.position).magnitude;
         float engageRange = attack != null ? attack.EffectiveRange * RangeMargin : 2f;
 
@@ -114,6 +128,11 @@ public class ChaseAndAttackAction : EnemyAction
             TickBreather(movement, deltaTime);
             return ActionStatus.Running;
         }
+
+        // The randomized breather timer can run out before the ShowOff clip is actually done
+        // playing -- don't let the attack cut it short. Repositioning has no clip to protect.
+        if (!repositioning && enemy.Animation != null && enemy.Animation.IsBusy)
+            return ActionStatus.Running;
 
         movement?.Stop();
         lastRequestedPosition = Vector3.positiveInfinity;
@@ -202,15 +221,14 @@ public class ChaseAndAttackAction : EnemyAction
     /// to aim at), no attack. Just holds there once arrived; nothing left to decide until vision
     /// either re-spots the target or times out for the strategy to act on.
     /// </summary>
-    private ActionStatus TickInvestigateLastKnown(EnemyMovementSystem movement, EnemyRotationSystem rotation, EnemyVisionSystem vision)
+    private ActionStatus TickInvestigateLastKnown(EnemyMovementSystem movement, EnemyRotationSystem rotation)
     {
         rotation?.ClearAim();
 
-        Vector3 lastKnown = vision.LastKnownPosition;
-        if ((lastKnown - lastRequestedPosition).sqrMagnitude > 0.25f)
+        if ((lastKnownPosition - lastRequestedPosition).sqrMagnitude > 0.25f)
         {
-            lastRequestedPosition = lastKnown;
-            movement?.SetDestination(lastKnown);
+            lastRequestedPosition = lastKnownPosition;
+            movement?.SetDestination(lastKnownPosition);
         }
 
         if (movement != null && movement.ReachedDestination)

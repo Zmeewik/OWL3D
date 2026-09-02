@@ -2,11 +2,12 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Moves the entity to a destination. Pathing comes from the NavMesh, but the movement itself is
-/// hand-rolled on the Rigidbody rather than delegated to a NavMeshAgent -- an agent would take over
-/// the transform and fight the physics the rest of the game (knockback, ragdolls, slopes) is built
-/// on. So the NavMesh is used purely as a route planner: it hands us a corner list, and we steer
-/// along it ourselves.
+/// Moves the entity to a destination. Routes come from <see cref="JumpPathfinder"/> -- the NavMesh
+/// plus the baked jump graph -- but the movement itself is hand-rolled on the Rigidbody rather than
+/// delegated to a NavMeshAgent: an agent would take over the transform and fight the physics the rest
+/// of the game (knockback, ragdolls, slopes) is built on. So pathfinding is used purely as a route
+/// planner: it hands us a waypoint list, some of which are launch points, and we steer along it
+/// ourselves.
 /// </summary>
 public class EnemyMovementSystem : EnemySystem
 {
@@ -21,7 +22,7 @@ public class EnemyMovementSystem : EnemySystem
     [Header("Pathing")]
     [Tooltip("How often the route is recalculated while chasing a moving target.")]
     [SerializeField] private float repathInterval = 0.35f;
-    [Tooltip("How close the entity must get to a path corner before steering to the next one.")]
+    [Tooltip("How close the entity must get to a waypoint before steering to the next one.")]
     [SerializeField] private float cornerReachDistance = 0.6f;
     [Tooltip("How far off the NavMesh a requested destination may be and still snap onto it.")]
     [SerializeField] private float navSampleDistance = 4f;
@@ -52,19 +53,41 @@ public class EnemyMovementSystem : EnemySystem
     public float PhysicalRadius { get; private set; } = 0.5f;
 
     [Header("Jumping")]
-    [Tooltip("Minimum height difference a NavMesh.Raycast-blocked segment needs before it counts as " +
-             "a jump instead of ordinary ground. Must clear the bake's own agentClimb (step height) " +
-             "with real margin -- otherwise every seam between two adjacent, not-quite-welded floor " +
-             "or wall pieces (same height, technically separate NavMesh islands) reads as a gap and " +
-             "gets a full jump arc for a difference an agent would just step over.")]
-    [SerializeField] private float minJumpHeight = 1f;
-    [Tooltip("Minimum apex height above the takeoff point for a jump arc.")]
-    [SerializeField] private float jumpApexHeight = 1.2f;
+    [Tooltip("Take the jump envelope from this component instead of the EnemyConfig. For tuning one " +
+             "instance in a scene -- leave off so a whole class stays tuned in one asset.")]
+    [SerializeField] private bool overrideJumpSettings;
+
+    [Tooltip("How high this entity can raise itself, which is also the tallest climb it can make. " +
+             "Together with the move speed above it decides everything else about a jump -- impulse, " +
+             "flight time, reach -- so there is nothing else here to keep in sync with it.")]
+    [SerializeField] private float maxJumpUpHeight = 3f;
+    [Tooltip("Furthest down this entity is willing to leap. The one jump limit that is a choice: it " +
+             "could always fall further.")]
+    [SerializeField] private float maxDropHeight = 5f;
+    [Tooltip("Dead time a route is charged for every touchdown, on top of the arc's flight time.")]
+    [SerializeField] private float landingRecovery = 0.25f;
+
     [Tooltip("Safety cap on a jump's flight time, in case the computed arc math ever degenerates.")]
     [SerializeField] private float jumpMaxDuration = 3f;
 
-    [Tooltip("Quiet period after a jump-link attempt before another may be started, so an impossible climb isn't retried on loop.")]
-    [SerializeField] private float linkRetryDelay = 1.5f;
+    [Tooltip("How close to a launch point the entity must be before it commits to the arc. Tighter " +
+             "than an ordinary corner because the arc was solved for that exact spot: starting it " +
+             "half a metre short lengthens the flight by the same amount, which is enough to land " +
+             "short of a spot the bake had cleared comfortably.")]
+    [SerializeField] private float jumpTakeoffTolerance = 0.25f;
+
+    [Tooltip("Shortest time an arc stays airborne before ground contact is even tested, so the probe " +
+             "doesn't see the ledge it just left and end the jump on the frame it started.")]
+    [SerializeField] private float minAirTime = 0.15f;
+
+    [Tooltip("How long past the arc's predicted flight time to keep waiting for real ground contact " +
+             "before giving up and calling it landed anyway.")]
+    [SerializeField] private float landingGrace = 0.5f;
+
+    [Tooltip("How far from the intended landing the entity may actually touch down before the route " +
+             "is considered broken and replanned. An arc deflected by geometry leaves the body " +
+             "somewhere the rest of the route knows nothing about.")]
+    [SerializeField] private float landingTolerance = 1.5f;
 
     [Header("Dodging")]
     [Tooltip("How fast the sideways hop off an incoming shot is.")]
@@ -74,7 +97,7 @@ public class EnemyMovementSystem : EnemySystem
 
     [Header("Depenetration")]
     [Tooltip("What the body is pushed back out of when it ends up inside something: other entities " +
-             "and world geometry.")]
+             "and world geometry. Also what a landing jump probes for ground.")]
     [SerializeField] private LayerMask depenetrationMask = ~0;
 
     [Tooltip("Cap on how fast overlap is resolved, so a deep intersection doesn't fling the body.")]
@@ -88,24 +111,15 @@ public class EnemyMovementSystem : EnemySystem
     /// <summary>True while a dodge hop is driving movement. Read by the animation system.</summary>
     public bool IsDodging => dodgeRemaining > 0f;
 
-    private NavMeshPath path;
-    private readonly System.Collections.Generic.List<Vector3> corners = new();
-    private readonly System.Collections.Generic.List<bool> segmentIsJump = new();
-    private int cornerIndex;
+    private readonly JumpRoute route = new();
+    private int waypointIndex;
 
     private bool isJumping;
     private float jumpElapsed;
     private float jumpDuration;
+    private Vector3 jumpTarget;
 
-    private bool hasPendingLink;
-    private JumpLinkMap.JumpLink pendingLink;
-
-    /// <summary>
-    /// Stops a link whose jump doesn't actually land from being retried every repath. Geometry can
-    /// always produce a climb the arc can't really make, and without this the entity would stand at
-    /// the same ledge hurling itself at it several times a second.
-    /// </summary>
-    private float linkCooldownRemaining;
+    private JumpCapability capability;
 
     private Vector3 destination;
     private float repathTimer;
@@ -131,10 +145,43 @@ public class EnemyMovementSystem : EnemySystem
     /// air, because IsMoving (MoveDirection stays nonzero mid-arc) kept selecting Walk every tick.</summary>
     public bool IsJumping => isJumping;
 
-    public float DistanceToDestination =>
-        HasDestination ? Vector3.Distance(Flat(transform.position), Flat(destination)) : 0f;
+    /// <summary>How many jumps the current route plans to make. Zero means it is walking the whole way.</summary>
+    public int RouteJumpCount => route.JumpCount;
+
+    /// <summary>Seconds the current route is predicted to take -- the figure it beat the plain walk on.</summary>
+    public float RouteEstimatedTime => route.EstimatedTime;
+
+    /// <summary>How far the last touchdown missed its intended landing spot by.</summary>
+    public float LastLandingError { get; private set; }
+
+    /// <summary>
+    /// Distance still to travel, measured along the route rather than straight to the destination.
+    ///
+    /// The straight-line version this replaces was flat (XZ only), so a target five metres overhead
+    /// read as already arrived, and any detour around a wall was invisible to every caller asking
+    /// "am I nearly there". Following the actual waypoints counts the climbs, the drops and the way
+    /// round -- which is the point of routing through jumps in the first place.
+    /// </summary>
+    public float DistanceToDestination
+    {
+        get
+        {
+            if (!HasDestination)
+                return 0f;
+
+            if (route.IsValid && waypointIndex < route.Count)
+                return route.RemainingDistance(transform.position, waypointIndex);
+
+            return Vector3.Distance(Flat(transform.position), Flat(destination));
+        }
+    }
 
     public bool ReachedDestination => HasDestination && DistanceToDestination <= stoppingDistance;
+
+    private LocomotionProfile Profile =>
+        new(moveSpeed * SpeedMultiplier, acceleration, landingRecovery);
+
+    private static bool jumpAreaCostFixed;
 
     public override void Initialize(Enemy owner)
     {
@@ -151,7 +198,25 @@ public class EnemyMovementSystem : EnemySystem
             PhysicalRadius = (capsule.radius + centerOffset) * Mathf.Max(scale.x, scale.z);
         }
 
-        path = new NavMeshPath();
+        RebuildCapability();
+        WarnIfGraphTooSmall();
+
+        // Spread the first repath across entities. Three enemies initialised on the same frame would
+        // otherwise stay in lockstep forever, stacking every route solve onto the same physics step.
+        repathTimer = Random.Range(0f, repathInterval);
+
+        // The bake's "Jump" area carries a 2x cost multiplier (ProjectSettings/NavMeshAreas.asset),
+        // which biases NavMesh.CalculatePath toward walking around a native drop/across link even
+        // when the jump is the shorter route. Route choice should come from real travel time -- the
+        // basis JumpPathfinder judges everything on -- not an arbitrary per-area multiplier, so it's
+        // neutralized here rather than left to silently outvote a genuinely shorter route.
+        if (!jumpAreaCostFixed)
+        {
+            jumpAreaCostFixed = true;
+            int jumpArea = NavMesh.GetAreaFromName("Jump");
+            if (jumpArea >= 0)
+                NavMesh.SetAreaCost(jumpArea, 1f);
+        }
     }
 
     public void ConfigureFrom(EnemyConfig config)
@@ -162,13 +227,44 @@ public class EnemyMovementSystem : EnemySystem
         stoppingDistance = config.stoppingDistance;
         avoidanceMargin = config.avoidanceMargin;
         avoidanceStrength = config.avoidanceStrength;
+
+        if (!overrideJumpSettings)
+        {
+            maxJumpUpHeight = config.maxJumpUpHeight;
+            maxDropHeight = config.maxDropHeight;
+            landingRecovery = config.landingRecovery;
+        }
+
+        RebuildCapability();
+    }
+
+    private void RebuildCapability()
+    {
+        // Run speed is the jump's horizontal reach, so the capability has to be rebuilt whenever the
+        // configured speed changes -- not merely when a jump setting does.
+        capability = new JumpCapability(maxJumpUpHeight, maxDropHeight, moveSpeed);
+    }
+
+    /// <summary>
+    /// Says so when this entity believes it can jump further than the level was baked for. Nothing
+    /// breaks -- it simply never finds the links it thinks it could make, and quietly routes the long
+    /// way round -- which is precisely the kind of silent under-performance worth a line in the log.
+    /// </summary>
+    private void WarnIfGraphTooSmall()
+    {
+        var graph = JumpLinkMap.Instance != null ? JumpLinkMap.Instance.Graph : null;
+        if (graph == null || graph.IsEmpty)
+            return;
+
+        if (!graph.Covers(capability, out string shortfall))
+            Debug.LogWarning($"[{name}] {shortfall}. Rebake the jump graph with a wider envelope.", this);
     }
 
     public void SetDestination(Vector3 worldPosition)
     {
         destination = worldPosition;
         HasDestination = true;
-        repathTimer = 0f;
+        repathTimer = repathInterval;
         RecalculatePath();
     }
 
@@ -176,19 +272,17 @@ public class EnemyMovementSystem : EnemySystem
     {
         HasDestination = false;
         MoveDirection = Vector3.zero;
-        corners.Clear();
-        segmentIsJump.Clear();
-        cornerIndex = 0;
+        route.Clear();
+        waypointIndex = 0;
         isJumping = false;
-        hasPendingLink = false;
     }
 
     public override void FixedTickSystem(float fixedDeltaTime)
     {
         if (rb == null) return;
 
-        // A jump commits to its arc once launched -- no steering, no repathing, just watching the
-        // clock -- same as a real jump can't change its mind partway through.
+        // A jump commits to its arc once launched -- no steering, no repathing -- same as a real jump
+        // can't change its mind partway through.
         if (isJumping)
         {
             TickJump(fixedDeltaTime);
@@ -206,8 +300,8 @@ public class EnemyMovementSystem : EnemySystem
 
         // Committed to an animation that owns the body -- firing, posturing, talking, drawing. The
         // destination is kept, so walking resumes where it left off once the action finishes; only
-        // the steering stops. Depenetration still runs below via Decelerate's caller, so a locked
-        // body can still be pushed out of something it's stuck in.
+        // the steering stops. Depenetration still runs via Decelerate, so a locked body can still be
+        // pushed out of something it's stuck in.
         if (enemy != null && enemy.Animation != null && enemy.Animation.MovementLocked)
         {
             MoveDirection = Vector3.zero;
@@ -222,9 +316,6 @@ public class EnemyMovementSystem : EnemySystem
             return;
         }
 
-        if (linkCooldownRemaining > 0f)
-            linkCooldownRemaining -= fixedDeltaTime;
-
         repathTimer -= fixedDeltaTime;
         if (repathTimer <= 0f)
         {
@@ -234,22 +325,16 @@ public class EnemyMovementSystem : EnemySystem
 
         Vector3 steerTarget = NextSteerTarget();
 
-        // Standing on the takeoff of a climb the walk path can't express? Launch it. This is the
-        // only way onto a raised platform -- see JumpLinkMap for why the bake can't provide one.
-        if (hasPendingLink && Flat(pendingLink.takeoff - transform.position).magnitude <= cornerReachDistance)
+        // Standing on a launch point? Fly it. Whether this is a climb onto a ledge or a leap down off
+        // one is settled by the arc itself -- the mover treats both the same, because both are jumps.
+        //
+        // The tolerance is tighter than an ordinary corner's on purpose: the arc was solved for the
+        // exact launch spot, and starting it from half a metre short stretches every jump by that
+        // much, which is enough to fall short of a landing the bake had comfortably cleared.
+        if (waypointIndex < route.Count && route[waypointIndex].jumpFromHere &&
+            Flat(route[waypointIndex].position - transform.position).magnitude <= jumpTakeoffTolerance)
         {
-            hasPendingLink = false;
-            linkCooldownRemaining = linkRetryDelay;
-            BeginJump(pendingLink.landing);
-            return;
-        }
-
-        // The segment leading to the corner we're now aimed at may not be walkable ground at all --
-        // a ledge or a gap the NavMesh only connects via an (auto-generated) off-mesh link. Launch a
-        // jump instead of trying to walk it.
-        if (cornerIndex < segmentIsJump.Count && segmentIsJump[cornerIndex])
-        {
-            BeginJump(steerTarget);
+            BeginJump(route[waypointIndex]);
             return;
         }
 
@@ -339,25 +424,30 @@ public class EnemyMovementSystem : EnemySystem
     }
 
     /// <summary>
-    /// Launches a physics-driven jump arc toward <paramref name="target"/>: the launch velocity is
-    /// solved analytically (apex height -> time up/down -> horizontal speed) and set once, then
-    /// gravity (already acting on the Rigidbody every step, same as normal ground movement only
-    /// ever touches the horizontal component of velocity) carries it the rest of the way. No
+    /// Launches the arc the route is carrying: the velocity was solved when the crossing was baked
+    /// and validated against the geometry then, so it is applied here as-is rather than worked out
+    /// again. Gravity (already acting on the Rigidbody every step, same as normal ground movement
+    /// only ever touching the horizontal component of velocity) carries it the rest of the way. No
     /// steering during the arc -- a real jump commits the moment it leaves the ground.
+    ///
+    /// Re-solving from wherever the entity happens to stand was the previous behaviour and it could
+    /// fail, which meant walking to a ledge, declining to jump, replanning, and walking to the same
+    /// ledge again -- forever, with no jump ever made. Flying the stored arc cannot fail; the arrival
+    /// tolerance below is what keeps it honest instead.
     /// </summary>
-    private void BeginJump(Vector3 target)
+    private void BeginJump(in JumpRoute.Waypoint launchPoint)
     {
-        print("jump!!!");
-        Vector3 origin = transform.position;
-
-        // Same solver the link bake validated the arc with, so what gets flown is what was approved.
-        JumpArc.Solve(origin, target, out var velocity, out jumpDuration);
         jumpElapsed = 0f;
+        jumpDuration = launchPoint.flightTime;
+        jumpTarget = launchPoint.landingPoint;
 
-        rb.velocity = velocity;
+        rb.velocity = launchPoint.launchVelocity;
         isJumping = true;
 
-        Vector3 flatDelta = Flat(target - origin);
+        // The launch point is behind us now; the landing is the waypoint being flown to.
+        waypointIndex++;
+
+        Vector3 flatDelta = Flat(launchPoint.launchVelocity);
         MoveDirection = flatDelta.sqrMagnitude > 0.0001f ? flatDelta.normalized : MoveDirection;
     }
 
@@ -376,18 +466,73 @@ public class EnemyMovementSystem : EnemySystem
         dodgeRemaining = dodgeDuration;
     }
 
+    /// <summary>
+    /// Watches a jump for real ground contact, not just the clock.
+    ///
+    /// The arc's own math predicts when it should land, but nothing guarantees it does: a clipped
+    /// lip, a body knocked aside, a landing surface that isn't quite where the bake sampled it. Ending
+    /// the jump on the timer alone meant the route advanced as though the planned landing had been
+    /// reached, while the body was somewhere else entirely -- every waypoint after that was then being
+    /// steered at from the wrong place. Ground contact ends the jump; the predicted duration (plus
+    /// grace) only backs it up, and a touchdown too far from where it was aimed replans instead of
+    /// pretending.
+    /// </summary>
     private void TickJump(float fixedDeltaTime)
     {
         jumpElapsed += fixedDeltaTime;
-        if (jumpElapsed < jumpDuration && jumpElapsed < jumpMaxDuration)
+
+        bool grounded = jumpElapsed >= minAirTime && rb.velocity.y <= 0.01f && IsGrounded();
+        bool overdue = jumpElapsed >= jumpDuration + landingGrace;
+        bool timedOut = jumpElapsed >= jumpMaxDuration;
+
+        if (!grounded && !overdue && !timedOut)
             return;
 
-        // Landed (by the clock, not a ground raycast -- the arc's own math already targeted the
-        // corner's height, which came from a NavMesh sample resting on the ground). Consume the
-        // corner just crossed and let the next tick resume normal corner-following (or chain
-        // straight into another jump, if the path calls for one).
         isJumping = false;
-        cornerIndex++;
+        LastLandingError = Vector3.Distance(transform.position, jumpTarget);
+
+        if (LastLandingError > landingTolerance)
+        {
+            // Wherever we ended up, the rest of the route was planned from somewhere else.
+            repathTimer = repathInterval;
+            RecalculatePath();
+            return;
+        }
+
+        // Landed where intended: consume the landing waypoint and carry on, possibly straight into
+        // the next jump if the route chains them.
+        waypointIndex++;
+    }
+
+    /// <summary>
+    /// Whether something solid is directly underfoot. Probes just below the capsule's bottom tip and
+    /// skips this entity's own colliders -- an overlap test centred on the capsule would otherwise
+    /// always find itself and report a landing on the frame the jump began.
+    /// </summary>
+    private bool IsGrounded()
+    {
+        if (capsule == null)
+            return false;
+
+        GetCapsuleEnds(out var point0, out var point1, out float worldRadius);
+        Vector3 bottomTip = (point0.y < point1.y ? point0 : point1) + Vector3.down * worldRadius;
+
+        float probeRadius = Mathf.Max(0.1f, worldRadius * 0.35f);
+        Vector3 probe = bottomTip + Vector3.down * (probeRadius * 0.5f);
+
+        int count = Physics.OverlapSphereNonAlloc(probe, probeRadius, overlapBuffer,
+                                                  depenetrationMask, QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < count; i++)
+        {
+            var other = overlapBuffer[i];
+            if (other == null || other == capsule || other.transform.IsChildOf(transform))
+                continue;
+
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -443,34 +588,32 @@ public class EnemyMovementSystem : EnemySystem
     }
 
     /// <summary>
-    /// Current corner to steer at, advancing through the path as corners are reached. With no
-    /// usable path this degrades to steering straight at the destination, which keeps the AI
-    /// functional in a scene whose NavMesh hasn't been baked (just without obstacle avoidance).
+    /// Current waypoint to steer at, advancing through the route as waypoints are reached. A launch
+    /// point is never consumed by proximity -- reaching one is the trigger to jump, and swallowing it
+    /// here would leave the entity walking off a ledge it was supposed to leap from. With no usable
+    /// route this degrades to steering straight at the destination, which keeps the AI functional in
+    /// a scene whose NavMesh hasn't been baked (just without obstacle avoidance).
     /// </summary>
     private Vector3 NextSteerTarget()
     {
-        while (cornerIndex < corners.Count &&
-               Vector3.Distance(Flat(transform.position), Flat(corners[cornerIndex])) <= cornerReachDistance)
+        while (waypointIndex < route.Count &&
+               !route[waypointIndex].jumpFromHere &&
+               Vector3.Distance(Flat(transform.position), Flat(route[waypointIndex].position)) <= cornerReachDistance)
         {
-            cornerIndex++;
+            waypointIndex++;
         }
 
-        return cornerIndex < corners.Count ? corners[cornerIndex] : destination;
+        return waypointIndex < route.Count ? route[waypointIndex].position : destination;
     }
 
     private void RecalculatePath()
     {
-        corners.Clear();
-        segmentIsJump.Clear();
-        cornerIndex = 0;
-        hasPendingLink = false;
+        route.Clear();
+        waypointIndex = 0;
 
-        if (path == null)
-            path = new NavMeshPath();
-
-        // Both ends have to be on the NavMesh for CalculatePath to return anything useful; entities
-        // stand slightly above it and destinations are often a live target's exact position, so
-        // both get snapped first.
+        // Both ends have to be on the NavMesh for pathfinding to return anything useful; entities
+        // stand slightly above it and destinations are often a live target's exact position, so both
+        // get snapped first.
         if (!NavMesh.SamplePosition(transform.position, out var fromHit, navSampleDistance, NavMesh.AllAreas) ||
             !NavMesh.SamplePosition(destination, out var toHit, navSampleDistance, NavMesh.AllAreas))
         {
@@ -478,60 +621,16 @@ public class EnemyMovementSystem : EnemySystem
             return;
         }
 
-        if (!NavMesh.CalculatePath(fromHit.position, toHit.position, NavMesh.AllAreas, path) ||
-            path.status == NavMeshPathStatus.PathInvalid ||
-            path.corners.Length == 0)
-        {
-            return;
-        }
+        var graph = JumpLinkMap.Instance != null ? JumpLinkMap.Instance.Graph : null;
+        float carriedSpeed = Flat(rb.velocity).magnitude;
 
-        // PathPartial means walking gets us as close as the NavMesh allows and no further -- which is
-        // exactly what happens when the target has gone somewhere only a climb can reach, since the
-        // bake cannot generate an upward link (see JumpLinkMap). Re-route to the takeoff of the
-        // nearest link that makes progress, and jump from there.
-        if (path.status == NavMeshPathStatus.PathPartial && linkCooldownRemaining <= 0f &&
-            JumpLinkMap.Instance != null &&
-            JumpLinkMap.Instance.TryFindLink(transform.position, destination, out var link))
-        {
-            var linkPath = new NavMeshPath();
-            if (NavMesh.SamplePosition(link.takeoff, out var takeoffHit, navSampleDistance, NavMesh.AllAreas) &&
-                NavMesh.CalculatePath(fromHit.position, takeoffHit.position, NavMesh.AllAreas, linkPath) &&
-                linkPath.status == NavMeshPathStatus.PathComplete && linkPath.corners.Length > 0)
-            {
-                pendingLink = link;
-                hasPendingLink = true;
-                path = linkPath;
-            }
-        }
+        JumpPathfinder.Shared.TrySolve(graph, fromHit.position, toHit.position,
+                                       capability, Profile, carriedSpeed, route);
 
-        corners.AddRange(path.corners);
-
-        // A corner-to-corner segment that crosses an off-mesh link (auto-generated at bake time for
-        // drops/gaps within the configured Drop Height / Jump Distance) can't actually be walked in
-        // a straight line -- NavMesh.Raycast is the tool built specifically to answer "can I walk
-        // straight from A to B on this mesh", and it operates on the mesh's own surface rather than
-        // Euclidean 3D distance, so it isn't fooled by a slope or an uneven stretch of ground the
-        // way sampling a single Lerp'd midpoint was: a long segment's linearly-interpolated Y very
-        // often doesn't track the real terrain height beneath it, so a plain sloped path was
-        // wrongly flagged as "over empty space" and turned into a phantom jump.
-        //
-        // A blocked raycast alone isn't sufficient, though: this level is built from many separate
-        // floor/wall pieces that sit at the same height but aren't quite welded together, so their
-        // shared edge bakes as two disconnected NavMesh islands bridged by a trivial auto-link --
-        // technically a "jump" by the same test, but a height difference the agent could just step
-        // over (minJumpHeight is set with real margin above the bake's own agentClimb). Requiring a
-        // real height difference is what tells an actual gap apart from a seam.
-        for (int i = 0; i < corners.Count; i++)
-        {
-            bool isJump = i > 0
-                && Mathf.Abs(corners[i].y - corners[i - 1].y) >= minJumpHeight
-                && NavMesh.Raycast(corners[i - 1], corners[i], out _, NavMesh.AllAreas);
-            segmentIsJump.Add(isJump);
-        }
-
-        // corners[0] is the entity's own position; steering at it would stall the first step.
-        if (corners.Count > 1)
-            cornerIndex = 1;
+        // The first waypoint is the entity's own position; steering at it would stall the first step.
+        // Unless it is a launch point -- then it is a jump to start immediately, not a corner to skip.
+        if (route.Count > 1 && !route[0].jumpFromHere)
+            waypointIndex = 1;
     }
 
     private void WarnMissingNavMeshOnce()

@@ -242,4 +242,5 @@ public abstract class EnemyStrategy : MonoBehaviour
     protected float SearchWalkSpeed => enemy != null && enemy.Config != null ? enemy.Config.searchWalkSpeed : 0.45f;
     protected float SearchSweepRadius => enemy != null && enemy.Config != null ? enemy.Config.searchSweepRadius : 4f;
     protected float ShotInvestigateDistance => enemy != null && enemy.Config != null ? enemy.Config.shotInvestigateDistance : 12f;
+    protected float AlarmHoldDuration => enemy != null && enemy.Config != null ? enemy.Config.alarmHoldDuration : 15f;
 }
