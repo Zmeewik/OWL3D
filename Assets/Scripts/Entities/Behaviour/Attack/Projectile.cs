@@ -73,9 +73,16 @@ public class Projectile : MonoBehaviour
         {
             if (hit.collider == projectileCollider)
                 continue;
-            
-            if (hit.transform.name == owner.name)
-                return;
+
+            // Never let a shot collide with whoever fired it. The old check compared names, which
+            // only ever matched the shooter's root object -- every hitbox bone under it (layer
+            // BodyParts, which this mask includes) still counted as a hit, so a shot spawned inside
+            // the shooter's own rig died on the first frame. That never showed up with the player,
+            // whose muzzle sits ahead of their collider, but an AI firing from a mount inside its
+            // body killed every bullet instantly. It also used `return` rather than `continue`,
+            // abandoning the remaining hits for that frame instead of just skipping this one.
+            if (owner != null && (hit.transform == owner || hit.transform.IsChildOf(owner)))
+                continue;
 
             if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Bullet"))
             {
@@ -89,6 +96,9 @@ public class Projectile : MonoBehaviour
 
             var health = rootObject.transform.GetComponent<EntityHealth>();
 
+            // Bullets are not team-aware: whoever is standing in the way gets hit, allies included.
+            // Not shooting a squadmate in the back is the shooter's job -- EnemyAttackSystem checks
+            // its line of fire before pulling the trigger.
             if (health)
             {
                 float dmg = DamageCalculator.CalculateChargedDamage(attack, health, chargeFactor);
@@ -103,7 +113,8 @@ public class Projectile : MonoBehaviour
                     force * transform.forward,
                     transform.position,
                     isCharged,
-                    bodypartRB);
+                    bodypartRB,
+                    owner);
                 
                 print(rootObject.name + " is damaged at: " + packet.damage);
                 

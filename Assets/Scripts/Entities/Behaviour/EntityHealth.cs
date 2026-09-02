@@ -8,6 +8,8 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 {
     [Header("Health settings")]
     [SerializeField] private float maxHealth = 100f;
+
+    [SerializeField] private bool Unkillable;
     [Header("Body part control")]
     [SerializeField] private Bodypart[] bodyparts = new Bodypart[] {
         new Bodypart("head", 2f),
@@ -35,6 +37,13 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     public event Action<float> OnTakeDamage;
     public event Action OnDeath;
     public event Action<float> OnHealed;
+
+    /// <summary>
+    /// Raised with the full hit info (direction, attacker) whenever real damage actually lands --
+    /// not on a blocked hit. AI reactions (aggro, turning to face the shot) need more than the bare
+    /// float OnTakeDamage carries, so this fires alongside it instead of replacing it.
+    /// </summary>
+    public event Action<DamagePacket> OnDamaged;
     
     //Animation activation
     public Action<string, bool, float> OnAnimateCommand { get; set; }
@@ -47,6 +56,9 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
 
     public void ApplyDamage(DamagePacket damagePacket)
     {
+        if (Unkillable)
+            return;
+        
         if (currentHealth <= 0) return;
 
         // Check for the block
@@ -59,6 +71,17 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
             }
         }
 
+        // Asked before anything is applied, so a dodge prevents the hit instead of responding to
+        // having already taken it. Ducking a swing avoids it entirely; a bullet has already arrived
+        // by the time anyone moves, so that still lands -- but either way the dodge, not a flinch,
+        // is what plays.
+        bool evaded = TryGetComponent<IEvader>(out var evader) && evader.TryEvade(damagePacket);
+        if (evaded && damagePacket.melee)
+        {
+            OnTakeDamage?.Invoke(0);
+            return;
+        }
+
         float finalDamage = damagePacket.damage * GetBodyPartMultiplier(damagePacket.bodyPart);
 
         // Applying effects and damage
@@ -69,8 +92,22 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
         currentHealth = Mathf.Max(currentHealth, 0);
 
         OnTakeDamage?.Invoke(finalDamage);
-        string anim = Vector3.Dot( transform.forward, damagePacket.forceApplied.normalized) > 0 ? AnimateCommand.HitFront : AnimateCommand.HitBack;
-        Animate(anim, speed: 2);
+        OnDamaged?.Invoke(damagePacket);
+
+        // A hit reaction would overwrite the dodge that just started -- both are one-shot animations
+        // on the same layer, and this one runs second, which is why dodging never appeared to play
+        // any animation at all. An entity that got out of the way shouldn't flinch anyway.
+        if (!evaded)
+        {
+            // forceApplied points the way the hit travels -- from the attacker into the target -- so a
+            // blow to the face arrives pointing AGAINST this entity's forward, giving a negative dot.
+            // The test used to read that as a hit from behind, which is why being shot in the front
+            // played the back reaction and vice versa.
+            string anim = Vector3.Dot(transform.forward, damagePacket.forceApplied.normalized) < 0f
+                ? AnimateCommand.HitFront
+                : AnimateCommand.HitBack;
+            Animate(anim, speed: 2);
+        }
 
         // Death sequence
         if (currentHealth <= 0)
@@ -140,28 +177,58 @@ public class EntityHealth : MonoBehaviour, IAnimationSender
     // wiring is needed. Falls back to "body" for the main collider or any unrecognized name.
     private float GetBodyPartMultiplier(Rigidbody bodyPart)
     {
-        
-        string category = "body";
-        if (bodyPart != null)
-        {
-            string name = bodyPart.transform.name.ToLowerInvariant();
-            print(name);
-            bool isLeft = name.Contains("left");
-            bool isRight = name.Contains("right");
+        if (bodyPart == null)
+            return FindMultiplier("body");
 
-            if (name.Contains("head"))
-                category = "head";
-            else if (name.Contains("shoulder") || name.Contains("forearm") || name.Contains("hand") || name.Contains("arm"))
-                category = isRight ? "right_arm" : isLeft ? "left_arm" : "body";
-            else if (name.Contains("thigh") || name.Contains("shin") || name.Contains("foot") || name.Contains("leg"))
-                category = isRight ? "right_leg" : isLeft ? "left_leg" : "body";
+        string name = bodyPart.transform.name.ToLowerInvariant();
+        print(name);
+        bool isLeft = name.Contains("left");
+        bool isRight = name.Contains("right");
+        string side = isRight ? "right_" : isLeft ? "left_" : null;
+
+        string generic = null;
+        if (name.Contains("head"))
+            generic = "head";
+        else if (name.Contains("shoulder") || name.Contains("forearm") || name.Contains("hand") || name.Contains("arm"))
+            generic = "arm";
+        else if (name.Contains("thigh") || name.Contains("shin") || name.Contains("foot") || name.Contains("leg"))
+            generic = "leg";
+
+        if (generic == null)
+            return FindMultiplier("body");
+
+        // Side-specific entry first ("right_leg"), then the side-agnostic one ("leg"), then body.
+        // That middle step is what lets a simplified rig resolve properly: the player's three
+        // head/body/legs trigger boxes carry no side in their names, and without a generic entry
+        // to fall back on a leg hit would silently collapse to the body multiplier.
+        float multiplier;
+        if (side != null && TryFindMultiplier(side + generic, out multiplier))
+            return multiplier;
+        if (TryFindMultiplier(generic, out multiplier))
+            return multiplier;
+
+        return FindMultiplier("body");
+    }
+
+    private bool TryFindMultiplier(string category, out float multiplier)
+    {
+        foreach (var part in bodyparts)
+        {
+            if (string.Equals(part.name, category, StringComparison.OrdinalIgnoreCase))
+            {
+                multiplier = part.damageMultiplyer;
+                return true;
+            }
         }
 
-        foreach (var part in bodyparts)
-            if (string.Equals(part.name, category, StringComparison.OrdinalIgnoreCase))
-                return part.damageMultiplyer;
+        multiplier = 1f;
+        return false;
+    }
 
-        return 1f;
+    private float FindMultiplier(string category)
+    {
+        float multiplier;
+        return TryFindMultiplier(category, out multiplier) ? multiplier : 1f;
     }
 }
 

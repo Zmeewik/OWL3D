@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb82c291b4ff2cd4c91079e31039bebd, type: 3}
+  m_Name: Runner
+  m_EditorClassIdentifier: 
+  className: Runner
+  prefab: {fileID: 5143416936220417568, guid: 1c2f206bfb225bb4d9d027e3e071602f, type: 3}
+  team: 2
+  radioFrequency: 1
+  moveSpeed: 7
+  acceleration: 100
+  stoppingDistance: 0.6
+  maxJumpUpHeight: 8
+  maxDropHeight: 15
+  landingRecovery: 0.25
+  avoidanceMargin: 2
+  avoidanceStrength: 3
+  viewDistance: 60
+  viewAngle: 120
+  timeToSpot: 0.5
+  timeToLose: 3
+  rangedRange: 10
+  meleeRange: 5
+  attackInterval: 1.4
+  attackDelayFrames: 10
+  weaponSpreadDegrees: 4
+  attackChance: 0.7
+  breatherDuration: 1.5
+  repositionDistance: 4
+  aimHeadWeight: 0.2
+  aimBodyWeight: 0.6
+  aimLegsWeight: 0.2
+  searchDuration: 20
+  searchWalkSpeed: 0.45
+  searchSweepRadius: 4
+  shotInvestigateDistance: 12
+  ambientWanderRadius: 2.5
+  ambientWalkSpeed: 0.4
+  ambientChatRange: 6
+  alertRadius: 20
+  alarmHoldDuration: 15

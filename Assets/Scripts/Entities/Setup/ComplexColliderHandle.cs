@@ -24,6 +24,26 @@ public class ComplexColliderHandle : MonoBehaviour
     [Header("Body structure")]
     public List<HitboxPart> rootParts = new List<HitboxPart>();
 
+    [Header("Hinge joints (knees, elbows)")]
+    [Tooltip("Bones whose joint is a one-way hinge. Case-insensitive substring match on the bone name.")]
+    public string[] hingeBoneKeywords = { "leg", "shin", "knee", "forearm", "elbow" };
+
+    [Tooltip("How far the limb may bend, measured from fully straight. Anatomical range, not joint-relative.")]
+    public float hingeMaxFlexion = 140f;
+
+    [Tooltip("How bent the limb must stay -- it may not straighten past this many degrees from straight. " +
+             "This is the margin that keeps a joint from LOOKING inverted: PhysX enforces joint limits " +
+             "softly, and under load an elbow was measured overshooting its limit by ~20 degrees, so a " +
+             "limit set exactly at straight still ends up visibly hyperextended.")]
+    public float hingeMinFlexion = 18f;
+
+    [Tooltip("Sideways/twisting slack left on a hinge. Small values keep it a hinge rather than a ball joint.")]
+    public float hingeSideSlack = 3f;
+
+    [Tooltip("Solver iterations for ragdoll bodies. The stock 6 lets a 14-body chain with a 16:1 mass " +
+             "ratio push straight through its joint limits.")]
+    public int ragdollSolverIterations = 40;
+
     [SerializeField] private Rigidbody mainRigidbody;
     [SerializeField] private Collider mainCollider;
     [SerializeField] private Animator[] animators;
@@ -110,6 +130,161 @@ public class ComplexColliderHandle : MonoBehaviour
             InitializePart(child, part, overrideSize);
     }
 
+    /// <summary>
+    /// Turns knee and elbow joints into one-way hinges so a ragdoll can't invert them.
+    ///
+    /// The bend axis is measured from the rig's own rest pose rather than assumed to be a body axis:
+    /// these limbs are authored with a deliberate pre-bend (~25 deg at the knees, ~30 at the elbows),
+    /// and the cross product of the two bone segments gives both the exact hinge axis and its sign --
+    /// rotating positively about it continues the bend the animator intended. That makes this work
+    /// for left and right limbs, and for knees bending backwards while elbows bend forwards, without
+    /// any per-bone sign table.
+    ///
+    /// Run it from the context menu after building the rig, in the rest pose. A limb posed perfectly
+    /// straight is skipped: with no pre-bend there is nothing to tell the two directions apart.
+    /// </summary>
+    [ContextMenu("Setup Hinge Limits (knees/elbows)")]
+    public void SetupHingeLimits()
+    {
+        var joints = GetComponentsInChildren<CharacterJoint>(true);
+        int configured = 0, skipped = 0;
+
+        // Snapshot the chain before touching anything: configuring a joint replaces the component,
+        // which would invalidate entries of a live array mid-iteration.
+        var hinges = new List<CharacterJoint>();
+        foreach (var joint in joints)
+            if (IsHingeBone(joint.gameObject.name))
+                hinges.Add(joint);
+
+        foreach (var joint in hinges)
+        {
+            if (!TryConfigureHinge(joint, joints))
+                skipped++;
+            else
+                configured++;
+        }
+
+        Debug.Log($"[{name}] Hinge limits: {configured} configured, {skipped} skipped.", this);
+    }
+
+    private bool IsHingeBone(string boneName)
+    {
+        if (hingeBoneKeywords == null) return false;
+
+        string lower = boneName.ToLowerInvariant();
+        foreach (var keyword in hingeBoneKeywords)
+            if (!string.IsNullOrEmpty(keyword) && lower.Contains(keyword.ToLowerInvariant()))
+                return true;
+
+        return false;
+    }
+
+    private bool TryConfigureHinge(CharacterJoint joint, CharacterJoint[] allJoints)
+    {
+        if (joint.connectedBody == null)
+            return false;
+
+        // The next bone down the chain is found through the joint graph rather than the transform
+        // hierarchy, so an extra non-physics transform between bones can't break it.
+        var ownBody = joint.GetComponent<Rigidbody>();
+        Transform childBone = null;
+        foreach (var other in allJoints)
+        {
+            if (other != joint && other.connectedBody == ownBody)
+            {
+                childBone = other.transform;
+                break;
+            }
+        }
+
+        if (childBone == null)
+            return false;
+
+        Vector3 parentSegment = joint.transform.position - joint.connectedBody.transform.position;
+        Vector3 childSegment = childBone.position - joint.transform.position;
+        if (parentSegment.sqrMagnitude < 1e-8f || childSegment.sqrMagnitude < 1e-8f)
+            return false;
+
+        parentSegment.Normalize();
+        childSegment.Normalize();
+
+        Vector3 axisWorld = Vector3.Cross(parentSegment, childSegment);
+        if (axisWorld.sqrMagnitude < 1e-6f)
+        {
+            Debug.LogWarning($"[{name}] '{joint.gameObject.name}' is straight in the rest pose, so the " +
+                             "bend direction can't be derived. Pose it slightly bent and re-run.", this);
+            return false;
+        }
+
+        axisWorld.Normalize();
+
+        // Point every hinge axis the same way across the body, then let the SIGN of the rest bend
+        // about it decide which side flexion is on. Letting the axis itself flip per joint doesn't
+        // work: the cross product comes out near +right at the knees but near -right at the elbows
+        // (they bend opposite ways), and with the limits always written as "a little backwards, a
+        // lot forwards" that silently inverted every elbow. Canonicalising the axis moves that
+        // difference into the limits, where it is explicit.
+        if (Vector3.Dot(axisWorld, transform.right) < 0f)
+            axisWorld = -axisWorld;
+
+        // Signed, so a limb that flexes against the canonical axis reports a negative rest bend.
+        float signedRest = Vector3.SignedAngle(parentSegment, childSegment, axisWorld);
+        float restBend = Mathf.Abs(signedRest);
+
+        // A CharacterJoint freezes its zero-rotation reference when it is created, not when its
+        // limits are edited. These joints were built by InitializePart in whatever pose the rig
+        // happened to be in, so limits written against the *current* pose were being applied around
+        // some other zero -- which is why a knee that measured correct on one leg came out inverted
+        // on the other. Rebuilding the component here makes "zero == this pose" true by
+        // construction, so the numbers below mean what they say.
+        var go = joint.gameObject;
+        var connected = joint.connectedBody;
+        var anchor = joint.anchor;
+        bool projection = joint.enableProjection;
+        DestroyImmediate(joint);
+
+        var hinge = go.AddComponent<CharacterJoint>();
+        hinge.connectedBody = connected;
+        hinge.anchor = anchor;
+        hinge.enableProjection = projection;
+
+        hinge.axis = go.transform.InverseTransformDirection(axisWorld);
+        hinge.swingAxis = go.transform.InverseTransformDirection(childSegment);
+
+        // Room to keep bending the way the limb already bends, and a deliberately short leash the
+        // other way: the limb is stopped hingeMinFlexion degrees before straight rather than at
+        // straight, so the overshoot PhysX allows under load lands at roughly straight instead of
+        // visibly past it. Which of the two twist limits gets the room depends on which side of the
+        // canonical axis this limb flexes towards.
+        float toStraight = Mathf.Max(0f, restBend - hingeMinFlexion);
+        float toFlexed = Mathf.Max(0f, hingeMaxFlexion - restBend);
+
+        var low = hinge.lowTwistLimit;
+        var high = hinge.highTwistLimit;
+        if (signedRest >= 0f)
+        {
+            low.limit = -toStraight;
+            high.limit = toFlexed;
+        }
+        else
+        {
+            low.limit = -toFlexed;
+            high.limit = toStraight;
+        }
+        hinge.lowTwistLimit = low;
+        hinge.highTwistLimit = high;
+
+        var swing1 = hinge.swing1Limit;
+        swing1.limit = hingeSideSlack;
+        hinge.swing1Limit = swing1;
+
+        var swing2 = hinge.swing2Limit;
+        swing2.limit = hingeSideSlack;
+        hinge.swing2Limit = swing2;
+
+        return true;
+    }
+
     // Collider control
     public void SetEnabledAll(bool state)
     {
@@ -162,6 +337,14 @@ public class ComplexColliderHandle : MonoBehaviour
     // Ragdoll control
     public void ActivateRagdoll()
     {
+        // Stock solver iterations let this chain push straight through its joint limits, which is
+        // what let knees and elbows fold the wrong way even with the limits set correctly.
+        foreach (var rb in GetComponentsInChildren<Rigidbody>(true))
+        {
+            rb.solverIterations = ragdollSolverIterations;
+            rb.solverVelocityIterations = Mathf.Max(1, ragdollSolverIterations / 2);
+        }
+
         // Disable Animator
         foreach (var animator in animators)
         {

@@ -8,13 +8,19 @@ using UnityEngine;
 /// </summary>
 public static class MeleeAttackResolver
 {
+    /// <param name="owner">
+    /// Whoever is swinging. Their own hitboxes sit on the same layers the swing searches, and a
+    /// weapon is often mounted at chest/head height inside them, so without this an entity damages
+    /// and knocks back itself on every attack. Passing null keeps the old (unfiltered) behaviour.
+    /// </param>
     public static void ResolveMeleeAttack(
         Transform weaponTransform,
         AttackVariant attack,
         float charged,
         LayerMask hitMask,
         LayerMask appliedMask,
-        System.Random rnd)
+        System.Random rnd,
+        Transform owner = null)
     {
         Vector3 origin = weaponTransform.position;
         Vector3 dir = weaponTransform.forward;
@@ -60,6 +66,12 @@ public static class MeleeAttackResolver
             var distance = kvp.Value;
             var health = collider.GetComponentInParent<EntityHealth>();
             if (health == null)
+                continue;
+
+            // Compared against the resolved entity rather than the collider's parentage, because a
+            // weapon isn't necessarily a child of its wielder (the player's are mounted under the
+            // camera) -- what matters is that the thing we're about to damage is the swinger.
+            if (owner != null && health.transform == owner)
                 continue;
 
             if (!closestPerEntity.TryGetValue(health, out var existing))
@@ -115,7 +127,7 @@ public static class MeleeAttackResolver
             float force = DamageCalculator.CalculateChargedKnockback(attack, charged);
             Vector3 kbDir = dir.normalized;
             bool isCharged = charged != -1;
-            DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged, rb);
+            DamagePacket packet = new DamagePacket(dmg, attack.damage.tags, attack.damage.effects, force * kbDir, origin, isCharged, rb, owner, melee: true);
             health.ApplyDamage(packet);
 
             // The hit collider's own rigidbody (a named limb bone) is kinematic while the entity
@@ -133,7 +145,10 @@ public static class MeleeAttackResolver
             }
         }
 
-        if (Physics.Raycast(origin, dir, out RaycastHit hit1, attack.range + attack.radius, appliedMask))
+        // Same self-hit guard for the effect/knockback ray: appliedMask includes BodyParts, so
+        // without it a swing shoves the swinger's own rigidbody and sticks a hit decal on them.
+        if (Physics.Raycast(origin, dir, out RaycastHit hit1, attack.range + attack.radius, appliedMask) &&
+            !(owner != null && (hit1.transform == owner || hit1.transform.IsChildOf(owner))))
         {
             var rbBodyPart = hit1.collider.attachedRigidbody;
             rbBodyPart?.AddForce(dir * attack.knockbackForce, ForceMode.Impulse);

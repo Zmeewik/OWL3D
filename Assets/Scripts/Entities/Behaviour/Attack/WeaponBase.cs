@@ -7,6 +7,45 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
     public AttackVariant[] attacks;
     public WeaponAnimationController[] weaponAnimationController;
     public Transform owner;
+
+    [Header("Accuracy")]
+    /// <summary>
+    /// Random cone applied to ranged shots, in degrees off the weapon's forward axis. Lives here
+    /// rather than on AttackVariant so two wielders of the same weapon class can differ -- a
+    /// twitchy guard and a marksman share a gun but not its accuracy.
+    ///
+    /// Defaults to 0 (perfectly accurate), which is exactly what every existing weapon did before
+    /// this field existed, so nothing changes until it's dialled up.
+    /// </summary>
+    [Tooltip("Random spread cone in degrees for ranged attacks. 0 = perfectly accurate.")]
+    [Min(0f)] public float spreadDegrees = 0f;
+
+    /// <summary>
+    /// Where a ranged shot takes its aim from. Leave empty to aim along the weapon itself, which is
+    /// right for an AI that deliberately points its weapon at a target.
+    ///
+    /// The player's weapons must NOT aim along themselves: they hang off the object driven by
+    /// ArmsOffset while the view is rendered by a separate camera driven by PlayerCamera. Those are
+    /// two different procedural sways, so walking makes the weapon's forward drift away from the
+    /// crosshair and shots go wide. Pointing this at the view camera makes the shot follow the
+    /// crosshair while still leaving the muzzle.
+    /// </summary>
+    [Tooltip("Transform whose forward is the true aim (the view camera for the player). Empty = aim along the weapon.")]
+    public Transform aimSource;
+
+    [Header("Burst")]
+    /// <summary>
+    /// How many times one trigger pull actually resolves the attack. 1 is a single shot or swing --
+    /// the behaviour every weapon had before this existed, so nothing changes until it's raised.
+    ///
+    /// Applies to melee as well as ranged deliberately: a burst of a melee variant is a flurry of
+    /// blows from one input, which is the same idea and costs nothing to support.
+    /// </summary>
+    [Tooltip("Shots (or swings) per trigger pull. 1 = single fire.")]
+    [Min(1)] public int burstCount = 1;
+
+    [Tooltip("Seconds between the shots of one burst.")]
+    [Min(0f)] public float burstInterval = 0.08f;
     
     // Weapon actions
     public Action<string, float[]> OnWeaponAction;
@@ -124,8 +163,8 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
             OnAnimationCall(animation);
             float finalCharge = Mathf.Clamp(chargeTime[index], 0, attack.maxChargeTime);
             //print(finalCharge);
-            ExecuteAttack(attack, finalCharge);
-            
+            FireBurst(attack, finalCharge);
+
         }
     }
 
@@ -155,7 +194,37 @@ public abstract class WeaponBase : MonoBehaviour, IAnimationSender
                 break;
         }
         OnAnimationCall(animation);
-        ExecuteAttack(attack);
+        FireBurst(attack);
+    }
+
+    /// <summary>
+    /// Resolves one trigger pull, which is <see cref="burstCount"/> attacks spaced by
+    /// <see cref="burstInterval"/> rather than necessarily just one.
+    ///
+    /// The first shot always goes out immediately and synchronously, so a single-shot weapon behaves
+    /// exactly as it did before bursts existed and nothing depends on a coroutine having run.
+    /// </summary>
+    protected void FireBurst(AttackVariant attack, float charged = -1)
+    {
+        ExecuteAttack(attack, charged);
+
+        if (burstCount > 1 && isActiveAndEnabled)
+            StartCoroutine(FireRemainingOfBurst(attack, charged));
+    }
+
+    private System.Collections.IEnumerator FireRemainingOfBurst(AttackVariant attack, float charged)
+    {
+        for (int shot = 1; shot < burstCount; shot++)
+        {
+            yield return burstInterval > 0f ? new WaitForSeconds(burstInterval) : null;
+
+            // A weapon put away, swapped, or destroyed mid-burst shouldn't keep firing from wherever
+            // it used to be.
+            if (isWeaponHided || !isActiveAndEnabled)
+                yield break;
+
+            ExecuteAttack(attack, charged);
+        }
     }
 
 

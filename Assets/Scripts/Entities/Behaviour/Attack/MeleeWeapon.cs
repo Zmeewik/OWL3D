@@ -12,6 +12,6 @@ public class MeleeWeapon : WeaponBase
         if (attack.kind != AttackKind.Melee)
             return;
 
-        MeleeAttackResolver.ResolveMeleeAttack(transform, attack, charged, hitMask, appliedMask, rnd);
+        MeleeAttackResolver.ResolveMeleeAttack(transform, attack, charged, hitMask, appliedMask, rnd, owner);
     }
 }
